@@ -10,7 +10,7 @@ import {
   Brain, 
   Calendar, 
   Dumbbell, 
-  Fire, 
+  Flame, 
   MessageCircle, 
   Target, 
   Timer, 
@@ -120,7 +120,7 @@ const Index = () => {
                     </CardDescription>
                   </div>
                   <Badge className="bg-gradient-to-r from-orange-500 to-red-500">
-                    <Fire className="h-3 w-3 mr-1" />
+                    <Flame className="h-3 w-3 mr-1" />
                     10X
                   </Badge>
                 </div>

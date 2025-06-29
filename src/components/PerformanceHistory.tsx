@@ -10,7 +10,7 @@ import {
   TrendingDown,
   Activity,
   Clock,
-  Fire,
+  Flame,
   Target,
   Award,
   BarChart3
@@ -77,7 +77,7 @@ const PerformanceHistory = () => {
   ];
 
   const achievements = [
-    { name: "Sequência de 7 dias", icon: Fire, color: "text-orange-400", earned: true },
+    { name: "Sequência de 7 dias", icon: Flame, color: "text-orange-400", earned: true },
     { name: "100 treinos completos", icon: Target, color: "text-blue-400", earned: true },
     { name: "PSE médio ideal", icon: Activity, color: "text-green-400", earned: false },
     { name: "Mestre da consistência", icon: Award, color: "text-purple-400", earned: false }
@@ -108,7 +108,7 @@ const PerformanceHistory = () => {
 
         <Card className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border-orange-500/20 backdrop-blur-sm">
           <CardContent className="p-4 text-center">
-            <Fire className="h-8 w-8 text-orange-400 mx-auto mb-2" />
+            <Flame className="h-8 w-8 text-orange-400 mx-auto mb-2" />
             <p className="text-2xl font-bold text-white">{weeklyStats.streak}</p>
             <p className="text-sm text-gray-400">Dias Seguidos</p>
           </CardContent>
