@@ -1,91 +1,60 @@
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import Navigation from "@/components/Navigation";
+import EnhancedExerciseCard from "@/components/EnhancedExerciseCard";
+import { exerciseDatabase, getExercisesByCategory } from "@/data/exerciseDatabase";
+import { 
+  Search, 
+  Target,
+  Users,
+  Dumbbell,
+  Heart,
+  Zap,
+  Gauge
+} from "lucide-react";
 
 const ExerciseLibrary = () => {
-  // Base de exercícios simulada
-  const exercises = [
-    {
-      id: 1,
-      name: "Flexão de Braço",
-      muscleGroup: "Peito, Tríceps",
-      type: "peso_corporal",
-      video: "https://example.com/flexao",
-      duration: "10 repetições x 10 séries",
-      description: "Exercício clássico do método 10X para membros superiores"
-    },
-    {
-      id: 2,
-      name: "Agachamento",
-      muscleGroup: "Quadríceps, Glúteos",
-      type: "peso_corporal",
-      video: "https://example.com/agachamento",
-      duration: "10 repetições x 10 séries",
-      description: "Fundamental para o desenvolvimento de membros inferiores"
-    },
-    {
-      id: 3,
-      name: "Supino",
-      muscleGroup: "Peito, Tríceps, Ombros",
-      type: "com_carga",
-      video: "https://example.com/supino",
-      duration: "10 repetições x 10 séries",
-      description: "Exercício base para ganho de força no tronco"
-    },
-    {
-      id: 4,
-      name: "Burpee",
-      muscleGroup: "Corpo Inteiro",
-      type: "peso_corporal",
-      video: "https://example.com/burpee",
-      duration: "30 segundos x 10 séries",
-      description: "Exercício cardiovascular intenso para condicionamento"
-    },
-    {
-      id: 5,
-      name: "Levantamento Terra",
-      muscleGroup: "Posterior, Glúteos, Core",
-      type: "com_carga",
-      video: "https://example.com/terra",
-      duration: "10 repetições x 10 séries",
-      description: "Um dos melhores exercícios compostos para força geral"
-    },
-    {
-      id: 6,
-      name: "Mountain Climber",
-      muscleGroup: "Core, Ombros",
-      type: "peso_corporal",
-      video: "https://example.com/mountain",
-      duration: "30 segundos x 10 séries",
-      description: "Excelente para core e condicionamento cardiovascular"
-    }
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [difficultyFilter, setDifficultyFilter] = useState("all");
+  const [muscleFilter, setMuscleFilter] = useState("all");
+
+  const categories = [
+    { id: "all", name: "Todos", icon: Target, count: exerciseDatabase.length },
+    { id: "peso-corporal", name: "Peso Corporal", icon: Users, count: getExercisesByCategory("peso-corporal").length },
+    { id: "forca", name: "Força", icon: Dumbbell, count: getExercisesByCategory("forca").length },
+    { id: "cardio", name: "Cardio", icon: Heart, count: getExercisesByCategory("cardio").length },
+    { id: "core", name: "Core", icon: Zap, count: getExercisesByCategory("core").length },
+    { id: "mobilidade", name: "Mobilidade", icon: Gauge, count: getExercisesByCategory("mobilidade").length }
   ];
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState("todos");
-  const [muscleFilter, setMuscleFilter] = useState("todos");
+  const muscleGroups = [
+    "Peito", "Costas", "Ombros", "Bíceps", "Tríceps", 
+    "Quadríceps", "Posteriores", "Glúteos", "Panturrilhas", 
+    "Core", "Oblíquos", "Cardio"
+  ];
 
-  const filteredExercises = exercises.filter(exercise => {
+  const filteredExercises = exerciseDatabase.filter(exercise => {
     const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         exercise.muscleGroup.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === "todos" || exercise.type === typeFilter;
-    const matchesMuscle = muscleFilter === "todos" || 
-                         exercise.muscleGroup.toLowerCase().includes(muscleFilter.toLowerCase());
+                         exercise.muscleGroup.some(muscle => 
+                           muscle.toLowerCase().includes(searchTerm.toLowerCase())
+                         ) ||
+                         exercise.description.toLowerCase().includes(searchTerm.toLowerCase());
     
-    return matchesSearch && matchesType && matchesMuscle;
+    const matchesCategory = selectedCategory === "all" || exercise.category === selectedCategory;
+    const matchesDifficulty = difficultyFilter === "all" || exercise.difficulty === difficultyFilter;
+    const matchesMuscle = muscleFilter === "all" || 
+                         exercise.muscleGroup.some(muscle => 
+                           muscle.toLowerCase().includes(muscleFilter.toLowerCase())
+                         );
+    
+    return matchesSearch && matchesCategory && matchesDifficulty && matchesMuscle;
   });
-
-  const getTypeColor = (type: string) => {
-    return type === "peso_corporal" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800";
-  };
-
-  const getTypeLabel = (type: string) => {
-    return type === "peso_corporal" ? "Peso Corporal" : "Com Carga";
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -93,39 +62,76 @@ const ExerciseLibrary = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            🏋️ Biblioteca de Exercícios
+            🏋️ Biblioteca Completa de Exercícios
           </h1>
           <p className="text-gray-600">
-            Explore nossa coleção de exercícios para o método 10X
+            {exerciseDatabase.length} exercícios para todos os níveis e objetivos
           </p>
         </div>
 
-        {/* Filtros */}
+        {/* Estatísticas Rápidas */}
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+          {categories.map((category) => (
+            <Card key={category.id} className="text-center">
+              <CardContent className="p-4">
+                <category.icon className="h-6 w-6 mx-auto mb-2 text-blue-600" />
+                <p className="text-2xl font-bold text-blue-600">{category.count}</p>
+                <p className="text-xs text-gray-600">{category.name}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Filtros Avançados */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Filtros de Busca</CardTitle>
+            <CardDescription>
+              Use os filtros para encontrar exercícios específicos
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Buscar Exercício</label>
-                <Input
-                  placeholder="Nome ou grupo muscular..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+                <label className="text-sm font-medium">Buscar</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Nome, músculo ou descrição..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium">Tipo</label>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <label className="text-sm font-medium">Categoria</label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="todos">Todos os Tipos</SelectItem>
-                    <SelectItem value="peso_corporal">Peso Corporal</SelectItem>
-                    <SelectItem value="com_carga">Com Carga</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name} ({category.count})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Dificuldade</label>
+                <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="Iniciante">Iniciante</SelectItem>
+                    <SelectItem value="Intermediário">Intermediário</SelectItem>
+                    <SelectItem value="Avançado">Avançado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -137,11 +143,12 @@ const ExerciseLibrary = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="todos">Todos os Grupos</SelectItem>
-                    <SelectItem value="peito">Peito</SelectItem>
-                    <SelectItem value="quadríceps">Quadríceps</SelectItem>
-                    <SelectItem value="core">Core</SelectItem>
-                    <SelectItem value="ombros">Ombros</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {muscleGroups.map((muscle) => (
+                      <SelectItem key={muscle} value={muscle}>
+                        {muscle}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -149,56 +156,58 @@ const ExerciseLibrary = () => {
           </CardContent>
         </Card>
 
-        {/* Lista de Exercícios */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Resultados */}
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Badge variant="outline" className="text-sm">
+              {filteredExercises.length} exercícios encontrados
+            </Badge>
+            {searchTerm && (
+              <Badge variant="secondary">
+                Buscando: "{searchTerm}"
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {/* Grade de Exercícios */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredExercises.map((exercise) => (
-            <Card key={exercise.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-lg">{exercise.name}</CardTitle>
-                  <Badge className={getTypeColor(exercise.type)}>
-                    {getTypeLabel(exercise.type)}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Grupo Muscular:</p>
-                  <p className="font-medium text-blue-600">{exercise.muscleGroup}</p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Duração/Repetições:</p>
-                  <p className="font-medium">{exercise.duration}</p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Descrição:</p>
-                  <p className="text-sm">{exercise.description}</p>
-                </div>
-                
-                <div className="pt-2">
-                  <a 
-                    href={exercise.video}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    🎥 Ver Vídeo Demonstrativo
-                  </a>
-                </div>
-              </CardContent>
-            </Card>
+            <EnhancedExerciseCard
+              key={exercise.id}
+              exercise={exercise}
+              onAddToWorkout={(exercise) => {
+                console.log("Adicionando ao treino:", exercise.name);
+                // Aqui poderia implementar lógica para adicionar ao treino
+              }}
+            />
           ))}
         </div>
 
         {filteredExercises.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 mb-4">Nenhum exercício encontrado</p>
-            <p className="text-sm text-gray-400">
-              Tente ajustar os filtros de busca
-            </p>
-          </div>
+          <Card className="text-center py-12">
+            <CardContent>
+              <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Nenhum exercício encontrado</h3>
+              <p className="text-gray-600 mb-4">
+                Tente ajustar os filtros ou termos de busca
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                <Badge 
+                  variant="outline" 
+                  className="cursor-pointer"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedCategory("all");
+                    setDifficultyFilter("all");
+                    setMuscleFilter("all");
+                  }}
+                >
+                  Limpar Filtros
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>

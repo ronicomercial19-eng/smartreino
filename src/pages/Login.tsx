@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
+import { initializeMockData } from "@/data/mockData";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -17,7 +18,18 @@ const Login = () => {
     
     // Simulação de login - em produção seria integrado com Supabase
     if (email && password) {
-      localStorage.setItem("user", JSON.stringify({ email, loggedIn: true }));
+      // Inicializa dados mock para demonstração
+      initializeMockData();
+      
+      localStorage.setItem("user", JSON.stringify({ 
+        email, 
+        loggedIn: true,
+        name: "João Silva",
+        level: "intermediario",
+        objective: "Ganhar massa muscular e força",
+        age: 28
+      }));
+      
       toast({
         title: "Login realizado com sucesso!",
         description: "Bem-vindo ao Sistema de Treino 10X",
@@ -32,6 +44,26 @@ const Login = () => {
     }
   };
 
+  const handleDemoLogin = () => {
+    // Login de demonstração
+    initializeMockData();
+    
+    localStorage.setItem("user", JSON.stringify({ 
+      email: "demo@10xtraining.com", 
+      loggedIn: true,
+      name: "Usuário Demo",
+      level: "intermediario",
+      objective: "Teste da aplicação",
+      age: 25
+    }));
+    
+    toast({
+      title: "Modo demonstração ativado!",
+      description: "Explore todas as funcionalidades com dados de exemplo",
+    });
+    navigate("/dashboard");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -43,7 +75,7 @@ const Login = () => {
             Entre com suas credenciais para acessar o sistema
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -71,7 +103,27 @@ const Login = () => {
               Entrar
             </Button>
           </form>
-          <div className="mt-4 text-center">
+          
+          {/* Botão de Demonstração */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Ou</span>
+            </div>
+          </div>
+          
+          <Button 
+            type="button" 
+            variant="outline" 
+            className="w-full"
+            onClick={handleDemoLogin}
+          >
+            🚀 Entrar no Modo Demonstração
+          </Button>
+          
+          <div className="text-center">
             <p className="text-sm text-gray-600">
               Não tem uma conta?{" "}
               <Link to="/register" className="text-blue-600 hover:underline">
