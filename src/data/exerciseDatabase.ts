@@ -1,7 +1,7 @@
 
 // Re-export da versão expandida para manter compatibilidade
+export type { Exercise } from './expandedExerciseDatabase';
 export { 
-  Exercise,
   expandedExerciseDatabase as exerciseDatabase,
   getExercisesByCategory,
   getExercisesByMuscleGroup,
@@ -41,7 +41,6 @@ export const getCompleteExerciseStats = () => {
     acc[eq] = completeExerciseDatabase.filter(ex => 
       ex.equipment.toLowerCase().includes(eq.toLowerCase())
     ).length;
-    return acc;
   }, {} as Record<string, number>);
 
   return { total, byCategory, byDifficulty, byEquipment };
