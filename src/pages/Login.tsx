@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
-import { initializeMockData } from "@/data/mockData";
+import { initializeMockData, mockUserProfiles } from "@/data/mockData";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -16,23 +16,28 @@ const Login = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Simulação de login - em produção seria integrado com Supabase
     if (email && password) {
+      // Buscar perfil existente ou criar um novo
+      const existingProfile = mockUserProfiles.find(profile => profile.email === email);
+      
+      const userProfile = existingProfile || {
+        id: Date.now().toString(),
+        email,
+        loggedIn: true,
+        name: email.split('@')[0] || "Usuário",
+        level: "intermediario" as const,
+        objective: "Melhoria da forma física",
+        age: 25
+      };
+
       // Inicializa dados mock para demonstração
       initializeMockData();
       
-      localStorage.setItem("user", JSON.stringify({ 
-        email, 
-        loggedIn: true,
-        name: "João Silva",
-        level: "intermediario",
-        objective: "Ganhar massa muscular e força",
-        age: 28
-      }));
+      localStorage.setItem("user", JSON.stringify(userProfile));
       
       toast({
         title: "Login realizado com sucesso!",
-        description: "Bem-vindo ao Sistema de Treino 10X",
+        description: `Bem-vindo ${userProfile.name}!`,
       });
       navigate("/dashboard");
     } else {
@@ -45,17 +50,20 @@ const Login = () => {
   };
 
   const handleDemoLogin = () => {
-    // Login de demonstração
+    // Login de demonstração com perfil completo
     initializeMockData();
     
-    localStorage.setItem("user", JSON.stringify({ 
+    const demoUser = {
+      id: "demo-user",
       email: "demo@10xtraining.com", 
       loggedIn: true,
       name: "Usuário Demo",
       level: "intermediario",
       objective: "Teste da aplicação",
       age: 25
-    }));
+    };
+    
+    localStorage.setItem("user", JSON.stringify(demoUser));
     
     toast({
       title: "Modo demonstração ativado!",

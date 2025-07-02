@@ -4,18 +4,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import Navigation from "@/components/Navigation";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { getUserWorkouts, getWorkoutStats } from "@/data/mockData";
 
 const WorkoutHistory = () => {
+  const { userProfile } = useUserProfile();
   const [workouts, setWorkouts] = useState([]);
   const [filteredWorkouts, setFilteredWorkouts] = useState([]);
   const [dateFilter, setDateFilter] = useState("");
+  const [workoutStats, setWorkoutStats] = useState(null);
 
   useEffect(() => {
-    const savedWorkouts = JSON.parse(localStorage.getItem("workouts") || "[]");
-    setWorkouts(savedWorkouts);
-    setFilteredWorkouts(savedWorkouts);
-  }, []);
+    if (userProfile) {
+      const userWorkouts = getUserWorkouts(userProfile.id);
+      const stats = getWorkoutStats(userProfile.id);
+      
+      setWorkouts(userWorkouts);
+      setFilteredWorkouts(userWorkouts);
+      setWorkoutStats(stats);
+    }
+  }, [userProfile]);
 
   useEffect(() => {
     if (dateFilter) {
@@ -38,6 +48,33 @@ const WorkoutHistory = () => {
     return Math.round(total / filteredWorkouts.length);
   };
 
+  const getPSEBadgeColor = (pse: number) => {
+    if (pse <= 3) return 'bg-green-100 text-green-800';
+    if (pse <= 6) return 'bg-yellow-100 text-yellow-800';
+    if (pse <= 8) return 'bg-orange-100 text-orange-800';
+    return 'bg-red-100 text-red-800';
+  };
+
+  const getLoadColor = (load: number) => {
+    if (load > 400) return 'text-red-600';
+    if (load > 300) return 'text-orange-600';
+    if (load > 200) return 'text-yellow-600';
+    return 'text-green-600';
+  };
+
+  if (!userProfile) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <p className="text-gray-600">Carregando dados do usuário...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
@@ -52,7 +89,7 @@ const WorkoutHistory = () => {
         </div>
 
         {/* Estatísticas Resumidas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardContent className="p-6">
               <div className="text-center">
@@ -88,12 +125,26 @@ const WorkoutHistory = () => {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-purple-600">
+                  {filteredWorkouts.length > 0 ? 
+                    Math.round(filteredWorkouts.reduce((sum, w) => sum + parseInt(w.duration), 0) / filteredWorkouts.length) 
+                    : 0
+                  } min
+                </p>
+                <p className="text-sm text-gray-600">Duração Média</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filtros */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Filtros</CardTitle>
+            <CardTitle>Filtros de Busca</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -106,6 +157,20 @@ const WorkoutHistory = () => {
                   onChange={(e) => setDateFilter(e.target.value)}
                   placeholder="Selecione o mês/ano"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Progresso</Label>
+                <div className="flex items-center space-x-2">
+                  <Badge variant="outline" className="text-green-600">
+                    {filteredWorkouts.filter(w => w.pse <= 6).length} Leves
+                  </Badge>
+                  <Badge variant="outline" className="text-orange-600">
+                    {filteredWorkouts.filter(w => w.pse > 6 && w.pse <= 8).length} Intensos
+                  </Badge>
+                  <Badge variant="outline" className="text-red-600">
+                    {filteredWorkouts.filter(w => w.pse > 8).length} Extremos
+                  </Badge>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -147,28 +212,31 @@ const WorkoutHistory = () => {
                         <TableCell className="font-medium">
                           {formatDate(workout.date)}
                         </TableCell>
-                        <TableCell>{workout.workout}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <span>{workout.workout}</span>
+                            {workout.workout.includes('10X') && (
+                              <Badge variant="outline" className="text-blue-600">
+                                10X
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>{workout.duration} min</TableCell>
                         <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            workout.pse <= 3 ? 'bg-green-100 text-green-800' :
-                            workout.pse <= 6 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
+                          <Badge className={getPSEBadgeColor(workout.pse)}>
                             {workout.pse}/10
-                          </span>
+                          </Badge>
                         </TableCell>
                         <TableCell>
-                          <span className={`font-semibold ${
-                            workout.cargaInterna > 300 ? 'text-red-600' :
-                            workout.cargaInterna > 200 ? 'text-orange-600' :
-                            'text-green-600'
-                          }`}>
+                          <span className={`font-semibold ${getLoadColor(workout.cargaInterna)}`}>
                             {workout.cargaInterna}
                           </span>
                         </TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {workout.feedback || "-"}
+                        <TableCell className="max-w-xs">
+                          <div className="truncate" title={workout.feedback}>
+                            {workout.feedback || "-"}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

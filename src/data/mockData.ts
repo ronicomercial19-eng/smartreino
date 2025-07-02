@@ -1,6 +1,49 @@
 
 // Dados simulados para teste da aplicação
-export const mockWorkouts = [
+export interface WorkoutRecord {
+  id: number;
+  workout: string;
+  date: string;
+  duration: string;
+  pse: number;
+  cargaInterna: number;
+  feedback: string;
+  userId?: string;
+}
+
+export interface AISuggestion {
+  id: number;
+  date: string;
+  suggestion: string;
+  reason: string;
+  type: 'recovery' | 'progression' | 'balance' | 'motivation' | 'warning';
+  userId?: string;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  age: number;
+  objective: string;
+  level: 'iniciante' | 'intermediario' | 'avancado';
+  joinDate: string;
+  totalWorkouts: number;
+  averagePSE: number;
+  averageLoad: number;
+  favoriteWorkout: string;
+  weeklyGoal: number;
+  currentStreak: number;
+  weight?: number;
+  height?: number;
+  preferences?: {
+    workoutTypes: string[];
+    availableDays: string[];
+    sessionDuration: number;
+  };
+}
+
+export const mockWorkouts: WorkoutRecord[] = [
   {
     id: 1,
     workout: "10X - Membros Superiores",
@@ -8,7 +51,8 @@ export const mockWorkouts = [
     duration: "45",
     pse: 8,
     cargaInterna: 360,
-    feedback: "Treino muito intenso, senti bastante o peito e tríceps. Boa queimação muscular."
+    feedback: "Treino muito intenso, senti bastante o peito e tríceps. Boa queimação muscular.",
+    userId: "demo-user"
   },
   {
     id: 2,
@@ -17,7 +61,8 @@ export const mockWorkouts = [
     duration: "50",
     pse: 9,
     cargaInterna: 450,
-    feedback: "Treino pesado de pernas. Agachamentos desafiadores, senti tremor muscular."
+    feedback: "Treino pesado de pernas. Agachamentos desafiadores, senti tremor muscular.",
+    userId: "demo-user"
   },
   {
     id: 3,
@@ -26,7 +71,8 @@ export const mockWorkouts = [
     duration: "35",
     pse: 6,
     cargaInterna: 210,
-    feedback: "Treino mais leve, foco na técnica. Bom para recuperação ativa."
+    feedback: "Treino mais leve, foco na técnica. Bom para recuperação ativa.",
+    userId: "demo-user"
   },
   {
     id: 4,
@@ -35,7 +81,8 @@ export const mockWorkouts = [
     duration: "55",
     pse: 9,
     cargaInterna: 495,
-    feedback: "Treino completo muito desafiador. Burpees foram o ponto alto da sessão."
+    feedback: "Treino completo muito desafiador. Burpees foram o ponto alto da sessão.",
+    userId: "demo-user"
   },
   {
     id: 5,
@@ -44,7 +91,8 @@ export const mockWorkouts = [
     duration: "40",
     pse: 7,
     cargaInterna: 280,
-    feedback: "Boa combinação de força e cardio. Senti o coração acelerar bastante."
+    feedback: "Boa combinação de força e cardio. Senti o coração acelerar bastante.",
+    userId: "demo-user"
   },
   {
     id: 6,
@@ -53,7 +101,8 @@ export const mockWorkouts = [
     duration: "42",
     pse: 8,
     cargaInterna: 336,
-    feedback: "Melhorei as repetições das flexões em relação ao treino anterior."
+    feedback: "Melhorei as repetições das flexões em relação ao treino anterior.",
+    userId: "demo-user"
   },
   {
     id: 7,
@@ -62,7 +111,8 @@ export const mockWorkouts = [
     duration: "38",
     pse: 7,
     cargaInterna: 266,
-    feedback: "Foco em mobilidade de quadril. Afundos ficaram mais fluidos."
+    feedback: "Foco em mobilidade de quadril. Afundos ficaram mais fluidos.",
+    userId: "demo-user"
   },
   {
     id: 8,
@@ -71,65 +121,102 @@ export const mockWorkouts = [
     duration: "48",
     pse: 8,
     cargaInterna: 384,
-    feedback: "Consegui manter intensidade alta por mais tempo. Evolução clara!"
+    feedback: "Consegui manter intensidade alta por mais tempo. Evolução clara!",
+    userId: "demo-user"
   }
 ];
 
-export const mockAISuggestions = [
+export const mockAISuggestions: AISuggestion[] = [
   {
     id: 1,
     date: "2024-01-23",
     suggestion: "Recomendamos um dia de descanso ou treino leve",
     reason: "Sua carga interna foi alta (495). É importante dar tempo para recuperação.",
-    type: "recovery"
+    type: "recovery",
+    userId: "demo-user"
   },
   {
     id: 2,
     date: "2024-01-28",
     suggestion: "Considere aumentar a intensidade gradualmente",
     reason: "Seus últimos treinos mostram boa adaptação. Tempo de progredir!",
-    type: "progression"
+    type: "progression",
+    userId: "demo-user"
   },
   {
     id: 3,
     date: "2024-02-02",
     suggestion: "Adicione exercícios de mobilidade",
     reason: "Notei que você tem focado muito em força. Mobilidade ajudará na recuperação.",
-    type: "balance"
+    type: "balance",
+    userId: "demo-user"
   },
   {
     id: 4,
     date: "2024-02-05",
     suggestion: "Parabéns pela consistência!",
     reason: "Você manteve uma frequência excelente. Continue assim para resultados ótimos.",
-    type: "motivation"
+    type: "motivation",
+    userId: "demo-user"
   }
 ];
 
-export const mockUserProfile = {
-  name: "João Silva",
-  email: "joao.silva@email.com",
-  age: 28,
-  objective: "Ganhar massa muscular e força",
-  level: "intermediario",
-  joinDate: "2024-01-10",
-  totalWorkouts: mockWorkouts.length,
-  averagePSE: 7.6,
-  averageLoad: 336,
-  favoriteWorkout: "10X - Corpo Inteiro",
-  weeklyGoal: 4,
-  currentStreak: 12
-};
+export const mockUserProfiles: UserProfile[] = [
+  {
+    id: "demo-user",
+    name: "Usuário Demo",
+    email: "demo@10xtraining.com",
+    age: 25,
+    objective: "Teste da aplicação",
+    level: "intermediario",
+    joinDate: "2024-01-10",
+    totalWorkouts: mockWorkouts.length,
+    averagePSE: 7.6,
+    averageLoad: 336,
+    favoriteWorkout: "10X - Corpo Inteiro",
+    weeklyGoal: 4,
+    currentStreak: 12,
+    weight: 75,
+    height: 175,
+    preferences: {
+      workoutTypes: ["10X", "Corporal"],
+      availableDays: ["Segunda", "Quarta", "Sexta"],
+      sessionDuration: 45
+    }
+  },
+  {
+    id: "joao-silva",
+    name: "João Silva",
+    email: "joao.silva@email.com",
+    age: 28,
+    objective: "Ganhar massa muscular e força",
+    level: "intermediario",
+    joinDate: "2024-01-10",
+    totalWorkouts: 0,
+    averagePSE: 0,
+    averageLoad: 0,
+    favoriteWorkout: "",
+    weeklyGoal: 4,
+    currentStreak: 0,
+    weight: 80,
+    height: 180,
+    preferences: {
+      workoutTypes: ["10X", "Força"],
+      availableDays: ["Segunda", "Terça", "Quinta", "Sábado"],
+      sessionDuration: 60
+    }
+  }
+];
 
 export const mockPerformanceData = [
-  { date: "2024-01-15", carga: 360, pse: 8, duracao: 45 },
-  { date: "2024-01-17", carga: 450, pse: 9, duracao: 50 },
-  { date: "2024-01-20", carga: 210, pse: 6, duracao: 35 },
-  { date: "2024-01-22", carga: 495, pse: 9, duracao: 55 },
-  { date: "2024-01-25", carga: 280, pse: 7, duracao: 40 },
-  { date: "2024-01-27", carga: 336, pse: 8, duracao: 42 },
-  { date: "2024-01-29", carga: 266, pse: 7, duracao: 38 },
-  { date: "2024-02-01", carga: 384, pse: 8, duracao: 48 }
+  { date: "2024-01-15", carga: 360, pse: 8, duracao: 45, userId: "demo-user" },
+  { date: "2024-01-17", carga: 450, pse: 9, duracao: 50, userId: "demo-user" },
+  { date: "2024-01-20", carga: 210, pse: 6, duracao: 35, userId: "demo-user" },
+  { date: "2024-01-22", carga: 495, pse: 9, duracao: 55, userId: "demo-user" },
+  { date: "2024-01-25", carga: 280, pse: 7, duracao: 40, userId: "demo-user" },
+  { date: "2024-01-27", carga: 336, pse: 8, duracao: 42, userId: "demo-user" },
+  { date: "2024-01-29", carga: 266, pse: 7, duracao: 38, userId: "demo-user" },
+  { date: "2024-02-01", carga: 384, pse: 8, duracao: 48, userId: "demo-user" }
 ];
 
 export const mockWeeklyStats = {
@@ -158,8 +245,8 @@ export const initializeMockData = () => {
     localStorage.setItem("aiSuggestions", JSON.stringify(mockAISuggestions));
   }
   
-  if (!localStorage.getItem("userProfile")) {
-    localStorage.setItem("userProfile", JSON.stringify(mockUserProfile));
+  if (!localStorage.getItem("userProfiles")) {
+    localStorage.setItem("userProfiles", JSON.stringify(mockUserProfiles));
   }
   
   if (!localStorage.getItem("performanceData")) {
@@ -168,15 +255,51 @@ export const initializeMockData = () => {
 };
 
 // Funções auxiliares para trabalhar com os dados
-export const getWorkoutStats = () => {
+export const getCurrentUserProfile = (): UserProfile | null => {
+  const user = localStorage.getItem("user");
+  if (!user) return null;
+  
+  const userData = JSON.parse(user);
+  const profiles = JSON.parse(localStorage.getItem("userProfiles") || "[]");
+  
+  return profiles.find((profile: UserProfile) => 
+    profile.email === userData.email || profile.id === "demo-user"
+  ) || null;
+};
+
+export const updateUserProfile = (updatedProfile: UserProfile) => {
+  const profiles = JSON.parse(localStorage.getItem("userProfiles") || "[]");
+  const profileIndex = profiles.findIndex((p: UserProfile) => p.id === updatedProfile.id);
+  
+  if (profileIndex >= 0) {
+    profiles[profileIndex] = updatedProfile;
+  } else {
+    profiles.push(updatedProfile);
+  }
+  
+  localStorage.setItem("userProfiles", JSON.stringify(profiles));
+};
+
+export const getUserWorkouts = (userId: string): WorkoutRecord[] => {
   const workouts = JSON.parse(localStorage.getItem("workouts") || "[]");
+  return workouts.filter((workout: WorkoutRecord) => 
+    workout.userId === userId || userId === "demo-user"
+  );
+};
+
+export const getWorkoutStats = (userId?: string) => {
+  let workouts = JSON.parse(localStorage.getItem("workouts") || "[]");
+  
+  if (userId) {
+    workouts = workouts.filter((w: WorkoutRecord) => w.userId === userId);
+  }
   
   if (workouts.length === 0) return null;
   
   const totalWorkouts = workouts.length;
-  const totalDuration = workouts.reduce((sum: number, w: any) => sum + parseInt(w.duration), 0);
-  const averagePSE = Math.round(workouts.reduce((sum: number, w: any) => sum + w.pse, 0) / totalWorkouts * 10) / 10;
-  const averageLoad = Math.round(workouts.reduce((sum: number, w: any) => sum + w.cargaInterna, 0) / totalWorkouts);
+  const totalDuration = workouts.reduce((sum: number, w: WorkoutRecord) => sum + parseInt(w.duration), 0);
+  const averagePSE = Math.round(workouts.reduce((sum: number, w: WorkoutRecord) => sum + w.pse, 0) / totalWorkouts * 10) / 10;
+  const averageLoad = Math.round(workouts.reduce((sum: number, w: WorkoutRecord) => sum + w.cargaInterna, 0) / totalWorkouts);
   
   return {
     totalWorkouts,
@@ -186,15 +309,33 @@ export const getWorkoutStats = () => {
   };
 };
 
-export const getRecentWorkouts = (limit: number = 5) => {
-  const workouts = JSON.parse(localStorage.getItem("workouts") || "[]");
-  return workouts.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, limit);
+export const getRecentWorkouts = (limit: number = 5, userId?: string): WorkoutRecord[] => {
+  let workouts = JSON.parse(localStorage.getItem("workouts") || "[]");
+  
+  if (userId) {
+    workouts = workouts.filter((workout: WorkoutRecord) => workout.userId === userId);
+  }
+  
+  return workouts
+    .sort((a: WorkoutRecord, b: WorkoutRecord) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, limit);
 };
 
-export const getWorkoutsByPeriod = (days: number = 30) => {
-  const workouts = JSON.parse(localStorage.getItem("workouts") || "[]");
+export const getWorkoutsByPeriod = (days: number = 30, userId?: string): WorkoutRecord[] => {
+  let workouts = JSON.parse(localStorage.getItem("workouts") || "[]");
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - days);
   
-  return workouts.filter((workout: any) => new Date(workout.date) >= cutoffDate);
+  if (userId) {
+    workouts = workouts.filter((workout: WorkoutRecord) => workout.userId === userId);
+  }
+  
+  return workouts.filter((workout: WorkoutRecord) => new Date(workout.date) >= cutoffDate);
+};
+
+export const getUserAISuggestions = (userId: string): AISuggestion[] => {
+  const suggestions = JSON.parse(localStorage.getItem("aiSuggestions") || "[]");
+  return suggestions.filter((suggestion: AISuggestion) => 
+    suggestion.userId === userId || userId === "demo-user"
+  );
 };
