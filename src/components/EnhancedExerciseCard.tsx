@@ -10,9 +10,13 @@ import {
   Dumbbell,
   CheckCircle2,
   Info,
-  Lightbulb
+  Lightbulb,
+  AlertTriangle,
+  Timer,
+  Repeat,
+  RotateCcw
 } from "lucide-react";
-import { Exercise } from "@/data/exerciseDatabase";
+import { Exercise } from "@/data/expandedExerciseDatabase";
 import { useState } from "react";
 
 interface EnhancedExerciseCardProps {
@@ -48,6 +52,10 @@ const EnhancedExerciseCard = ({ exercise, onAddToWorkout }: EnhancedExerciseCard
         return '⚡';
       case 'mobilidade':
         return '🤸';
+      case 'funcional':
+        return '🎯';
+      case 'pliometrico':
+        return '💥';
       default:
         return '🎯';
     }
@@ -62,7 +70,7 @@ const EnhancedExerciseCard = ({ exercise, onAddToWorkout }: EnhancedExerciseCard
               <span className="text-2xl">{getCategoryIcon(exercise.category)}</span>
               <CardTitle className="text-white text-lg">{exercise.name}</CardTitle>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 mb-2">
               <Badge className={getDifficultyColor(exercise.difficulty)}>
                 {exercise.difficulty}
               </Badge>
@@ -72,6 +80,16 @@ const EnhancedExerciseCard = ({ exercise, onAddToWorkout }: EnhancedExerciseCard
                 </Badge>
               )}
             </div>
+            {/* Músculos Primários */}
+            {exercise.targetMuscles && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {exercise.targetMuscles.slice(0, 2).map((muscle, index) => (
+                  <Badge key={index} variant="secondary" className="text-xs bg-purple-500/20 text-purple-300">
+                    {muscle}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
           <Button 
             size="sm" 
@@ -87,6 +105,7 @@ const EnhancedExerciseCard = ({ exercise, onAddToWorkout }: EnhancedExerciseCard
       <CardContent className="space-y-4">
         <p className="text-gray-300 text-sm leading-relaxed">{exercise.description}</p>
         
+        {/* Informações Principais */}
         <div className="grid grid-cols-2 gap-3">
           <div className="flex items-center text-sm">
             <Clock className="h-4 w-4 text-blue-400 mr-2" />
@@ -96,8 +115,21 @@ const EnhancedExerciseCard = ({ exercise, onAddToWorkout }: EnhancedExerciseCard
             <Target className="h-4 w-4 text-purple-400 mr-2" />
             <span className="text-gray-300">{exercise.muscleGroup.length} grupos</span>
           </div>
+          {exercise.sets && (
+            <div className="flex items-center text-sm">
+              <Repeat className="h-4 w-4 text-green-400 mr-2" />
+              <span className="text-gray-300">{exercise.sets} séries</span>
+            </div>
+          )}
+          {exercise.restTime && (
+            <div className="flex items-center text-sm">
+              <Timer className="h-4 w-4 text-orange-400 mr-2" />
+              <span className="text-gray-300">{exercise.restTime}</span>
+            </div>
+          )}
         </div>
 
+        {/* Músculos Trabalhados */}
         <div>
           <p className="text-sm text-gray-400 mb-2">Músculos Trabalhados:</p>
           <div className="flex flex-wrap gap-1">
@@ -150,13 +182,45 @@ const EnhancedExerciseCard = ({ exercise, onAddToWorkout }: EnhancedExerciseCard
               </ul>
             </div>
 
+            {/* Erros Comuns */}
+            {exercise.commonMistakes && exercise.commonMistakes.length > 0 && (
+              <div>
+                <h4 className="text-white font-medium mb-2 flex items-center">
+                  <AlertTriangle className="h-4 w-4 mr-2 text-red-400" />
+                  Erros Comuns:
+                </h4>
+                <ul className="list-disc list-inside space-y-1 text-sm text-gray-300 ml-6">
+                  {exercise.commonMistakes.map((mistake, index) => (
+                    <li key={index} className="text-red-300">{mistake}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Músculos Secundários */}
+            {exercise.secondaryMuscles && exercise.secondaryMuscles.length > 0 && (
+              <div>
+                <h4 className="text-white font-medium mb-2">Músculos Secundários:</h4>
+                <div className="flex flex-wrap gap-1">
+                  {exercise.secondaryMuscles.map((muscle, index) => (
+                    <Badge key={index} variant="outline" className="text-xs border-gray-500/30 text-gray-400">
+                      {muscle}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Variações */}
             {exercise.variations && exercise.variations.length > 0 && (
               <div>
-                <h4 className="text-white font-medium mb-2">Variações:</h4>
+                <h4 className="text-white font-medium mb-2 flex items-center">
+                  <RotateCcw className="h-4 w-4 mr-2 text-cyan-400" />
+                  Variações:
+                </h4>
                 <div className="flex flex-wrap gap-1">
                   {exercise.variations.map((variation, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
+                    <Badge key={index} variant="secondary" className="text-xs bg-cyan-500/20 text-cyan-300">
                       {variation}
                     </Badge>
                   ))}
