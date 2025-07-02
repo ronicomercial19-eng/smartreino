@@ -1,19 +1,24 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import Navigation from "@/components/Navigation";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useUserContext } from "@/hooks/useUserContext";
+import { contextualAI } from "@/services/contextualAIService";
 import { getWorkoutStats, getRecentWorkouts, getUserAISuggestions } from "@/data/mockData";
+import { Brain, TrendingUp, Zap, AlertTriangle } from "lucide-react";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { userProfile, loading } = useUserProfile();
+  const { userContext } = useUserContext();
   const [workoutStats, setWorkoutStats] = useState(null);
   const [recentWorkouts, setRecentWorkouts] = useState([]);
   const [aiSuggestions, setAiSuggestions] = useState([]);
+  const [aiAnalysis, setAiAnalysis] = useState(null);
 
   // Dados simulados para o gráfico de carga interna
   const weeklyData = [
@@ -45,6 +50,14 @@ const Dashboard = () => {
     }
   }, [navigate, userProfile]);
 
+  // Gerar análise contextual quando userContext estiver disponível
+  useEffect(() => {
+    if (userContext) {
+      const analysis = contextualAI.analyzeUser(userContext);
+      setAiAnalysis(analysis);
+    }
+  }, [userContext]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -60,21 +73,96 @@ const Dashboard = () => {
     return null;
   }
 
+  const getStateColor = (state: string) => {
+    switch (state) {
+      case 'motivated': return 'bg-green-500/20 text-green-600 border-green-500/30';
+      case 'progressing': return 'bg-blue-500/20 text-blue-600 border-blue-500/30';
+      case 'plateaued': return 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30';
+      case 'struggling': return 'bg-red-500/20 text-red-600 border-red-500/30';
+      default: return 'bg-gray-500/20 text-gray-600 border-gray-500/30';
+    }
+  };
+
+  const getStateEmoji = (state: string) => {
+    switch (state) {
+      case 'motivated': return '🔥';
+      case 'progressing': return '📈';
+      case 'plateaued': return '⚖️';
+      case 'struggling': return '💪';
+      default: return '🎯';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Olá, {userProfile.name}! 👋
-          </h1>
-          <p className="text-gray-600">
-            {workoutStats 
-              ? `${workoutStats.totalWorkouts} treinos realizados • PSE médio: ${workoutStats.averagePSE}`
-              : "Vamos começar sua jornada fitness?"
-            }
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Olá, {userProfile.name}! 👋
+              </h1>
+              <p className="text-gray-600">
+                {workoutStats 
+                  ? `${workoutStats.totalWorkouts} treinos realizados • PSE médio: ${workoutStats.averagePSE}`
+                  : "Vamos começar sua jornada fitness?"
+                }
+              </p>
+            </div>
+            {aiAnalysis && (
+              <Badge className={getStateColor(aiAnalysis.userState)}>
+                {getStateEmoji(aiAnalysis.userState)} {aiAnalysis.userState}
+              </Badge>
+            )}
+          </div>
         </div>
+
+        {/* Análise da IA Contextual */}
+        {aiAnalysis && (
+          <Card className="mb-8 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+            <CardHeader>
+              <CardTitle className="text-purple-600 flex items-center">
+                <Brain className="h-5 w-5 mr-2" />
+                Análise Inteligente
+              </CardTitle>
+              <CardDescription>
+                Insights personalizados baseados no seu histórico
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-semibold text-purple-800 mb-2">💬 Mensagem Motivacional</h4>
+                  <p className="text-purple-700 text-sm">{aiAnalysis.motivationalMessage}</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-purple-800 mb-2">🎯 Próximo Treino Sugerido</h4>
+                  <p className="text-purple-700 text-sm">{aiAnalysis.nextWorkoutSuggestion}</p>
+                </div>
+              </div>
+              
+              {aiAnalysis.warnings.length > 0 && (
+                <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex items-center">
+                    <AlertTriangle className="h-4 w-4 text-orange-600 mr-2" />
+                    <span className="text-sm text-orange-800">{aiAnalysis.warnings[0]}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4">
+                <Button 
+                  onClick={() => navigate("/ai-chat")}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                >
+                  <Brain className="h-4 w-4 mr-2" />
+                  Chat Contextual
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {/* Sugestão de Treino do Dia */}
@@ -83,12 +171,14 @@ const Dashboard = () => {
               <CardTitle className="text-blue-600">🎯 Sugestão de Treino Hoje</CardTitle>
               <CardDescription>
                 Baseado no seu perfil: {userProfile.level} • {userProfile.objective}
+                {aiAnalysis && ` • Estado: ${aiAnalysis.userState}`}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="bg-blue-50 p-4 rounded-lg mb-4">
                 <h3 className="font-semibold text-blue-800 mb-2">
-                  {userProfile.level === 'iniciante' 
+                  {aiAnalysis ? aiAnalysis.nextWorkoutSuggestion.split(':')[0] : 
+                   userProfile.level === 'iniciante' 
                     ? 'Treino Corporal - Fundamentos'
                     : userProfile.level === 'intermediario'
                     ? 'Treino 10X - Força e Resistência'
@@ -96,7 +186,11 @@ const Dashboard = () => {
                   }
                 </h3>
                 <p className="text-blue-700">
-                  {userProfile.level === 'iniciante'
+                  {aiAnalysis ? 
+                    aiAnalysis.nextWorkoutSuggestion.includes(':') ? 
+                      aiAnalysis.nextWorkoutSuggestion.split(':').slice(1).join(':').trim() :
+                      aiAnalysis.nextWorkoutSuggestion
+                    : userProfile.level === 'iniciante'
                     ? 'Vamos começar com movimentos básicos para construir uma base sólida.'
                     : workoutStats?.averageLoad && workoutStats.averageLoad > 300
                     ? 'Sua carga está alta. Que tal um treino de recuperação ativa hoje?'
@@ -121,7 +215,7 @@ const Dashboard = () => {
                   <div>
                     <p className="text-sm text-gray-600">Treinos Esta Semana</p>
                     <p className="text-2xl font-bold text-blue-600">
-                      {recentWorkouts.filter(w => {
+                      {userContext?.performanceMetrics.weeklyFrequency || recentWorkouts.filter(w => {
                         const workoutDate = new Date(w.date);
                         const weekAgo = new Date();
                         weekAgo.setDate(weekAgo.getDate() - 7);
@@ -138,12 +232,15 @@ const Dashboard = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Carga Média</p>
+                    <p className="text-sm text-gray-600">PSE Médio</p>
                     <p className="text-2xl font-bold text-green-600">
-                      {workoutStats?.averageLoad || 0}
+                      {userContext?.performanceMetrics.averagePSE.toFixed(1) || workoutStats?.averagePSE || 0}
                     </p>
                   </div>
-                  <div className="text-3xl">📊</div>
+                  <div className="text-3xl">
+                    {userContext?.performanceMetrics.progressTrend === 'improving' ? '📈' : 
+                     userContext?.performanceMetrics.progressTrend === 'declining' ? '📉' : '📊'}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -179,23 +276,26 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Sugestões da IA */}
-        {aiSuggestions.length > 0 && (
+        {/* Recomendações da IA Contextual */}
+        {aiAnalysis && aiAnalysis.recommendations.length > 0 && (
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle className="text-purple-600">🤖 Sugestões da IA</CardTitle>
+              <CardTitle className="text-purple-600 flex items-center">
+                <TrendingUp className="h-5 w-5 mr-2" />
+                Recomendações Personalizadas
+              </CardTitle>
               <CardDescription>
-                Recomendações personalizadas baseadas no seu progresso
+                Sugestões baseadas na análise do seu progresso
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {aiSuggestions.slice(0, 2).map((suggestion) => (
-                  <div key={suggestion.id} className="bg-purple-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-purple-800 mb-1">
-                      {suggestion.suggestion}
-                    </h4>
-                    <p className="text-sm text-purple-700">{suggestion.reason}</p>
+                {aiAnalysis.recommendations.slice(0, 3).map((recommendation, index) => (
+                  <div key={index} className="bg-purple-50 p-4 rounded-lg border border-purple-100">
+                    <div className="flex items-start">
+                      <Zap className="h-4 w-4 text-purple-600 mr-2 mt-0.5" />
+                      <p className="text-sm text-purple-800">{recommendation}</p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -234,7 +334,7 @@ const Dashboard = () => {
           
           <Button 
             variant="outline" 
-            className="h-20 flex flex-col items-center justify-center space-y-2"
+            className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200"
             onClick={() => navigate("/ai-chat")}
           >
             <span className="text-2xl">🤖</span>
