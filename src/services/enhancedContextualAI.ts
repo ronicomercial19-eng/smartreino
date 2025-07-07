@@ -1,0 +1,435 @@
+
+import { UserProfile } from '@/data/mockData';
+import { contextualAI, UserContext, AIAnalysis } from './contextualAIService';
+import { workoutGenerationService, WorkoutGoal, GeneratedWorkout } from './workoutGenerationService';
+
+interface EnhancedAIResponse {
+  text: string;
+  type: 'suggestion' | 'motivation' | 'analysis' | 'workout' | 'warning';
+  workoutSuggestion?: GeneratedWorkout;
+  quickActions?: QuickAction[];
+  insights?: string[];
+}
+
+interface QuickAction {
+  label: string;
+  action: string;
+  icon: string;
+}
+
+class EnhancedContextualAIService {
+  
+  // Análise avançada do usuário com geração de treinos
+  analyzeUserAndGenerateRecommendations(context: UserContext): {
+    analysis: AIAnalysis;
+    suggestedWorkout?: GeneratedWorkout;
+    insights: string[];
+    quickActions: QuickAction[];
+  } {
+    
+    const analysis = contextualAI.analyzeUser(context);
+    
+    // Gerar sugestão de treino personalizada
+    const workoutGoal = workoutGenerationService.suggestNextWorkout(
+      context.profile, 
+      context.recentWorkouts
+    );
+    
+    const suggestedWorkout = workoutGenerationService.generatePersonalizedWorkout(
+      context.profile,
+      workoutGoal,
+      context.recentWorkouts
+    );
+    
+    // Gerar insights avançados
+    const insights = this.generateAdvancedInsights(context, analysis);
+    
+    // Gerar ações rápidas contextuais
+    const quickActions = this.generateQuickActions(context, analysis);
+    
+    return {
+      analysis,
+      suggestedWorkout,
+      insights,
+      quickActions
+    };
+  }
+
+  // Resposta contextual aprimorada com IA
+  generateEnhancedResponse(
+    userMessage: string, 
+    context: UserContext
+  ): EnhancedAIResponse {
+    
+    const message = userMessage.toLowerCase();
+    const analysis = contextualAI.analyzeUser(context);
+    
+    // Detectar intenção do usuário
+    const intent = this.detectUserIntent(message);
+    
+    switch (intent) {
+      case 'workout_request':
+        return this.handleWorkoutRequest(message, context);
+      
+      case 'progress_analysis':
+        return this.handleProgressAnalysis(context);
+      
+      case 'motivation_needed':
+        return this.handleMotivationRequest(context, analysis);
+      
+      case 'technique_help':
+        return this.handleTechniqueHelp(message, context);
+      
+      case 'nutrition_advice':
+        return this.handleNutritionAdvice(context);
+      
+      default:
+        return this.handleGeneralQuery(message, context, analysis);
+    }
+  }
+
+  private detectUserIntent(message: string): string {
+    const intents = {
+      workout_request: ['treino', 'exercicio', 'fazer hoje', 'rotina', 'atividade'],
+      progress_analysis: ['progresso', 'resultado', 'evolução', 'desempenho', 'melhora'],
+      motivation_needed: ['desanimado', 'difícil', 'não consigo', 'motivação', 'parar'],
+      technique_help: ['técnica', 'forma', 'execução', 'como fazer', 'postura'],
+      nutrition_advice: ['alimentação', 'dieta', 'nutrição', 'comer', 'proteína']
+    };
+    
+    for (const [intent, keywords] of Object.entries(intents)) {
+      if (keywords.some(keyword => message.includes(keyword))) {
+        return intent;
+      }
+    }
+    
+    return 'general';
+  }
+
+  private handleWorkoutRequest(message: string, context: UserContext): EnhancedAIResponse {
+    // Detectar preferências específicas na mensagem
+    const preferences = this.extractWorkoutPreferences(message);
+    
+    // Gerar treino personalizado
+    const workoutGoal: WorkoutGoal = {
+      type: preferences.type || (context.profile.objective === 'perda-peso' ? 'perda-peso' : 'condicionamento'),
+      duration: preferences.duration || 45,
+      intensity: preferences.intensity || 'moderada',
+      muscleGroups: preferences.muscleGroups || ['Peitoral', 'Dorsais']
+    };
+    
+    const workout = workoutGenerationService.generatePersonalizedWorkout(
+      context.profile,
+      workoutGoal,
+      context.recentWorkouts
+    );
+    
+    const responseText = `🎯 **Treino Personalizado Gerado!**\n\n` +
+      `**${workout.name}**\n` +
+      `📅 Duração: ${workout.duration} minutos\n` +
+      `🔥 PSE Alvo: ${workout.targetPSE}/10\n` +
+      `⚡ Calorias Estimadas: ${workout.estimatedCalories}\n\n` +
+      `${workout.description}\n\n` +
+      `💪 **Exercícios principais:**\n` +
+      workout.exercises.slice(0, 3).map(ex => 
+        `• ${ex.exercise.name} - ${ex.sets}x${ex.reps || `${ex.duration}s`}`
+      ).join('\n') +
+      `\n\n🔥 Pronto para começar? Clique em "Iniciar Treino" abaixo!`;
+    
+    return {
+      text: responseText,
+      type: 'workout',
+      workoutSuggestion: workout,
+      quickActions: [
+        { label: 'Iniciar Treino', action: 'start_workout', icon: '▶️' },
+        { label: 'Ver Detalhes', action: 'view_details', icon: '📋' },
+        { label: 'Personalizar', action: 'customize', icon: '⚙️' }
+      ]
+    };
+  }
+
+  private handleProgressAnalysis(context: UserContext): EnhancedAIResponse {
+    const { performanceMetrics } = context;
+    const recentWorkouts = context.recentWorkouts.slice(0, 5);
+    
+    // Análise estatística
+    const totalWorkouts = performanceMetrics.totalWorkouts;
+    const avgPSE = performanceMetrics.averagePSE;
+    const weeklyFreq = performanceMetrics.weeklyFrequency;
+    
+    // Calcular tendências
+    const pseGrowth = this.calculatePSETrend(recentWorkouts);
+    const consistencyScore = this.calculateConsistencyScore(context.recentWorkouts);
+    
+    const responseText = `📊 **Análise Completa do seu Progresso**\n\n` +
+      `🏆 **Estatísticas Gerais:**\n` +
+      `• Total de Treinos: ${totalWorkouts}\n` +
+      `• PSE Médio: ${avgPSE.toFixed(1)}/10\n` +
+      `• Frequência Semanal: ${weeklyFreq}x\n` +
+      `• Score de Consistência: ${consistencyScore}%\n\n` +
+      `📈 **Tendências:**\n` +
+      `• Evolução PSE: ${pseGrowth > 0 ? '📈' : pseGrowth < 0 ? '📉' : '➡️'} ${Math.abs(pseGrowth).toFixed(1)} pontos\n` +
+      `• Status: ${performanceMetrics.progressTrend === 'improving' ? '🚀 Evoluindo' : 
+                   performanceMetrics.progressTrend === 'stable' ? '⚖️ Estável' : '⚠️ Precisa atenção'}\n\n` +
+      this.generateProgressInsights(context);
+    
+    return {
+      text: responseText,
+      type: 'analysis',
+      insights: this.generateAdvancedInsights(context, contextualAI.analyzeUser(context)),
+      quickActions: [
+        { label: 'Ver Gráficos', action: 'view_charts', icon: '📊' },
+        { label: 'Ajustar Meta', action: 'adjust_goals', icon: '🎯' },
+        { label: 'Novo Desafio', action: 'new_challenge', icon: '🏃‍♂️' }
+      ]
+    };
+  }
+
+  private handleMotivationRequest(context: UserContext, analysis: AIAnalysis): EnhancedAIResponse {
+    const motivationalMessages = {
+      struggling: [
+        `${context.profile.name}, lembre-se: cada campeão já foi um iniciante que nunca desistiu! 💪`,
+        `Você já treinou ${context.performanceMetrics.totalWorkouts} vezes - isso já é uma vitória! 🏆`,
+        `Hoje pode ser difícil, mas amanhã você será mais forte. Vamos juntos! 🌟`
+      ],
+      plateaued: [
+        `Platôs são normais e temporários. Seu corpo está se preparando para o próximo salto! 🚀`,
+        `Hora de quebrar a rotina! Vou sugerir algo novo para reacender sua motivação! 🔥`,
+        `${context.profile.name}, você chegou longe. Agora vamos ainda mais longe! ⭐`
+      ],
+      motivated: [
+        `Sua energia está contagiante! Continue sendo essa inspiração! ✨`,
+        `Com essa dedicação, você vai surpreender até você mesmo! 🎯`,
+        `Que momentum incrível! Vamos canalizar isso no próximo treino! 💫`
+      ]
+    };
+    
+    const messages = motivationalMessages[analysis.userState as keyof typeof motivationalMessages] || motivationalMessages.motivated;
+    const selectedMessage = messages[Math.floor(Math.random() * messages.length)];
+    
+    const responseText = `💝 **Mensagem Especial para Você**\n\n${selectedMessage}\n\n` +
+      `🎯 **Suas Conquistas Recentes:**\n` +
+      `• ${context.performanceMetrics.weeklyFrequency} treinos esta semana\n` +
+      `• PSE médio de ${context.performanceMetrics.averagePSE.toFixed(1)} - excelente intensidade!\n` +
+      `• ${context.performanceMetrics.totalWorkouts} treinos no total - que consistência!\n\n` +
+      `💡 **Lembrete:** ${analysis.recommendations[0]}`;
+    
+    return {
+      text: responseText,
+      type: 'motivation',
+      quickActions: [
+        { label: 'Treino Motivacional', action: 'motivational_workout', icon: '🔥' },
+        { label: 'Definir Meta', action: 'set_goal', icon: '🎯' },
+        { label: 'Celebrar Conquista', action: 'celebrate', icon: '🎉' }
+      ]
+    };
+  }
+
+  private handleTechniqueHelp(message: string, context: UserContext): EnhancedAIResponse {
+    // Detectar exercício específico na mensagem
+    const exerciseKeywords = ['agachamento', 'flexão', 'prancha', 'burpee', 'abdomen'];
+    const detectedExercise = exerciseKeywords.find(keyword => message.includes(keyword));
+    
+    const techniqueAdvice = detectedExercise ? 
+      this.getSpecificTechniqueAdvice(detectedExercise) :
+      this.getGeneralTechniqueAdvice(context.profile.level);
+    
+    const responseText = `🎯 **Dicas de Técnica Personalizadas**\n\n${techniqueAdvice}\n\n` +
+      `📌 **Para seu nível (${context.profile.level}):**\n` +
+      this.getLevelSpecificTips(context.profile.level) +
+      `\n\n💡 **Lembre-se:** Qualidade > Quantidade sempre!`;
+    
+    return {
+      text: responseText,
+      type: 'suggestion',
+      quickActions: [
+        { label: 'Vídeo Tutorial', action: 'watch_tutorial', icon: '📺' },
+        { label: 'Treino Técnico', action: 'technique_workout', icon: '🎯' },
+        { label: 'Avaliar Form', action: 'form_check', icon: '✅' }
+      ]
+    };
+  }
+
+  private handleNutritionAdvice(context: UserContext): EnhancedAIResponse {
+    const nutritionTips = {
+      'perda-peso': `🥗 **Nutrição para Perda de Peso:**\n• Déficit calórico moderado (300-500 cal)\n• Proteína alta (1.6-2g/kg)\n• Hidratação constante\n• Refeições menores e frequentes`,
+      'ganho-massa': `🥩 **Nutrição para Ganho de Massa:**\n• Superávit calórico (200-400 cal)\n• Proteína elevada (2-2.5g/kg)\n• Carboidratos pré/pós treino\n• Gorduras boas (20-30% das calorias)`,
+      'condicionamento': `⚡ **Nutrição para Performance:**\n• Carboidratos para energia\n• Proteína para recuperação\n• Eletrólitos para hidratação\n• Timing nutricional adequado`
+    };
+    
+    const advice = nutritionTips[context.profile.objective as keyof typeof nutritionTips] || nutritionTips.condicionamento;
+    
+    const responseText = `🍎 **Orientação Nutricional Personalizada**\n\n${advice}\n\n` +
+      `⏰ **Timing para seus treinos:**\n` +
+      `• Pré-treino (1-2h antes): Carboidrato + pouca proteína\n` +
+      `• Pós-treino (30min depois): Proteína + carboidrato simples\n\n` +
+      `💧 **Hidratação:** ${this.getHydrationRecommendation(context)}`;
+    
+    return {
+      text: responseText,
+      type: 'suggestion',
+      quickActions: [
+        { label: 'Plano Alimentar', action: 'meal_plan', icon: '📋' },
+        { label: 'Receitas Fit', action: 'fit_recipes', icon: '👨‍🍳' },
+        { label: 'Calc Macros', action: 'macro_calc', icon: '🧮' }
+      ]
+    };
+  }
+
+  private handleGeneralQuery(message: string, context: UserContext, analysis: AIAnalysis): EnhancedAIResponse {
+    const contextualResponse = contextualAI.generateContextualResponse(message, context);
+    
+    return {
+      text: contextualResponse,
+      type: 'suggestion',
+      insights: this.generateAdvancedInsights(context, analysis),
+      quickActions: this.generateQuickActions(context, analysis)
+    };
+  }
+
+  // Métodos auxiliares privados
+  private extractWorkoutPreferences(message: string): any {
+    const preferences: any = {};
+    
+    // Detectar duração
+    const durationMatch = message.match(/(\d+)\s*min/);
+    if (durationMatch) preferences.duration = parseInt(durationMatch[1]);
+    
+    // Detectar intensidade
+    if (message.includes('leve') || message.includes('suave')) preferences.intensity = 'baixa';
+    if (message.includes('intenso') || message.includes('forte')) preferences.intensity = 'alta';
+    
+    // Detectar tipo
+    if (message.includes('cardio')) preferences.type = 'perda-peso';
+    if (message.includes('força') || message.includes('musculação')) preferences.type = 'forca';
+    
+    return preferences;
+  }
+
+  private generateAdvancedInsights(context: UserContext, analysis: AIAnalysis): string[] {
+    const insights: string[] = [];
+    
+    // Insight sobre consistência
+    const consistencyScore = this.calculateConsistencyScore(context.recentWorkouts);
+    if (consistencyScore > 80) {
+      insights.push(`🏆 Consistência exemplar de ${consistencyScore}%`);
+    } else if (consistencyScore < 50) {
+      insights.push(`📈 Oportunidade: melhorar consistência (atual: ${consistencyScore}%)`);
+    }
+    
+    // Insight sobre progressão
+    const pseGrowth = this.calculatePSETrend(context.recentWorkouts.slice(0, 5));
+    if (pseGrowth > 0.5) {
+      insights.push(`🚀 Evolução positiva no PSE (+${pseGrowth.toFixed(1)} pontos)`);
+    }
+    
+    // Insights baseados no objetivo
+    if (context.profile.objective === 'perda-peso' && context.performanceMetrics.averagePSE < 6) {
+      insights.push(`💡 Para perda de peso, considere aumentar intensidade (PSE 6-8)`);
+    }
+    
+    return insights;
+  }
+
+  private generateQuickActions(context: UserContext, analysis: AIAnalysis): QuickAction[] {
+    const actions: QuickAction[] = [
+      { label: 'Gerar Treino', action: 'generate_workout', icon: '🏋️‍♂️' },
+      { label: 'Ver Progresso', action: 'view_progress', icon: '📊' }
+    ];
+    
+    // Ações baseadas no estado
+    if (analysis.userState === 'struggling') {
+      actions.push({ label: 'Treino Fácil', action: 'easy_workout', icon: '🌱' });
+    } else if (analysis.userState === 'motivated') {
+      actions.push({ label: 'Desafio Extra', action: 'challenge_workout', icon: '🔥' });
+    }
+    
+    // Ações baseadas nas métricas
+    if (context.performanceMetrics.averagePSE > 8) {
+      actions.push({ label: 'Recuperação', action: 'recovery_session', icon: '🧘‍♂️' });
+    }
+    
+    return actions;
+  }
+
+  private calculatePSETrend(workouts: any[]): number {
+    if (workouts.length < 2) return 0;
+    
+    const recent = workouts.slice(0, Math.ceil(workouts.length / 2));
+    const older = workouts.slice(Math.ceil(workouts.length / 2));
+    
+    const recentAvg = recent.reduce((sum, w) => sum + (w.pse || 6), 0) / recent.length;
+    const olderAvg = older.reduce((sum, w) => sum + (w.pse || 6), 0) / older.length;
+    
+    return recentAvg - olderAvg;
+  }
+
+  private calculateConsistencyScore(workouts: any[]): number {
+    if (workouts.length === 0) return 0;
+    
+    // Calcular baseado na regularidade dos treinos
+    const dates = workouts.map(w => new Date(w.date)).sort((a, b) => b.getTime() - a.getTime());
+    const gaps = dates.slice(0, -1).map((date, i) => {
+      const nextDate = dates[i + 1];
+      return Math.abs(date.getTime() - nextDate.getTime()) / (1000 * 60 * 60 * 24); // dias
+    });
+    
+    const avgGap = gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length;
+    const idealGap = 2; // treinar a cada 2 dias
+    
+    return Math.max(0, Math.min(100, 100 - (avgGap - idealGap) * 10));
+  }
+
+  private generateProgressInsights(context: UserContext): string {
+    const insights: string[] = [];
+    
+    if (context.performanceMetrics.progressTrend === 'improving') {
+      insights.push('🎯 Continue no ritmo atual - está funcionando perfeitamente!');
+    } else if (context.performanceMetrics.progressTrend === 'declining') {
+      insights.push('💡 Hora de revisar estratégia - vamos ajustar juntos!');
+    } else {
+      insights.push('⚖️ Progresso estável - considere novos desafios!');
+    }
+    
+    return insights.join('\n');
+  }
+
+  private getSpecificTechniqueAdvice(exercise: string): string {
+    const adviceMap: Record<string, string> = {
+      'agachamento': '🏋️‍♂️ **Agachamento Perfeito:**\n• Pés na largura dos ombros\n• Descida controlada até 90°\n• Joelhos alinhados com os pés\n• Peso nos calcanhares',
+      'flexão': '💪 **Flexão Correta:**\n• Corpo alinhado como prancha\n• Mãos na largura dos ombros\n• Descida até o peito quase tocar o chão\n• Subida controlada',
+      'prancha': '🧱 **Prancha Efetiva:**\n• Cotovelos sob os ombros\n• Corpo reto da cabeça aos pés\n• Respiração constante\n• Contraía core o tempo todo'
+    };
+    
+    return adviceMap[exercise] || '🎯 Foque sempre na qualidade do movimento!';
+  }
+
+  private getGeneralTechniqueAdvice(level: string): string {
+    const adviceMap: Record<string, string> = {
+      'iniciante': '🌱 **Para Iniciantes:**\n• Movimentos lentos e controlados\n• Amplitude completa quando possível\n• Pare se sentir dor\n• Qualidade > Quantidade',
+      'intermediario': '📈 **Para Intermediários:**\n• Foque na conexão músculo-mente\n• Varie velocidades de execução\n• Mantenha tensão constante\n• Progrida gradualmente',
+      'avancado': '🏆 **Para Avançados:**\n• Técnica impecável mesmo com fadiga\n• Explore variações avançadas\n• Use tempo sob tensão\n• Periodize intensidade'
+    };
+    
+    return adviceMap[level] || adviceMap.intermediario;
+  }
+
+  private getLevelSpecificTips(level: string): string {
+    const tipsMap: Record<string, string> = {
+      'iniciante': '• Priorize aprender os movimentos básicos\n• Use espelho para auto-correção\n• Não tenha pressa para aumentar carga',
+      'intermediario': '• Grave-se executando para análise\n• Varie ângulos e pegadas\n• Trabalhe pontos fracos especificamente',
+      'avancado': '• Busque micro-progressões\n• Aplique técnicas avançadas (drop sets, etc)\n• Mentorize outros praticantes'
+    };
+    
+    return tipsMap[level] || tipsMap.intermediario;
+  }
+
+  private getHydrationRecommendation(context: UserContext): string {
+    const baseWater = '2-3L por dia';
+    const extraWater = context.performanceMetrics.weeklyFrequency > 4 ? ' + 500ml extra por treino' : ' + 300ml por treino';
+    return baseWater + extraWater;
+  }
+}
+
+export const enhancedContextualAI = new EnhancedContextualAIService();
+export type { EnhancedAIResponse, QuickAction };
