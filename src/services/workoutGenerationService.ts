@@ -1,4 +1,3 @@
-
 import { completeExerciseDatabase, getExercisesByMultipleCriteria } from '@/data/exerciseDatabase';
 import { UserProfile } from '@/data/mockData';
 
@@ -208,15 +207,18 @@ class WorkoutGenerationService {
     let caloriesPerMinute = 8; // Base
     
     switch (goal.type) {
-      case 'cardio':
+      case 'condicionamento':
       case 'perda-peso':
         caloriesPerMinute = 12;
         break;
       case 'forca':
         caloriesPerMinute = 6;
         break;
-      case 'condicionamento':
-        caloriesPerMinute = 10;
+      case 'ganho-massa':
+        caloriesPerMinute = 8;
+        break;
+      case 'mobilidade':
+        caloriesPerMinute = 4;
         break;
     }
     
@@ -298,7 +300,7 @@ class WorkoutGenerationService {
     let suggestedType: WorkoutGoal['type'] = 'condicionamento';
     
     if (userProfile.objective === 'perda-peso') {
-      suggestedType = lastWorkoutTypes.includes('cardio') ? 'forca' : 'perda-peso';
+      suggestedType = lastWorkoutTypes.includes('condicionamento') ? 'forca' : 'perda-peso';
     } else if (userProfile.objective === 'ganho-massa') {
       suggestedType = lastWorkoutTypes.includes('forca') ? 'condicionamento' : 'ganho-massa';
     }
