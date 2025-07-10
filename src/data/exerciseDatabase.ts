@@ -14,12 +14,14 @@ export {
 import { expandedExerciseDatabase } from './expandedExerciseDatabase';
 import { additionalExercises } from './additionalExercises';
 import { imageExerciseDatabase } from './imageExerciseDatabase';
+import { newExerciseDatabase } from './newExerciseDatabase';
 
-// Banco completo com 300+ exercícios baseado na tabela fornecida + exercícios das imagens
+// Banco completo com 500+ exercícios baseado na tabela fornecida + exercícios das imagens + novos exercícios
 export const completeExerciseDatabase = [
   ...expandedExerciseDatabase,
   ...additionalExercises,
-  ...imageExerciseDatabase
+  ...imageExerciseDatabase,
+  ...newExerciseDatabase
 ];
 
 // Função melhorada para buscar exercícios por grupo muscular específico
@@ -60,7 +62,7 @@ export const getExercisesByMultipleCriteria = (criteria: {
   });
 };
 
-// Estatísticas completas expandidas
+// Estatísticas completas expandidas com novos exercícios
 export const getCompleteExerciseStats = () => {
   const total = completeExerciseDatabase.length;
   
@@ -84,7 +86,8 @@ export const getCompleteExerciseStats = () => {
   // Equipamentos mais comuns
   const equipments = [
     'Peso Corporal', 'Halteres', 'Barra', 'Kettlebell', 
-    'Banda Elástica', 'Smith Machine', 'Máquina', 'Polia'
+    'Banda Elástica', 'Smith Machine', 'Máquina', 'Polia',
+    'Bola Medicinal', 'Corda', 'Faixa Elástica'
   ];
   const byEquipment = equipments.reduce((acc, eq) => {
     acc[eq] = completeExerciseDatabase.filter(ex => 
@@ -97,19 +100,52 @@ export const getCompleteExerciseStats = () => {
   const muscleGroups = [
     'Panturrilha', 'Quadríceps', 'Isquiotibiais', 'Glúteos', 
     'Abdominal', 'Dorsais', 'Peitoral', 'Bíceps', 'Tríceps', 
-    'Deltoide'
+    'Deltoide', 'Trapézio', 'Adutores', 'Abdutores', 'Antebraço'
   ];
   const byMuscleGroup = muscleGroups.reduce((acc, muscle) => {
     acc[muscle] = getExercisesBySpecificMuscle(muscle).length;
     return acc;
   }, {} as Record<string, number>);
 
+  // Estatísticas por foco (Membros Superiores, Inferiores, Corpo Inteiro)
+  const byBodyRegion = {
+    'Membros Superiores': completeExerciseDatabase.filter(ex => 
+      ex.muscleGroup.some(muscle => 
+        ['Peitoral', 'Tríceps', 'Bíceps', 'Deltoide', 'Deltoides', 'Trapézio', 'Antebraço', 'Dorsal', 'Dorsais'].some(upper =>
+          muscle.includes(upper)
+        )
+      )
+    ).length,
+    'Membros Inferiores': completeExerciseDatabase.filter(ex => 
+      ex.muscleGroup.some(muscle => 
+        ['Glúteos', 'Quadríceps', 'Isquiotibiais', 'Panturrilha', 'Adutores', 'Abdutores', 'Posterior de Coxa'].some(lower =>
+          muscle.includes(lower)
+        )
+      )
+    ).length,
+    'Core/Abdômen': completeExerciseDatabase.filter(ex => 
+      ex.muscleGroup.some(muscle => 
+        ['Core', 'Abdominal', 'Abdômen', 'Oblíquos'].some(core =>
+          muscle.includes(core)
+        )
+      )
+    ).length,
+    'Corpo Inteiro': completeExerciseDatabase.filter(ex => 
+      ex.muscleGroup.some(muscle => 
+        ['Corpo Todo', 'Corpo Inteiro', 'Cardio', 'Mobilidade'].some(full =>
+          muscle.includes(full)
+        )
+      )
+    ).length
+  };
+
   return { 
     total, 
     byCategory, 
     byDifficulty, 
     byEquipment, 
-    byMuscleGroup 
+    byMuscleGroup,
+    byBodyRegion
   };
 };
 
