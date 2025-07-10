@@ -1,4 +1,3 @@
-
 export interface Exercise {
   id: number;
   name: string;
@@ -697,7 +696,7 @@ export const getExercisesByEquipment = (equipment: string) => {
   );
 };
 
-// Estatísticas da biblioteca
+// Estatísticas da biblioteca expandida
 export const getExerciseStats = () => {
   const total = expandedExerciseDatabase.length;
   const byCategory = {
@@ -716,5 +715,24 @@ export const getExerciseStats = () => {
     'Avançado': getExercisesByDifficulty('Avançado').length
   };
 
-  return { total, byCategory, byDifficulty };
+  // Estatísticas expandidas para grupos musculares específicos das imagens
+  const bySpecificMuscleGroup = {
+    'Glúteos': getExercisesByMuscleGroup('Glúteos').length,
+    'Quadríceps': getExercisesByMuscleGroup('Quadríceps').length,
+    'Isquiotibiais': getExercisesByMuscleGroup('Isquiotibiais').length,
+    'Adutores': getExercisesByMuscleGroup('Adutores').length,
+    'Abdutores': getExercisesByMuscleGroup('Abdutores').length,
+    'Panturrilha': getExercisesByMuscleGroup('Panturrilha').length,
+    'Posterior de Coxa': getExercisesByMuscleGroup('Posterior de Coxa').length,
+    'Peitoral Superior': getExercisesByMuscleGroup('Peitoral Superior').length,
+    'Tríceps': getExercisesByMuscleGroup('Tríceps').length,
+    'Bíceps': getExercisesByMuscleGroup('Bíceps').length
+  };
+
+  return { 
+    total, 
+    byCategory, 
+    byDifficulty,
+    bySpecificMuscleGroup
+  };
 };
