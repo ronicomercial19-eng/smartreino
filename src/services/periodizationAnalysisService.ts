@@ -95,7 +95,91 @@ class PeriodizationAnalysisService {
         recommendationScore: 75,
         aiReasoning: 'Essencial para manutenção da amplitude articular',
         createdAt: new Date().toISOString()
+      },
+      // Novos modelos de treino
+      {
+        id: 'corpo-inteiro-funcional',
+        name: 'Corpo Inteiro - Funcional',
+        description: 'Treino funcional com movimentos compostos',
+        category: 'funcional',
+        phase: 'Intermediário',
+        duration: 40,
+        targetPSE: 7,
+        muscleGroups: ['Corpo Inteiro'],
+        exercises: ['Burpees', 'Thruster', 'Kettlebell Swing'],
+        recommendationScore: 87,
+        aiReasoning: 'Desenvolve força funcional e coordenação',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'olimpico-avancado',
+        name: 'Levantamentos Olímpicos',
+        description: 'Treino de movimentos olímpicos para atletas',
+        category: 'olimpico',
+        phase: 'Avançado',
+        duration: 70,
+        targetPSE: 9,
+        muscleGroups: ['Corpo Inteiro'],
+        exercises: ['Clean and Press', 'Snatch', 'Clean and Jerk'],
+        recommendationScore: 95,
+        aiReasoning: 'Máximo desenvolvimento de potência e técnica',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'crosstraining-intenso',
+        name: 'CrossTraining Intenso',
+        description: 'WOD de alta intensidade',
+        category: 'crosstraining',
+        phase: 'Avançado',
+        duration: 20,
+        targetPSE: 9,
+        muscleGroups: ['Corpo Inteiro'],
+        exercises: ['Wall Ball', 'Devil Press', 'Box Over Jump'],
+        recommendationScore: 93,
+        aiReasoning: 'Máxima intensidade em tempo reduzido',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 'resistencia-metabolica',
+        name: 'Resistência Metabólica',
+        description: 'Treino para resistência e condicionamento',
+        category: 'resistencia',
+        phase: 'Intermediário',
+        duration: 45,
+        targetPSE: 8,
+        muscleGroups: ['Corpo Inteiro', 'Cardio'],
+        exercises: ['Corda Naval', 'Remada no Rower', 'Farmer Carry'],
+        recommendationScore: 85,
+        aiReasoning: 'Desenvolve capacidade metabólica e resistência',
+        createdAt: new Date().toISOString()
       }
+    ];
+  }
+
+  // Método que estava faltando
+  analyzePeriodization(data: any) {
+    // Análise básica dos dados de periodização
+    const analysis = {
+      currentPhase: data.phase || 'Básico',
+      recommendedModels: this.analyzeUserProfile(data),
+      periodizationSuggestions: this.generatePeriodizationSuggestions(data)
+    };
+    
+    return analysis;
+  }
+
+  // Método que estava faltando
+  recommendWorkoutModels(userProfile: any, limit: number = 5): RecommendedWorkoutModel[] {
+    return this.generateAIRecommendations(userProfile).slice(0, limit);
+  }
+
+  // Gerar sugestões de periodização
+  private generatePeriodizationSuggestions(data: any) {
+    return [
+      'Progressão gradual de volume e intensidade',
+      'Alternância entre fases de acúmulo e intensificação',
+      'Inclusão de períodos de recuperação ativa',
+      'Variação de estímulos para evitar adaptação'
     ];
   }
 
@@ -104,7 +188,6 @@ class PeriodizationAnalysisService {
     return this.workoutModels;
   }
 
-  // Obter modelos do usuário
   getUserWorkoutModels(userId: string): RecommendedWorkoutModel[] {
     try {
       const userModelsKey = `userWorkoutModels_${userId}`;
@@ -115,7 +198,6 @@ class PeriodizationAnalysisService {
     }
   }
 
-  // Adicionar modelo personalizado
   addWorkoutModel(model: Omit<RecommendedWorkoutModel, 'id' | 'createdAt'>): RecommendedWorkoutModel {
     const newModel: RecommendedWorkoutModel = {
       ...model,
@@ -127,7 +209,6 @@ class PeriodizationAnalysisService {
     return newModel;
   }
 
-  // Analisar perfil do usuário
   analyzeUserProfile(userProfile: any): RecommendedWorkoutModel[] {
     if (!userProfile) return this.workoutModels.slice(0, 3);
 
@@ -143,7 +224,6 @@ class PeriodizationAnalysisService {
       .sort((a, b) => b.recommendationScore - a.recommendationScore);
   }
 
-  // Gerar recomendações baseadas em IA
   generateAIRecommendations(userProfile: any, trainingHistory: any[] = []): RecommendedWorkoutModel[] {
     const baseModels = this.analyzeUserProfile(userProfile);
     
@@ -154,7 +234,6 @@ class PeriodizationAnalysisService {
     }));
   }
 
-  // Gerar explicação da IA
   private generateAIReasoning(model: RecommendedWorkoutModel, userProfile: any): string {
     const reasons = [
       `Baseado no seu objetivo de ${userProfile?.objetivo || 'fitness geral'}`,
@@ -166,7 +245,6 @@ class PeriodizationAnalysisService {
     return reasons.slice(0, 2).join(', ') + '.';
   }
 
-  // Salvar modelo do usuário
   saveUserWorkoutModel(userId: string, model: RecommendedWorkoutModel): boolean {
     try {
       const userModelsKey = `userWorkoutModels_${userId}`;
@@ -181,7 +259,6 @@ class PeriodizationAnalysisService {
     }
   }
 
-  // Remover modelo do usuário
   removeUserWorkoutModel(userId: string, modelId: string): boolean {
     try {
       const userModelsKey = `userWorkoutModels_${userId}`;

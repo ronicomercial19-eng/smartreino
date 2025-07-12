@@ -3,271 +3,415 @@ import { Exercise } from './expandedExerciseDatabase';
 
 // Exercícios adicionais baseados na solicitação do usuário
 export const userExerciseDatabase: Exercise[] = [
-  // ===== MEMBROS SUPERIORES =====
+  // ===== EXERCÍCIOS DE CORPO INTEIRO =====
   {
-    id: 300,
-    name: "Levantamento Peitoral",
-    category: "forca",
-    muscleGroup: ["Peitoral"],
-    targetMuscles: ["Peitoral Maior"],
-    difficulty: "Avançado",
-    duration: "3 séries × 8-10 reps",
+    id: 500,
+    name: "Burpees",
+    category: "funcional",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Múltiplos Grupos Musculares"],
+    difficulty: "Intermediário",
+    duration: "3 séries × 8-12 reps",
     sets: "3",
-    reps: "8-10",
+    reps: "8-12",
     restTime: "90s",
-    description: "Exercício para peitoral com foco em membros superiores",
-    equipment: "Corda",
+    description: "Exercício funcional de corpo inteiro",
+    equipment: "Peso Corporal",
     instructions: [
-      "Configure a corda adequadamente",
-      "Execute movimento de peitoral",
-      "Mantenha controle durante toda amplitude",
-      "Foque na contração muscular"
+      "Agache e coloque as mãos no chão",
+      "Jogue as pernas para trás em prancha",
+      "Faça uma flexão",
+      "Puxe pernas de volta e salte"
     ],
-    benefits: ["Desenvolve peitoral", "Melhora força", "Trabalho específico"],
-    variations: ["Com diferentes cargas", "Ângulos variados"],
-    tips: ["Controle o movimento", "Respiração adequada", "Postura correta"],
-    commonMistakes: ["Movimento descontrolado", "Postura inadequada"]
+    benefits: ["Exercício completo", "Alta queima calórica", "Melhora condicionamento"],
+    variations: ["Burpee sem flexão", "Burpee com salto alto"],
+    tips: ["Mantenha ritmo constante", "Foque na técnica", "Respire adequadamente"],
+    commonMistakes: ["Muito rápido sem técnica", "Pular a flexão"]
   },
   {
-    id: 301,
-    name: "Remada Peitoral",
-    category: "forca",
-    muscleGroup: ["Peitoral"],
-    targetMuscles: ["Peitoral Maior"],
-    difficulty: "Intermediário",
-    duration: "3 séries × 10-12 reps",
-    sets: "3",
-    reps: "10-12",
-    restTime: "60s",
-    description: "Exercício para peitoral com foco em membros superiores",
-    equipment: "Máquina",
-    instructions: [
-      "Ajuste máquina corretamente",
-      "Execute remada para peitoral",
-      "Mantenha amplitude completa",
-      "Contraia músculos no final"
-    ],
-    benefits: ["Fortalece peitoral", "Melhora definição", "Controle de carga"],
-    variations: ["Diferentes pegadas", "Velocidades variadas"],
-    tips: ["Posicionamento correto", "Não usar impulso", "Respiração coordenada"],
-    commonMistakes: ["Ajuste inadequado", "Movimento parcial"]
-  },
-  {
-    id: 302,
-    name: "Extensão Dorsal",
-    category: "forca",
-    muscleGroup: ["Dorsais"],
-    targetMuscles: ["Latíssimo do Dorso"],
-    difficulty: "Iniciante",
-    duration: "3 séries × 12-15 reps",
-    sets: "3",
-    reps: "12-15",
-    restTime: "60s",
-    description: "Exercício para dorsal com foco em membros superiores",
-    equipment: "Barra",
-    instructions: [
-      "Posicione-se na barra",
-      "Execute extensão dorsal",
-      "Mantenha core ativo",
-      "Amplitude controlada"
-    ],
-    benefits: ["Desenvolve dorsais", "Melhora postura", "Fortalece core"],
-    variations: ["Com peso adicional", "Diferentes velocidades"],
-    tips: ["Não balance", "Core sempre ativo", "Movimento fluido"],
-    commonMistakes: ["Balanço excessivo", "Amplitude inadequada"]
-  },
-  {
-    id: 303,
-    name: "Pressão Bíceps",
-    category: "forca",
-    muscleGroup: ["Bíceps"],
-    targetMuscles: ["Bíceps Braquial"],
-    difficulty: "Iniciante",
-    duration: "3 séries × 12-15 reps",
-    sets: "3",
-    reps: "12-15",
-    restTime: "60s",
-    description: "Exercício para bíceps com foco em membros superiores",
-    equipment: "Halteres",
-    instructions: [
-      "Segure halteres adequadamente",
-      "Execute pressão para bíceps",
-      "Cotovelos estáveis",
-      "Movimento controlado"
-    ],
-    benefits: ["Desenvolve bíceps", "Isolamento muscular", "Força específica"],
-    variations: ["Alternado", "Simultâneo"],
-    tips: ["Cotovelos fixos", "Não balance corpo", "Amplitude completa"],
-    commonMistakes: ["Movimento dos cotovelos", "Balanço corporal"]
-  },
-  {
-    id: 304,
-    name: "Puxada Deltoides",
-    category: "forca",
-    muscleGroup: ["Deltoides"],
-    targetMuscles: ["Deltoide Médio"],
-    difficulty: "Intermediário",
-    duration: "3 séries × 10-12 reps",
-    sets: "3",
-    reps: "10-12",
-    restTime: "60s",
-    description: "Exercício para deltoides com foco em membros superiores",
-    equipment: "Máquina",
-    instructions: [
-      "Configure máquina",
-      "Execute puxada para deltoides",
-      "Mantenha postura ereta",
-      "Controle a carga"
-    ],
-    benefits: ["Desenvolve ombros", "Melhora largura", "Controle específico"],
-    variations: ["Diferentes pegadas", "Ângulos variados"],
-    tips: ["Postura correta", "Movimento controlado", "Respiração adequada"],
-    commonMistakes: ["Postura inadequada", "Peso excessivo"]
-  },
-  {
-    id: 305,
-    name: "Flexão Trapézio",
-    category: "forca",
-    muscleGroup: ["Trapézio"],
-    targetMuscles: ["Trapézio"],
-    difficulty: "Iniciante",
-    duration: "3 séries × 12-15 reps",
-    sets: "3",
-    reps: "12-15",
-    restTime: "45s",
-    description: "Exercício para trapézio com foco em membros superiores",
-    equipment: "Halteres",
-    instructions: [
-      "Segure halteres",
-      "Execute flexão de trapézio",
-      "Movimento controlado",
-      "Contraia no topo"
-    ],
-    benefits: ["Fortalece trapézio", "Melhora postura", "Reduz tensão"],
-    variations: ["Com pause", "Diferentes cargas"],
-    tips: ["Não force pescoço", "Movimento lento", "Respiração adequada"],
-    commonMistakes: ["Movimento muito rápido", "Tensão no pescoço"]
-  },
-
-  // Continuando com todos os exercícios de membros superiores...
-  {
-    id: 306,
-    name: "Rosca Deltoides",
-    category: "forca",
-    muscleGroup: ["Deltoides"],
-    targetMuscles: ["Deltoide Anterior"],
-    difficulty: "Intermediário",
-    duration: "3 séries × 10-12 reps",
-    sets: "3",
-    reps: "10-12",
-    restTime: "60s",
-    description: "Exercício para deltoides com foco em membros superiores",
-    equipment: "Barra",
-    instructions: ["Configure barra", "Execute rosca", "Mantenha controle", "Amplitude completa"],
-    benefits: ["Desenvolve deltoides", "Força específica", "Melhora definição"],
-    variations: ["Diferentes pegadas", "Velocidades variadas"],
-    tips: ["Postura correta", "Movimento controlado", "Não usar impulso"],
-    commonMistakes: ["Movimento descontrolado", "Postura inadequada"]
-  },
-
-  {
-    id: 307,
-    name: "Remada Tríceps",
-    category: "forca",
-    muscleGroup: ["Tríceps"],
-    targetMuscles: ["Tríceps Braquial"],
-    difficulty: "Iniciante",
-    duration: "3 séries × 12-15 reps",
-    sets: "3",
-    reps: "12-15",
-    restTime: "60s",
-    description: "Exercício para tríceps com foco em membros superiores",
-    equipment: "Máquina",
-    instructions: ["Ajuste máquina", "Execute remada", "Foque nos tríceps", "Movimento controlado"],
-    benefits: ["Desenvolve tríceps", "Isolamento muscular", "Controle de carga"],
-    variations: ["Diferentes pegadas", "Velocidades variadas"],
-    tips: ["Cotovelos estáveis", "Amplitude completa", "Respiração coordenada"],
-    commonMistakes: ["Movimento dos cotovelos", "Compensação com ombros"]
-  },
-
-  // ===== MEMBROS INFERIORES =====
-  {
-    id: 400,
-    name: "Agachamento Livre",
-    category: "forca",
-    muscleGroup: ["Quadríceps", "Glúteos"],
-    targetMuscles: ["Quadríceps", "Glúteo Máximo"],
+    id: 501,
+    name: "Thruster",
+    category: "funcional",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Quadríceps", "Deltoides", "Core"],
     difficulty: "Avançado",
-    duration: "3 séries × 6-8 reps",
+    duration: "3 séries × 6-10 reps",
     sets: "3",
-    reps: "6-8",
+    reps: "6-10",
     restTime: "120s",
-    description: "Exercício fundamental para membros inferiores",
-    equipment: "Barra",
-    instructions: [
-      "Posicione barra nos ombros",
-      "Pés na largura dos ombros",
-      "Desça controladamente",
-      "Suba empurrando pelos calcanhares"
-    ],
-    benefits: ["Desenvolve força total", "Trabalha múltiplos grupos", "Funcional"],
-    variations: ["Diferentes profundidades", "Velocidades variadas"],
-    tips: ["Técnica antes da carga", "Aquecimento adequado", "Core ativo"],
-    commonMistakes: ["Profundidade inadequada", "Joelhos para dentro"]
-  },
-
-  {
-    id: 401,
-    name: "Agachamento Búlgaro",
-    category: "forca",
-    muscleGroup: ["Quadríceps", "Glúteos"],
-    targetMuscles: ["Quadríceps", "Glúteo Máximo"],
-    difficulty: "Intermediário",
-    duration: "3 séries × 10-12 reps cada perna",
-    sets: "3",
-    reps: "10-12 cada perna",
-    restTime: "90s",
-    description: "Variação unilateral do agachamento",
+    description: "Combinação de agachamento e desenvolvimento",
     equipment: "Halteres",
     instructions: [
-      "Apoie pé traseiro no banco",
-      "Desça controladamente",
-      "Mantenha equilíbrio",
-      "Alterne as pernas"
+      "Agache com halteres nos ombros",
+      "Suba explosivamente",
+      "Continue o movimento elevando os pesos",
+      "Desça controladamente"
     ],
-    benefits: ["Trabalho unilateral", "Melhora equilíbrio", "Corrige desequilíbrios"],
-    variations: ["Sem peso", "Com diferentes cargas"],
-    tips: ["Foque na perna da frente", "Core ativo", "Movimento controlado"],
-    commonMistakes: ["Apoio excessivo na perna de trás", "Desequilíbrio"]
+    benefits: ["Desenvolve potência", "Trabalho completo", "Força funcional"],
+    variations: ["Com barra", "Com kettlebell"],
+    tips: ["Movimento fluido", "Explosão na subida", "Core sempre ativo"],
+    commonMistakes: ["Pausar entre movimentos", "Peso excessivo"]
   },
-
   {
-    id: 402,
-    name: "Leg Press",
-    category: "forca",
-    muscleGroup: ["Quadríceps", "Glúteos"],
-    targetMuscles: ["Quadríceps", "Glúteo Máximo"],
-    difficulty: "Iniciante",
-    duration: "3 séries × 12-15 reps",
-    sets: "3",
-    reps: "12-15",
-    restTime: "60s",
-    description: "Exercício em máquina para membros inferiores",
-    equipment: "Máquina",
+    id: 502,
+    name: "Clean and Press",
+    category: "olimpico",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Múltiplos Grupos Musculares"],
+    difficulty: "Avançado",
+    duration: "4 séries × 3-5 reps",
+    sets: "4",
+    reps: "3-5",
+    restTime: "180s",
+    description: "Movimento olímpico completo",
+    equipment: "Barra",
     instructions: [
-      "Ajuste máquina",
-      "Posicione pés adequadamente",
-      "Desça controladamente",
-      "Empurre com força"
+      "Levante a barra até os ombros",
+      "Estabilize na posição rack",
+      "Empurre a barra acima da cabeça",
+      "Desça controladamente"
     ],
-    benefits: ["Segurança na execução", "Controle de carga", "Isolamento"],
-    variations: ["Diferentes posições dos pés", "Amplitudes variadas"],
-    tips: ["Não trave joelhos", "Amplitude completa", "Respiração adequada"],
-    commonMistakes: ["Amplitude inadequada", "Posição dos pés incorreta"]
+    benefits: ["Máxima potência", "Coordenação total", "Força olímpica"],
+    variations: ["Clean and Push Press", "Clean and Jerk"],
+    tips: ["Técnica é fundamental", "Aquecimento extenso", "Progressão gradual"],
+    commonMistakes: ["Técnica inadequada", "Pressa na execução"]
+  },
+  {
+    id: 503,
+    name: "Snatch",
+    category: "olimpico",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Múltiplos Grupos Musculares"],
+    difficulty: "Avançado",
+    duration: "4 séries × 2-4 reps",
+    sets: "4",
+    reps: "2-4",
+    restTime: "180s",
+    description: "Exercício olímpico com coordenação total",
+    equipment: "Barra",
+    instructions: [
+      "Pegada larga na barra",
+      "Puxada explosiva do chão",
+      "Recepção em agachamento",
+      "Estabilize acima da cabeça"
+    ],
+    benefits: ["Máxima explosão", "Coordenação complexa", "Mobilidade total"],
+    variations: ["Power Snatch", "Hang Snatch"],
+    tips: ["Mobilidade é essencial", "Aprenda progressivamente", "Técnica perfeita"],
+    commonMistakes: ["Falta de mobilidade", "Pegada inadequada"]
+  },
+  {
+    id: 504,
+    name: "Kettlebell Swing",
+    category: "funcional",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Glúteos", "Isquiotibiais", "Core"],
+    difficulty: "Intermediário",
+    duration: "3 séries × 15-20 reps",
+    sets: "3",
+    reps: "15-20",
+    restTime: "60s",
+    description: "Movimento balístico para potência de corpo inteiro",
+    equipment: "Kettlebell",
+    instructions: [
+      "Pés na largura dos ombros",
+      "Kettlebell entre as pernas",
+      "Movimento explosivo do quadril",
+      "Kettlebell sobe até altura do peito"
+    ],
+    benefits: ["Força explosiva", "Queima calórica alta", "Fortalece posterior"],
+    variations: ["Swing americano", "Swing com uma mão"],
+    tips: ["Movimento vem do quadril", "Não é agachamento", "Glúteos contraídos"],
+    commonMistakes: ["Usar braços demais", "Arco nas costas"]
+  },
+  {
+    id: 505,
+    name: "Man Maker",
+    category: "funcional",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Múltiplos Grupos Musculares"],
+    difficulty: "Avançado",
+    duration: "3 séries × 5-8 reps",
+    sets: "3",
+    reps: "5-8",
+    restTime: "120s",
+    description: "Sequência intensa com halteres para corpo inteiro",
+    equipment: "Halteres",
+    instructions: [
+      "Flexão com halteres",
+      "Remada alternada",
+      "Burpee com halteres",
+      "Desenvolvimento"
+    ],
+    benefits: ["Exercício completo", "Alta intensidade", "Força e resistência"],
+    variations: ["Man Maker simplificado", "Com kettlebells"],
+    tips: ["Mantenha forma", "Respire entre movimentos", "Peso adequado"],
+    commonMistakes: ["Peso excessivo", "Perda da técnica"]
+  },
+  {
+    id: 506,
+    name: "Mountain Climber",
+    category: "cardio",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Core", "Ombros", "Cardio"],
+    difficulty: "Intermediário",
+    duration: "3 séries × 30-45s",
+    sets: "3",
+    reps: "30-45s",
+    restTime: "60s",
+    description: "Movimento contínuo para resistência e core",
+    equipment: "Peso Corporal",
+    instructions: [
+      "Posição de prancha alta",
+      "Traga um joelho ao peito",
+      "Alterne rapidamente as pernas",
+      "Mantenha core estável"
+    ],
+    benefits: ["Queima muitas calorias", "Fortalece core", "Melhora resistência"],
+    variations: ["Mountain climber lento", "Mountain climber cruzado"],
+    tips: ["Ritmo constante", "Core contraído", "Não balance quadris"],
+    commonMistakes: ["Quadris muito altos", "Muito rápido"]
+  },
+  {
+    id: 507,
+    name: "Devil Press",
+    category: "funcional",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Múltiplos Grupos Musculares"],
+    difficulty: "Avançado",
+    duration: "3 séries × 6-10 reps",
+    sets: "3",
+    reps: "6-10",
+    restTime: "120s",
+    description: "Combina burpee, swing e desenvolvimento com halteres",
+    equipment: "Halteres",
+    instructions: [
+      "Burpee com halteres no chão",
+      "Levante os halteres",
+      "Swing até os ombros",
+      "Desenvolvimento acima da cabeça"
+    ],
+    benefits: ["Exercício extremo", "Força e resistência", "Queima máxima"],
+    variations: ["Devil Press com pause", "Com kettlebells"],
+    tips: ["Técnica sempre primeiro", "Respire adequadamente", "Peso moderado"],
+    commonMistakes: ["Peso muito pesado", "Técnica inadequada"]
+  },
+  {
+    id: 508,
+    name: "Clean com Kettlebell",
+    category: "olimpico",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Múltiplos Grupos Musculares"],
+    difficulty: "Avançado",
+    duration: "3 séries × 5-8 reps cada lado",
+    sets: "3",
+    reps: "5-8 cada lado",
+    restTime: "90s",
+    description: "Explosão e técnica com foco total",
+    equipment: "Kettlebell",
+    instructions: [
+      "Kettlebell entre as pernas",
+      "Puxada explosiva",
+      "Recepção no ombro",
+      "Estabilize e repita"
+    ],
+    benefits: ["Potência unilateral", "Coordenação", "Estabilidade"],
+    variations: ["Hang Clean", "Double Clean"],
+    tips: ["Recepção suave", "Cotovelo para baixo", "Core ativo"],
+    commonMistakes: ["Recepção dura", "Falta de técnica"]
+  },
+  {
+    id: 509,
+    name: "Snatch com Kettlebell",
+    category: "olimpico",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Múltiplos Grupos Musculares"],
+    difficulty: "Avançado",
+    duration: "3 séries × 4-6 reps cada lado",
+    sets: "3",
+    reps: "4-6 cada lado",
+    restTime: "120s",
+    description: "Movimento olímpico unilateral e funcional",
+    equipment: "Kettlebell",
+    instructions: [
+      "Swing alto com uma mão",
+      "Punho atravessa por baixo",
+      "Recepção acima da cabeça",
+      "Estabilize e desça"
+    ],
+    benefits: ["Máxima potência", "Mobilidade ombro", "Coordenação total"],
+    variations: ["Hang Snatch", "Power Snatch"],
+    tips: ["Timing é crucial", "Mobilidade essencial", "Progressão lenta"],
+    commonMistakes: ["Falta de timing", "Mobilidade inadequada"]
+  },
+  {
+    id: 510,
+    name: "Slam Ball",
+    category: "pliometrico",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Core", "Ombros", "Pernas"],
+    difficulty: "Intermediário",
+    duration: "3 séries × 10-15 reps",
+    sets: "3",
+    reps: "10-15",
+    restTime: "75s",
+    description: "Arremesso de bola no chão para potência",
+    equipment: "Medicine Ball",
+    instructions: [
+      "Eleve a bola acima da cabeça",
+      "Arremesse com força no chão",
+      "Agache para pegar",
+      "Repita o movimento"
+    ],
+    benefits: ["Potência explosiva", "Descarrega tensão", "Core forte"],
+    variations: ["Slam lateral", "Slam com agachamento"],
+    tips: ["Use corpo todo", "Força máxima", "Arremesso seguro"],
+    commonMistakes: ["Só usar braços", "Postura inadequada"]
+  },
+  {
+    id: 511,
+    name: "Clean and Jerk",
+    category: "olimpico",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Múltiplos Grupos Musculares"],
+    difficulty: "Avançado",
+    duration: "4 séries × 2-4 reps",
+    sets: "4",
+    reps: "2-4",
+    restTime: "180s",
+    description: "Movimento de levantamento olímpico em dois tempos",
+    equipment: "Barra",
+    instructions: [
+      "Clean até os ombros",
+      "Estabilize na posição",
+      "Jerk acima da cabeça",
+      "Estabilize e desça"
+    ],
+    benefits: ["Máxima potência", "Técnica olímpica", "Força total"],
+    variations: ["Split Jerk", "Push Jerk"],
+    tips: ["Dois movimentos distintos", "Pausa entre eles", "Técnica perfeita"],
+    commonMistakes: ["Juntar os movimentos", "Técnica inadequada"]
+  },
+  {
+    id: 512,
+    name: "Corda Naval",
+    category: "cardio",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Ombros", "Core", "Cardio"],
+    difficulty: "Intermediário",
+    duration: "3 séries × 30-45s",
+    sets: "3",
+    reps: "30-45s",
+    restTime: "60s",
+    description: "Resistência metabólica e potência muscular",
+    equipment: "Corda Naval",
+    instructions: [
+      "Segure as pontas da corda",
+      "Movimentos alternados ou simultâneos",
+      "Mantenha core ativo",
+      "Intensidade constante"
+    ],
+    benefits: ["Resistência metabólica", "Força explosiva", "Queima intensa"],
+    variations: ["Ondas alternadas", "Ondas simultâneas", "Spirals"],
+    tips: ["Postura ereta", "Core contraído", "Respiração controlada"],
+    commonMistakes: ["Postura inadequada", "Perda de intensidade"]
+  },
+  {
+    id: 513,
+    name: "Wall Ball",
+    category: "funcional",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Quadríceps", "Ombros", "Core"],
+    difficulty: "Intermediário",
+    duration: "3 séries × 12-20 reps",
+    sets: "3",
+    reps: "12-20",
+    restTime: "60s",
+    description: "Agachamento seguido de arremesso contra parede",
+    equipment: "Medicine Ball",
+    instructions: [
+      "Agache com bola no peito",
+      "Suba explosivamente",
+      "Arremesse a bola na parede",
+      "Receba e repita"
+    ],
+    benefits: ["Potência de pernas", "Coordenação", "Resistência"],
+    variations: ["Diferentes alturas", "Wall Ball com passada"],
+    tips: ["Agachamento completo", "Arremesso explosivo", "Recepção suave"],
+    commonMistakes: ["Agachamento parcial", "Arremesso fraco"]
+  },
+  {
+    id: 514,
+    name: "Mountain Climbers com Slider",
+    category: "core",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Core", "Ombros"],
+    difficulty: "Intermediário",
+    duration: "3 séries × 30-40s",
+    sets: "3",
+    reps: "30-40s",
+    restTime: "60s",
+    description: "Variação de escalada com menor atrito para abdômen e pernas",
+    equipment: "Discos Deslizantes",
+    instructions: [
+      "Prancha com pés nos sliders",
+      "Traga joelhos alternadamente",
+      "Movimento controlado",
+      "Core sempre ativo"
+    ],
+    benefits: ["Core intenso", "Estabilidade", "Controle motor"],
+    variations: ["Ambas pernas juntas", "Movimento lateral"],
+    tips: ["Movimento controlado", "Core contraído", "Não balance quadris"],
+    commonMistakes: ["Movimento descontrolado", "Perda da postura"]
+  },
+  {
+    id: 515,
+    name: "Bear Crawl",
+    category: "funcional",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Core", "Ombros", "Quadríceps"],
+    difficulty: "Intermediário",
+    duration: "3 séries × 30-45s",
+    sets: "3",
+    reps: "30-45s",
+    restTime: "60s",
+    description: "Deslocamento funcional com ativação completa",
+    equipment: "Peso Corporal",
+    instructions: [
+      "Posição quadrúpede",
+      "Joelhos ligeiramente elevados",
+      "Deslocamento alternado",
+      "Mantenha core rígido"
+    ],
+    benefits: ["Estabilidade total", "Coordenação", "Força funcional"],
+    variations: ["Bear crawl reverso", "Bear crawl lateral"],
+    tips: ["Joelhos baixos", "Core rígido", "Movimento controlado"],
+    commonMistakes: ["Joelhos muito altos", "Movimento descontrolado"]
+  },
+  {
+    id: 516,
+    name: "Farmer Carry",
+    category: "funcional",
+    muscleGroup: ["Corpo Inteiro"],
+    targetMuscles: ["Trapézio", "Core", "Antebraços"],
+    difficulty: "Intermediário",
+    duration: "3 séries × 30-60s",
+    sets: "3",
+    reps: "30-60s",
+    restTime: "90s",
+    description: "Deslocamento com carga para força e resistência",
+    equipment: "Halteres",
+    instructions: [
+      "Halteres nas mãos",
+      "Postura ereta",
+      "Caminhada controlada",
+      "Core sempre ativo"
+    ],
+    benefits: ["Força de pegada", "Core estável", "Força funcional"],
+    variations: ["Farmer carry unilateral", "Com kettlebells"],
+    tips: ["Postura sempre ereta", "Pegada firme", "Passos controlados"],
+    commonMistakes: ["Postura inadequada", "Perda da pegada"]
   }
-
-  // Continuaria com todos os outros exercícios...
-  // Por questões de espaço, implementei uma amostra representativa
 ];
 
 // Função para obter exercícios do usuário por categoria
@@ -289,6 +433,9 @@ export const getUserExerciseStats = () => {
   const total = userExerciseDatabase.length;
   
   const byMuscleGroup = {
+    'Corpo Inteiro': userExerciseDatabase.filter(ex => 
+      ex.muscleGroup.some(muscle => muscle.includes('Corpo Inteiro'))
+    ).length,
     'Membros Superiores': userExerciseDatabase.filter(ex => 
       ex.muscleGroup.some(muscle => 
         ['Peitoral', 'Tríceps', 'Bíceps', 'Deltoides', 'Trapézio', 'Dorsais', 'Antebraço'].some(upper =>
@@ -311,5 +458,13 @@ export const getUserExerciseStats = () => {
     'Avançado': userExerciseDatabase.filter(ex => ex.difficulty === 'Avançado').length
   };
 
-  return { total, byMuscleGroup, byDifficulty };
+  const byCategory = {
+    'Funcional': userExerciseDatabase.filter(ex => ex.category === 'funcional').length,
+    'Olímpico': userExerciseDatabase.filter(ex => ex.category === 'olimpico').length,
+    'Pliométrico': userExerciseDatabase.filter(ex => ex.category === 'pliometrico').length,
+    'Cardio': userExerciseDatabase.filter(ex => ex.category === 'cardio').length,
+    'Core': userExerciseDatabase.filter(ex => ex.category === 'core').length
+  };
+
+  return { total, byMuscleGroup, byDifficulty, byCategory };
 };
