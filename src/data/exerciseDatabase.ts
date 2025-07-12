@@ -15,13 +15,15 @@ import { expandedExerciseDatabase } from './expandedExerciseDatabase';
 import { additionalExercises } from './additionalExercises';
 import { imageExerciseDatabase } from './imageExerciseDatabase';
 import { newExerciseDatabase } from './newExerciseDatabase';
+import { userExerciseDatabase } from './userExerciseDatabase';
 
-// Banco completo com 500+ exercícios baseado na tabela fornecida + exercícios das imagens + novos exercícios
+// Banco completo com 500+ exercícios baseado na tabela fornecida + novos exercícios do usuário
 export const completeExerciseDatabase = [
   ...expandedExerciseDatabase,
   ...additionalExercises,
   ...imageExerciseDatabase,
-  ...newExerciseDatabase
+  ...newExerciseDatabase,
+  ...userExerciseDatabase
 ];
 
 // Função melhorada para buscar exercícios por grupo muscular específico
