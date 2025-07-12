@@ -19,6 +19,7 @@ export interface PeriodizationAnalysis {
   trainingFrequency: number;
   analysisDate: string;
   confidence: number;
+  userId: string;
 }
 
 export interface RecommendedWorkoutModel {
@@ -33,69 +34,74 @@ export interface RecommendedWorkoutModel {
   recommendationScore: number;
   aiReasoning: string;
   periodizationPhase: string;
+  userId: string;
+  category: string;
+  createdAt: string;
 }
 
 class PeriodizationAnalysisService {
   
-  async analyzePeriodization(content: string): Promise<PeriodizationAnalysis> {
-    // Simular análise de IA do conteúdo da periodização
-    // Em uma implementação real, isso seria processado por uma IA real
-    
-    const analysis = this.parseContentWithAI(content);
-    
-    // Salvar análise no localStorage
-    const savedAnalyses = JSON.parse(localStorage.getItem("periodizationAnalyses") || "[]");
-    savedAnalyses.push(analysis);
-    localStorage.setItem("periodizationAnalyses", JSON.stringify(savedAnalyses));
-    
-    return analysis;
+  async analyzePeriodization(content: string, userId: string = 'default'): Promise<PeriodizationAnalysis> {
+    try {
+      console.log('Iniciando análise de periodização para usuário:', userId);
+      const analysis = this.parseContentWithAI(content, userId);
+      
+      // Salvar análise no localStorage
+      const savedAnalyses = JSON.parse(localStorage.getItem("periodizationAnalyses") || "[]");
+      savedAnalyses.push(analysis);
+      localStorage.setItem("periodizationAnalyses", JSON.stringify(savedAnalyses));
+      
+      return analysis;
+    } catch (error) {
+      console.error('Erro na análise de periodização:', error);
+      throw new Error('Falha ao analisar periodização');
+    }
   }
 
-  private parseContentWithAI(content: string): PeriodizationAnalysis {
-    // Simulação de análise inteligente do conteúdo
-    // Na implementação real, seria processado por IA para extrair:
-    // - Fases da periodização
-    // - Objetivos de cada fase  
-    // - Intensidades planejadas
-    // - Grupos musculares prioritários
+  private parseContentWithAI(content: string, userId: string): PeriodizationAnalysis {
+    console.log('Processando conteúdo da periodização...');
     
     const keywords = content.toLowerCase();
     
-    // Detectar objetivo principal
+    // Detectar objetivo principal com mais precisão
     let mainObjective = "Condicionamento Geral";
-    if (keywords.includes("força") || keywords.includes("force")) {
+    if (keywords.includes("força") || keywords.includes("force") || keywords.includes("strength")) {
       mainObjective = "Desenvolvimento de Força";
-    } else if (keywords.includes("hipertrofia") || keywords.includes("massa")) {
+    } else if (keywords.includes("hipertrofia") || keywords.includes("massa") || keywords.includes("volume")) {
       mainObjective = "Hipertrofia Muscular";
-    } else if (keywords.includes("perda") && keywords.includes("peso")) {
+    } else if (keywords.includes("perda") && (keywords.includes("peso") || keywords.includes("gordura"))) {
       mainObjective = "Perda de Peso";
-    } else if (keywords.includes("resistência") || keywords.includes("cardio")) {
+    } else if (keywords.includes("resistência") || keywords.includes("cardio") || keywords.includes("endurance")) {
       mainObjective = "Resistência Cardiovascular";
     }
 
-    // Detectar duração (procurar por números + "semanas")
+    // Detectar duração total
     const weekMatches = content.match(/(\d+)\s*semanas?/gi);
-    const totalWeeks = weekMatches ? 
-      Math.max(...weekMatches.map(m => parseInt(m.match(/\d+/)?.[0] || "0"))) : 12;
+    const monthMatches = content.match(/(\d+)\s*meses?/gi);
+    
+    let totalWeeks = 12; // padrão
+    if (weekMatches) {
+      totalWeeks = Math.max(...weekMatches.map(m => parseInt(m.match(/\d+/)?.[0] || "0")));
+    } else if (monthMatches) {
+      const months = Math.max(...monthMatches.map(m => parseInt(m.match(/\d+/)?.[0] || "0")));
+      totalWeeks = months * 4;
+    }
 
-    // Gerar fases baseadas na análise
+    // Gerar fases específicas
     const phases = this.generatePhasesFromAnalysis(content, totalWeeks, mainObjective);
-    
-    // Detectar grupos musculares prioritários
     const muscleGroupPriority = this.extractMuscleGroupPriority(content);
-    
-    // Detectar frequência de treino
     const trainingFrequency = this.extractTrainingFrequency(content);
 
     return {
-      id: `analysis_${Date.now()}`,
+      id: `analysis_${userId}_${Date.now()}`,
       totalWeeks,
       mainObjective,
       phases,
       muscleGroupPriority,
       trainingFrequency,
       analysisDate: new Date().toISOString(),
-      confidence: this.calculateConfidenceScore(content)
+      confidence: this.calculateConfidenceScore(content),
+      userId
     };
   }
 
@@ -103,59 +109,99 @@ class PeriodizationAnalysisService {
     const phases: PeriodizationPhase[] = [];
     const keywords = content.toLowerCase();
 
-    // Lógica inteligente para detectar fases baseada no objetivo
+    console.log('Gerando fases baseadas no objetivo:', objective);
+
     if (objective.includes("Força")) {
+      const adaptationWeeks = Math.ceil(totalWeeks * 0.25);
+      const strengthWeeks = Math.ceil(totalWeeks * 0.5);
+      const peakWeeks = totalWeeks - adaptationWeeks - strengthWeeks;
+
       phases.push(
         {
           name: "Adaptação Anatômica",
-          duration: Math.ceil(totalWeeks * 0.25),
-          objective: "Preparação muscular e articular",
+          duration: adaptationWeeks,
+          objective: "Preparação muscular e técnica",
           priority: "alta",
           intensity: "baixa",
-          focus: ["Técnica", "Volume", "Adaptação"]
+          focus: ["Técnica", "Volume Base", "Adaptação Articular"]
         },
         {
           name: "Desenvolvimento de Força",
-          duration: Math.ceil(totalWeeks * 0.5),
-          objective: "Aumento da força máxima",
-          priority: "alta", 
+          duration: strengthWeeks,
+          objective: "Ganho de força máxima",
+          priority: "alta",
           intensity: "alta",
-          focus: ["Força Máxima", "CNS"]
+          focus: ["Força Máxima", "Cargas Pesadas", "Técnica Avançada"]
         },
         {
-          name: "Realização/Pico",
-          duration: Math.ceil(totalWeeks * 0.25),
-          objective: "Expressão máxima da força",
+          name: "Realização",
+          duration: peakWeeks,
+          objective: "Expressão da força desenvolvida",
           priority: "media",
           intensity: "moderada",
-          focus: ["Potência", "Técnica Refinada"]
+          focus: ["Potência", "Técnica Refinada", "Manutenção"]
         }
       );
     } else if (objective.includes("Hipertrofia")) {
+      const prepWeeks = Math.ceil(totalWeeks * 0.2);
+      const hypertrophyWeeks = Math.ceil(totalWeeks * 0.6);
+      const definitionWeeks = totalWeeks - prepWeeks - hypertrophyWeeks;
+
       phases.push(
         {
-          name: "Fase Preparatória",
-          duration: Math.ceil(totalWeeks * 0.2),
-          objective: "Adaptação inicial",
+          name: "Preparação",
+          duration: prepWeeks,
+          objective: "Condicionamento base",
           priority: "media",
           intensity: "baixa",
-          focus: ["Volume", "Técnica"]
+          focus: ["Volume Progressivo", "Técnica", "Adaptação"]
         },
         {
-          name: "Fase de Desenvolvimento",
-          duration: Math.ceil(totalWeeks * 0.6),
+          name: "Hipertrofia Intensiva",
+          duration: hypertrophyWeeks,
           objective: "Máximo crescimento muscular",
           priority: "alta",
           intensity: "alta",
-          focus: ["Volume Alto", "Tensão Mecânica"]
+          focus: ["Alto Volume", "Tensão Mecânica", "Tempo Sob Tensão"]
         },
         {
-          name: "Fase de Definição",
-          duration: Math.ceil(totalWeeks * 0.2),
+          name: "Definição",
+          duration: definitionWeeks,
           objective: "Refinamento e definição",
           priority: "media",
           intensity: "moderada",
-          focus: ["Definição", "Cardio"]
+          focus: ["Definição Muscular", "Cardio Moderado", "Manutenção"]
+        }
+      );
+    } else if (objective.includes("Perda")) {
+      const baseWeeks = Math.ceil(totalWeeks * 0.3);
+      const intensiveWeeks = Math.ceil(totalWeeks * 0.5);
+      const maintenanceWeeks = totalWeeks - baseWeeks - intensiveWeeks;
+
+      phases.push(
+        {
+          name: "Base Metabólica",
+          duration: baseWeeks,
+          objective: "Preparação metabólica",
+          priority: "alta",
+          intensity: "baixa",
+          focus: ["Cardio Base", "Força Funcional", "Hábitos"]
+        },
+        {
+          name: "Queima Intensiva",
+          duration: intensiveWeeks,
+          objective: "Máxima queima calórica",
+          priority: "alta",
+          intensity: "alta",
+          focus: ["HIIT", "Circuitos", "Alta Intensidade"]
+        },
+        {
+          name: "Manutenção",
+          duration: maintenanceWeeks,
+          objective: "Consolidação dos resultados",
+          priority: "media",
+          intensity: "moderada",
+          focus: ["Estabilidade", "Manutenção", "Lifestyle"]
         }
       );
     } else {
@@ -163,28 +209,28 @@ class PeriodizationAnalysisService {
       const phaseLength = Math.ceil(totalWeeks / 3);
       phases.push(
         {
-          name: "Fase Inicial",
+          name: "Adaptação",
           duration: phaseLength,
-          objective: "Condicionamento base",
+          objective: "Condicionamento inicial",
           priority: "alta",
           intensity: "baixa",
-          focus: ["Resistência", "Técnica"]
+          focus: ["Resistência Base", "Técnica", "Movimento"]
         },
         {
-          name: "Fase Intermediária", 
+          name: "Desenvolvimento",
           duration: phaseLength,
-          objective: "Progressão controlada",
+          objective: "Progressão sistemática",
           priority: "alta",
           intensity: "moderada",
-          focus: ["Força", "Resistência"]
+          focus: ["Força-Resistência", "Capacidade", "Progressão"]
         },
         {
-          name: "Fase Avançada",
+          name: "Especialização",
           duration: totalWeeks - (phaseLength * 2),
           objective: "Alta performance",
           priority: "media",
           intensity: "alta",
-          focus: ["Potência", "Especificidade"]
+          focus: ["Especificidade", "Potência", "Performance"]
         }
       );
     }
@@ -250,16 +296,25 @@ class PeriodizationAnalysisService {
   }
 
   async recommendWorkoutModels(analysis: PeriodizationAnalysis): Promise<RecommendedWorkoutModel[]> {
+    console.log('Gerando recomendações de modelos para usuário:', analysis.userId);
+    
     const recommendations: RecommendedWorkoutModel[] = [];
     
-    // Para cada fase, gerar recomendações individuais
-    for (const phase of analysis.phases) {
-      const phaseRecommendations = await this.generatePhaseRecommendations(phase, analysis);
-      recommendations.push(...phaseRecommendations);
+    try {
+      // Para cada fase, gerar múltiplas recomendações
+      for (const phase of analysis.phases) {
+        const phaseRecommendations = await this.generatePhaseRecommendations(phase, analysis);
+        recommendations.push(...phaseRecommendations);
+      }
+      
+      // Salvar modelos únicos para o usuário
+      this.saveUserWorkoutModels(recommendations, analysis.userId);
+      
+      return recommendations.sort((a, b) => b.recommendationScore - a.recommendationScore);
+    } catch (error) {
+      console.error('Erro ao gerar recomendações:', error);
+      throw new Error('Falha ao gerar modelos de treino');
     }
-    
-    // Ordenar por score de recomendação
-    return recommendations.sort((a, b) => b.recommendationScore - a.recommendationScore);
   }
 
   private async generatePhaseRecommendations(
@@ -269,38 +324,22 @@ class PeriodizationAnalysisService {
     
     const recommendations: RecommendedWorkoutModel[] = [];
     
-    // Mapear objetivos da fase para tipos de treino
-    const objectiveToWorkoutType = {
-      "força": "forca",
-      "hipertrofia": "ganho-massa", 
-      "resistência": "condicionamento",
-      "condicionamento": "condicionamento",
-      "perda": "perda-peso",
-      "definição": "perda-peso"
-    };
-
-    let workoutType = "condicionamento";
-    for (const [key, type] of Object.entries(objectiveToWorkoutType)) {
-      if (phase.objective.toLowerCase().includes(key) || phase.name.toLowerCase().includes(key)) {
-        workoutType = type;
-        break;
-      }
-    }
-
-    // Gerar diferentes variações para a fase
-    const intensities: Array<{level: any, duration: number}> = [
-      { level: "baixa", duration: 30 },
-      { level: "moderada", duration: 45 },
-      { level: "alta", duration: 60 }
+    // Mapear objetivos para categorias de treino
+    const objectiveToCategory = this.mapObjectiveToCategory(phase);
+    
+    // Gerar variações de intensidade para cada fase
+    const intensityVariations = [
+      { level: "baixa" as const, duration: 30, suffix: "Suave" },
+      { level: "moderada" as const, duration: 45, suffix: "Moderado" }, 
+      { level: "alta" as const, duration: 60, suffix: "Intenso" }
     ];
 
-    for (const intensity of intensities) {
-      // Análise individual para cada combinação
-      const recommendation = this.createIndividualRecommendation(
+    for (const variation of intensityVariations) {
+      const recommendation = this.createUniqueRecommendation(
         phase, 
         analysis, 
-        workoutType, 
-        intensity
+        objectiveToCategory,
+        variation
       );
       
       recommendations.push(recommendation);
@@ -309,120 +348,48 @@ class PeriodizationAnalysisService {
     return recommendations;
   }
 
-  private createIndividualRecommendation(
+  private mapObjectiveToCategory(phase: PeriodizationPhase): string {
+    const phaseName = phase.name.toLowerCase();
+    const objective = phase.objective.toLowerCase();
+    
+    if (phaseName.includes("força") || objective.includes("força")) {
+      return "forca";
+    } else if (phaseName.includes("hipertrofia") || objective.includes("crescimento")) {
+      return "hipertrofia";
+    } else if (phaseName.includes("queima") || objective.includes("perda")) {
+      return "perda-peso";
+    } else if (phaseName.includes("condicionamento") || objective.includes("resistência")) {
+      return "condicionamento";
+    } else {
+      return "mobilidade";
+    }
+  }
+
+  private createUniqueRecommendation(
     phase: PeriodizationPhase,
     analysis: PeriodizationAnalysis, 
-    workoutType: string,
-    intensity: {level: any, duration: number}
+    category: string,
+    variation: {level: 'baixa' | 'moderada' | 'alta', duration: number, suffix: string}
   ): RecommendedWorkoutModel {
     
-    // Análise individual para justificar a recomendação
-    const reasoning = this.generateIndividualReasoning(phase, workoutType, intensity);
-    
-    // Calcular score baseado na compatibilidade
-    const score = this.calculateRecommendationScore(phase, workoutType, intensity);
-    
-    // Selecionar grupos musculares específicos para esta recomendação
-    const muscleGroups = this.selectSpecificMuscleGroups(phase, analysis);
+    const uniqueId = `model_${analysis.userId}_${phase.name.replace(/\s+/g, '_')}_${variation.level}_${Date.now()}`;
     
     return {
-      id: `rec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      name: `${phase.name} - ${this.capitalizeFirst(intensity.level)} Intensidade`,
-      description: `Treino especializado para ${phase.objective.toLowerCase()} com foco em ${phase.focus.join(", ").toLowerCase()}`,
+      id: uniqueId,
+      name: `${phase.name} ${variation.suffix}`,
+      description: `${phase.objective} com foco em ${phase.focus.slice(0, 2).join(" e ").toLowerCase()}`,
       phase: phase.name,
-      duration: intensity.duration,
-      targetPSE: this.calculateTargetPSE(phase.intensity, intensity.level),
-      muscleGroups,
+      duration: variation.duration,
+      targetPSE: this.calculateTargetPSE(phase.intensity, variation.level),
+      muscleGroups: this.selectMuscleGroupsForPhase(phase, analysis),
       exercises: [], // Seriam gerados pelo workoutGenerationService
-      recommendationScore: score,
-      aiReasoning: reasoning,
-      periodizationPhase: phase.name
+      recommendationScore: this.calculateUniqueRecommendationScore(phase, variation),
+      aiReasoning: this.generatePersonalizedReasoning(phase, variation, analysis),
+      periodizationPhase: phase.name,
+      userId: analysis.userId,
+      category: category,
+      createdAt: new Date().toISOString()
     };
-  }
-
-  private generateIndividualReasoning(
-    phase: PeriodizationPhase, 
-    workoutType: string, 
-    intensity: {level: any, duration: number}
-  ): string {
-    
-    const reasonings = {
-      "baixa": [
-        `Ideal para ${phase.name} pois permite foco na técnica e adaptação gradual.`,
-        `A intensidade baixa é perfeita para ${phase.objective.toLowerCase()} sem sobrecarga excessiva.`,
-        `Recomendado para esta fase devido ao objetivo de ${phase.focus.join(" e ").toLowerCase()}.`
-      ],
-      "moderada": [
-        `Equilíbrio ideal entre desafio e recuperação para ${phase.name}.`,
-        `Esta intensidade permite progressão consistente em ${phase.objective.toLowerCase()}.`,
-        `Compatível com o foco em ${phase.focus.join(" e ").toLowerCase()} desta fase.`
-      ],
-      "alta": [
-        `Intensidade máxima justificada pelo objetivo de ${phase.objective.toLowerCase()}.`,
-        `Necessária para alcançar os resultados específicos de ${phase.name}.`,
-        `O foco em ${phase.focus.join(" e ").toLowerCase()} demanda esta intensidade.`
-      ]
-    };
-
-    const options = reasonings[intensity.level] || reasonings["moderada"];
-    return options[Math.floor(Math.random() * options.length)];
-  }
-
-  private calculateRecommendationScore(
-    phase: PeriodizationPhase, 
-    workoutType: string, 
-    intensity: {level: any, duration: number}
-  ): number {
-    let score = 60; // base
-    
-    // Compatibilidade de intensidade
-    if (phase.intensity === intensity.level) {
-      score += 25;
-    } else if (
-      (phase.intensity === "alta" && intensity.level === "moderada") ||
-      (phase.intensity === "baixa" && intensity.level === "moderada")
-    ) {
-      score += 15;
-    }
-    
-    // Compatibilidade de duração com prioridade
-    if (phase.priority === "alta" && intensity.duration >= 45) {
-      score += 10;
-    }
-    
-    // Boost para fases específicas
-    if (phase.name.toLowerCase().includes("desenvolvimento") && intensity.level === "alta") {
-      score += 10;
-    }
-    
-    return Math.min(Math.max(score, 40), 98); // Entre 40-98%
-  }
-
-  private selectSpecificMuscleGroups(
-    phase: PeriodizationPhase, 
-    analysis: PeriodizationAnalysis
-  ): string[] {
-    // Análise individual para cada recomendação
-    let muscleGroups = [...analysis.muscleGroupPriority];
-    
-    // Ajustar baseado no foco da fase
-    if (phase.focus.includes("Upper") || phase.focus.includes("Membros Superiores")) {
-      muscleGroups = muscleGroups.filter(m => 
-        ["Peitoral", "Dorsais", "Deltoide", "Bíceps", "Tríceps"].includes(m)
-      );
-    } else if (phase.focus.includes("Lower") || phase.focus.includes("Membros Inferiores")) {
-      muscleGroups = muscleGroups.filter(m => 
-        ["Quadríceps", "Isquiotibiais", "Glúteos", "Panturrilha"].includes(m)
-      );
-    }
-    
-    // Se não há grupos suficientes, adicionar complementares
-    if (muscleGroups.length < 2) {
-      const allGroups = ["Peitoral", "Dorsais", "Quadríceps", "Deltoide"];
-      muscleGroups.push(...allGroups.filter(g => !muscleGroups.includes(g)).slice(0, 2));
-    }
-    
-    return muscleGroups.slice(0, 4); // Máximo 4 grupos
   }
 
   private calculateTargetPSE(phaseIntensity: string, workoutIntensity: string): number {
@@ -432,17 +399,184 @@ class PeriodizationAnalysisService {
       "alta": 8
     };
     
-    let pse = baseMap[phaseIntensity] || 6;
+    let pse = baseMap[phaseIntensity as keyof typeof baseMap] || 6;
     
-    // Ajustar baseado na intensidade do treino
     if (workoutIntensity === "alta") pse += 1;
     if (workoutIntensity === "baixa") pse -= 1;
     
     return Math.min(Math.max(pse, 3), 9);
   }
 
-  private capitalizeFirst(str: string): string {
-    return str.charAt(0).toUpperCase() + str.slice(1);
+  private selectMuscleGroupsForPhase(phase: PeriodizationPhase, analysis: PeriodizationAnalysis): string[] {
+    let muscleGroups = [...analysis.muscleGroupPriority];
+    
+    // Especializar baseado no foco da fase
+    const focus = phase.focus.join(" ").toLowerCase();
+    
+    if (focus.includes("superior") || focus.includes("braço")) {
+      muscleGroups = ["Peitoral", "Dorsais", "Deltoide", "Bíceps", "Tríceps"];
+    } else if (focus.includes("inferior") || focus.includes("perna")) {
+      muscleGroups = ["Quadríceps", "Isquiotibiais", "Glúteos", "Panturrilha"];
+    } else if (focus.includes("core") || focus.includes("abdômen")) {
+      muscleGroups = ["Abdômen", "Core", "Lombar"];
+    }
+    
+    return muscleGroups.slice(0, 4);
+  }
+
+  private calculateUniqueRecommendationScore(
+    phase: PeriodizationPhase, 
+    variation: {level: string, duration: number}
+  ): number {
+    let score = 70; // base mais alta
+    
+    // Compatibilidade de intensidade
+    if (phase.intensity === variation.level) {
+      score += 20;
+    } else if (Math.abs(["baixa", "moderada", "alta"].indexOf(phase.intensity) - 
+                       ["baixa", "moderada", "alta"].indexOf(variation.level)) === 1) {
+      score += 10;
+    }
+    
+    // Boost para fases de alta prioridade
+    if (phase.priority === "alta") {
+      score += 8;
+    }
+    
+    return Math.min(score, 98);
+  }
+
+  private generatePersonalizedReasoning(
+    phase: PeriodizationPhase, 
+    variation: {level: string, suffix: string}, 
+    analysis: PeriodizationAnalysis
+  ): string {
+    
+    const reasoningTemplates = {
+      "baixa": `Perfeito para ${phase.name} pois permite adaptação gradual focando em ${phase.focus[0]?.toLowerCase()}. Ideal para usuários que buscam ${analysis.mainObjective.toLowerCase()}.`,
+      "moderada": `Equilíbrio ideal para ${phase.name}, combinando ${phase.focus.slice(0,2).join(" e ").toLowerCase()}. Compatível com seu objetivo de ${analysis.mainObjective.toLowerCase()}.`,
+      "alta": `Intensidade máxima para ${phase.name}, focando em ${phase.focus[0]?.toLowerCase()}. Necessário para alcançar resultados em ${analysis.mainObjective.toLowerCase()}.`
+    };
+
+    return reasoningTemplates[variation.level as keyof typeof reasoningTemplates] || 
+           `Modelo personalizado para ${phase.name} baseado na sua periodização.`;
+  }
+
+  private saveUserWorkoutModels(models: RecommendedWorkoutModel[], userId: string): void {
+    try {
+      // Salvar modelos específicos do usuário
+      const userModelsKey = `userWorkoutModels_${userId}`;
+      const existingUserModels = JSON.parse(localStorage.getItem(userModelsKey) || "[]");
+      
+      // Adicionar novos modelos únicos
+      const newModels = models.filter(model => 
+        !existingUserModels.some((existing: RecommendedWorkoutModel) => existing.id === model.id)
+      );
+      
+      const updatedUserModels = [...existingUserModels, ...newModels];
+      localStorage.setItem(userModelsKey, JSON.stringify(updatedUserModels));
+      
+      // Também salvar no banco geral de modelos
+      this.saveToModelDatabase(newModels);
+      
+      console.log(`Salvos ${newModels.length} modelos únicos para usuário ${userId}`);
+    } catch (error) {
+      console.error('Erro ao salvar modelos do usuário:', error);
+    }
+  }
+
+  private saveToModelDatabase(models: RecommendedWorkoutModel[]): void {
+    try {
+      const modelDatabase = JSON.parse(localStorage.getItem("workoutModelsDatabase") || "[]");
+      const updatedDatabase = [...modelDatabase, ...models];
+      localStorage.setItem("workoutModelsDatabase", JSON.stringify(updatedDatabase));
+    } catch (error) {
+      console.error('Erro ao salvar no banco de modelos:', error);
+    }
+  }
+
+  // Métodos utilitários mantidos do código original
+  private extractMuscleGroupPriority(content: string): string[] {
+    const keywords = content.toLowerCase();
+    const muscleGroups = [];
+
+    const muscleMap = {
+      "peitoral": ["peito", "peitoral", "chest"],
+      "dorsais": ["costas", "dorsais", "lat", "back"],
+      "quadríceps": ["quadríceps", "coxa", "quad", "thigh"],
+      "isquiotibiais": ["isquiotibiais", "posterior", "hamstring"],
+      "deltoide": ["ombro", "deltoide", "shoulder"],
+      "bíceps": ["bíceps", "bicep"],
+      "tríceps": ["tríceps", "tricep"],
+      "glúteos": ["glúteo", "glute", "bumbum"],
+      "abdômen": ["abdômen", "core", "abs"]
+    };
+
+    for (const [muscle, terms] of Object.entries(muscleMap)) {
+      if (terms.some(term => keywords.includes(term))) {
+        muscleGroups.push(muscle);
+      }
+    }
+
+    if (muscleGroups.length === 0) {
+      return ["Peitoral", "Dorsais", "Quadríceps", "Deltoide"];
+    }
+
+    return muscleGroups;
+  }
+
+  private extractTrainingFrequency(content: string): number {
+    const frequencyMatches = content.match(/(\d+)\s*(x|vezes)\s*(semana|week)/gi);
+    if (frequencyMatches) {
+      const numbers = frequencyMatches.map(m => parseInt(m.match(/\d+/)?.[0] || "0"));
+      return Math.max(...numbers);
+    }
+    
+    const keywords = content.toLowerCase();
+    if (keywords.includes("iniciante")) return 3;
+    if (keywords.includes("avançado")) return 5;
+    return 4;
+  }
+
+  private calculateConfidenceScore(content: string): number {
+    let score = 50;
+    
+    if (content.length > 500) score += 20;
+    if (content.includes("semana")) score += 10;
+    if (content.includes("fase")) score += 15;
+    if (content.match(/\d+/g)?.length > 5) score += 10;
+    
+    return Math.min(score, 95);
+  }
+
+  // Métodos para acessar o banco de modelos
+  getUserWorkoutModels(userId: string): RecommendedWorkoutModel[] {
+    try {
+      const userModelsKey = `userWorkoutModels_${userId}`;
+      return JSON.parse(localStorage.getItem(userModelsKey) || "[]");
+    } catch (error) {
+      console.error('Erro ao carregar modelos do usuário:', error);
+      return [];
+    }
+  }
+
+  getAllWorkoutModels(): RecommendedWorkoutModel[] {
+    try {
+      return JSON.parse(localStorage.getItem("workoutModelsDatabase") || "[]");
+    } catch (error) {
+      console.error('Erro ao carregar banco de modelos:', error);
+      return [];
+    }
+  }
+
+  getModelsByCategory(category: string): RecommendedWorkoutModel[] {
+    try {
+      const allModels = this.getAllWorkoutModels();
+      return allModels.filter(model => model.category === category);
+    } catch (error) {
+      console.error('Erro ao filtrar modelos por categoria:', error);
+      return [];
+    }
   }
 }
 

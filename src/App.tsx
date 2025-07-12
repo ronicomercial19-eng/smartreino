@@ -6,6 +6,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Dashboard from "@/pages/Dashboard";
 import WorkoutModels from "@/pages/WorkoutModels";
+import WorkoutModelsDatabase from "@/pages/WorkoutModelsDatabase";
 import PeriodizationUpload from "@/pages/PeriodizationUpload";
 import ExerciseLibrary from "@/pages/ExerciseLibrary";
 import AIChat from "@/pages/AIChat";
@@ -22,6 +23,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/workout-models" element={<WorkoutModels />} />
+          <Route path="/workout-models-database" element={<WorkoutModelsDatabase />} />
           <Route path="/periodization-upload" element={<PeriodizationUpload />} />
           <Route path="/exercises" element={<ExerciseLibrary />} />
           <Route path="/ai-chat" element={<AIChat />} />
