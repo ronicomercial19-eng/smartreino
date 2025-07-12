@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,6 @@ import {
   Zap, 
   Heart,
   TrendingUp,
-  Muscle,
   Activity,
   Play
 } from "lucide-react";
@@ -27,7 +25,7 @@ const WorkoutModels = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const workoutCategories = [
-    { id: "forca", name: "Força", icon: Muscle, color: "text-red-500" },
+    { id: "forca", name: "Força", icon: Dumbbell, color: "text-red-500" },
     { id: "condicionamento", name: "Condicionamento", icon: Heart, color: "text-blue-500" },
     { id: "hipertrofia", name: "Hipertrofia", icon: TrendingUp, color: "text-green-500" },
     { id: "perda-peso", name: "Perda de Peso", icon: Zap, color: "text-orange-500" },
