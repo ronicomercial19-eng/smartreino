@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Menu, X, User, LogOut, Settings, Brain } from "lucide-react";
+import { Menu, X, User, LogOut, Settings, Brain, Dumbbell, Upload } from "lucide-react";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -57,20 +57,22 @@ const Navigation = () => {
                     Dashboard
                   </Button>
                 </Link>
-                <Link to="/workout-register">
+                <Link to="/workout-models">
                   <Button 
-                    variant={isActive("/workout-register") ? "default" : "ghost"}
+                    variant={isActive("/workout-models") ? "default" : "ghost"}
                     className="text-sm"
                   >
-                    Registrar Treino
+                    <Dumbbell className="h-4 w-4 mr-1" />
+                    Modelos de Treinos
                   </Button>
                 </Link>
-                <Link to="/workout-history">
+                <Link to="/periodization-upload">
                   <Button 
-                    variant={isActive("/workout-history") ? "default" : "ghost"}
+                    variant={isActive("/periodization-upload") ? "default" : "ghost"}
                     className="text-sm"
                   >
-                    Histórico
+                    <Upload className="h-4 w-4 mr-1" />
+                    Upload de Periodização
                   </Button>
                 </Link>
                 <Link to="/exercises">
@@ -158,20 +160,22 @@ const Navigation = () => {
                       Dashboard
                     </Button>
                   </Link>
-                  <Link to="/workout-register" onClick={() => setIsMenuOpen(false)}>
+                  <Link to="/workout-models" onClick={() => setIsMenuOpen(false)}>
                     <Button 
-                      variant={isActive("/workout-register") ? "default" : "ghost"} 
+                      variant={isActive("/workout-models") ? "default" : "ghost"} 
                       className="w-full justify-start text-sm"
                     >
-                      Registrar Treino
+                      <Dumbbell className="h-4 w-4 mr-2" />
+                      Modelos de Treinos
                     </Button>
                   </Link>
-                  <Link to="/workout-history" onClick={() => setIsMenuOpen(false)}>
+                  <Link to="/periodization-upload" onClick={() => setIsMenuOpen(false)}>
                     <Button 
-                      variant={isActive("/workout-history") ? "default" : "ghost"} 
+                      variant={isActive("/periodization-upload") ? "default" : "ghost"} 
                       className="w-full justify-start text-sm"
                     >
-                      Histórico
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload de Periodização
                     </Button>
                   </Link>
                   <Link to="/exercises" onClick={() => setIsMenuOpen(false)}>
