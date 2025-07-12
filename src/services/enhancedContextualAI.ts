@@ -1,7 +1,7 @@
-
 import { UserProfile } from '@/data/mockData';
 import { contextualAI, UserContext, AIAnalysis } from './contextualAIService';
 import { workoutGenerationService, WorkoutGoal, GeneratedWorkout } from './workoutGenerationService';
+import { AIConfigService } from './aiConfigService';
 
 interface EnhancedAIResponse {
   text: string;
@@ -19,7 +19,7 @@ interface QuickAction {
 
 class EnhancedContextualAIService {
   
-  // Análise avançada do usuário com geração de treinos
+  // Análise avançada do usuário com geração de treinos (integrada com configurações)
   analyzeUserAndGenerateRecommendations(context: UserContext): {
     analysis: AIAnalysis;
     suggestedWorkout?: GeneratedWorkout;
@@ -27,25 +27,29 @@ class EnhancedContextualAIService {
     quickActions: QuickAction[];
   } {
     
-    const analysis = contextualAI.analyzeUser(context);
+    // Verificar se as funcionalidades estão habilitadas
+    const isAnalysisEnabled = AIConfigService.isFeatureEnabled('contextual-analysis');
+    const isWorkoutGenEnabled = AIConfigService.isFeatureEnabled('workout-generation');
     
-    // Gerar sugestão de treino personalizada
-    const workoutGoal = workoutGenerationService.suggestNextWorkout(
-      context.profile, 
-      context.recentWorkouts
-    );
+    const analysis = isAnalysisEnabled ? contextualAI.analyzeUser(context) : this.getBasicAnalysis(context);
     
-    const suggestedWorkout = workoutGenerationService.generatePersonalizedWorkout(
-      context.profile,
-      workoutGoal,
-      context.recentWorkouts
-    );
+    let suggestedWorkout: GeneratedWorkout | undefined;
     
-    // Gerar insights avançados
-    const insights = this.generateAdvancedInsights(context, analysis);
+    if (isWorkoutGenEnabled) {
+      // Gerar sugestão de treino personalizada baseada nas configurações
+      const workoutGoal = this.buildConfiguredWorkoutGoal(context);
+      suggestedWorkout = workoutGenerationService.generatePersonalizedWorkout(
+        context.profile,
+        workoutGoal,
+        context.recentWorkouts
+      );
+    }
+    
+    // Gerar insights avançados baseados nas configurações
+    const insights = this.generateConfiguredInsights(context, analysis);
     
     // Gerar ações rápidas contextuais
-    const quickActions = this.generateQuickActions(context, analysis);
+    const quickActions = this.generateConfiguredQuickActions(context, analysis);
     
     return {
       analysis,
@@ -55,37 +59,211 @@ class EnhancedContextualAIService {
     };
   }
 
-  // Resposta contextual aprimorada com IA
+  // Resposta contextual aprimorada com IA (integrada com configurações)
   generateEnhancedResponse(
     userMessage: string, 
     context: UserContext
   ): EnhancedAIResponse {
     
+    // Verificar se o chatbot está habilitado
+    if (!AIConfigService.isFeatureEnabled('chatbot')) {
+      return {
+        text: 'Chat com IA está desabilitado. Você pode habilitá-lo nas configurações.',
+        type: 'warning'
+      };
+    }
+    
     const message = userMessage.toLowerCase();
     const analysis = contextualAI.analyzeUser(context);
     
+    // Aplicar configurações de estilo à resposta
+    const baseResponse = this.generateBaseResponse(message, context, analysis);
+    const styledResponse = this.applyResponseStyle(baseResponse, context);
+    
+    return styledResponse;
+  }
+
+  private buildConfiguredWorkoutGoal(context: UserContext): WorkoutGoal {
+    const settings = AIConfigService.getSettings();
+    
+    // Usar a intensidade preferida do usuário
+    let intensity: WorkoutGoal['intensity'] = 'moderada';
+    if (settings.intensityPreference <= 4) intensity = 'baixa';
+    else if (settings.intensityPreference >= 7) intensity = 'alta';
+    
+    // Determinar tipo baseado no objetivo
+    let type: WorkoutGoal['type'] = 'condicionamento';
+    if (context.profile.objective === 'perda-peso') type = 'perda-peso';
+    else if (context.profile.objective === 'ganho-massa') type = 'ganho-massa';
+    
+    // Selecionar grupos musculares
+    const allMuscles = ['Peitoral', 'Dorsais', 'Quadríceps', 'Isquiotibiais', 'Deltoide'];
+    const recentMuscles = context.recentWorkouts
+      .slice(0, 2)
+      .flatMap(w => w.muscleGroups || []);
+    
+    const availableMuscles = allMuscles.filter(m => !recentMuscles.includes(m));
+    const selectedMuscles = availableMuscles.slice(0, 2);
+    
+    return {
+      type,
+      duration: 45, // Duração padrão - pode ser configurável futuramente
+      intensity,
+      muscleGroups: selectedMuscles.length > 0 ? selectedMuscles : ['Peitoral', 'Dorsais']
+    };
+  }
+
+  private generateConfiguredInsights(context: UserContext, analysis: AIAnalysis): string[] {
+    const insights: string[] = [];
+    const settings = AIConfigService.getSettings();
+    
+    // Insights baseados na frequência de análise configurada
+    const shouldGenerateDetailed = settings.analysisFrequency === 'alta';
+    
+    if (shouldGenerateDetailed) {
+      // Insight detalhado sobre consistência
+      const consistencyScore = this.calculateConsistencyScore(context.recentWorkouts);
+      if (consistencyScore > 80) {
+        insights.push(`🏆 Consistência exemplar de ${consistencyScore}% - Continue assim!`);
+      } else if (consistencyScore < 50) {
+        insights.push(`📈 Oportunidade de melhoria: consistência atual de ${consistencyScore}%`);
+      }
+      
+      // Insight sobre progressão PSE
+      const pseGrowth = this.calculatePSETrend(context.recentWorkouts.slice(0, 5));
+      if (Math.abs(pseGrowth) > 0.5) {
+        const trend = pseGrowth > 0 ? 'crescimento' : 'redução';
+        insights.push(`📊 Tendência PSE: ${trend} de ${Math.abs(pseGrowth).toFixed(1)} pontos`);
+      }
+    }
+    
+    // Insights baseados no objetivo e configurações
+    if (context.profile.objective === 'perda-peso' && context.performanceMetrics.averagePSE < settings.intensityPreference) {
+      insights.push(`💡 Para seu objetivo, considere aumentar intensidade para ${settings.intensityPreference}/10`);
+    }
+    
+    // Insights baseados no nível de complexidade preferido
+    if (settings.workoutComplexity === 'avancado' && context.performanceMetrics.totalWorkouts > 20) {
+      insights.push(`🎯 Pronto para técnicas avançadas: drop sets, supersets e periodização`);
+    }
+    
+    return insights;
+  }
+
+  private generateConfiguredQuickActions(context: UserContext, analysis: AIAnalysis): QuickAction[] {
+    const actions: QuickAction[] = [];
+    const settings = AIConfigService.getSettings();
+    
+    // Ações baseadas nas funcionalidades habilitadas
+    if (settings.workoutGenerationEnabled) {
+      actions.push({ label: 'Gerar Treino IA', action: 'generate_workout', icon: '🏋️‍♂️' });
+    }
+    
+    if (settings.contextualAnalysisEnabled) {
+      actions.push({ label: 'Análise Completa', action: 'full_analysis', icon: '📊' });
+    }
+    
+    // Ações baseadas no estado do usuário
+    if (analysis.userState === 'struggling') {
+      actions.push({ label: 'Treino Adaptativo', action: 'easy_workout', icon: '🌱' });
+    } else if (analysis.userState === 'motivated') {
+      actions.push({ label: 'Desafio Extra', action: 'challenge_workout', icon: '🔥' });
+    }
+    
+    // Ações baseadas na intensidade preferida
+    if (settings.intensityPreference >= 8) {
+      actions.push({ label: 'HIIT Personalizado', action: 'hiit_workout', icon: '⚡' });
+    }
+    
+    // Ação para configurações sempre disponível
+    actions.push({ label: 'Configurar IA', action: 'ai_config', icon: '⚙️' });
+    
+    return actions;
+  }
+
+  private generateBaseResponse(message: string, context: UserContext, analysis: AIAnalysis): EnhancedAIResponse {
     // Detectar intenção do usuário
     const intent = this.detectUserIntent(message);
     
     switch (intent) {
       case 'workout_request':
         return this.handleWorkoutRequest(message, context);
-      
       case 'progress_analysis':
         return this.handleProgressAnalysis(context);
-      
       case 'motivation_needed':
         return this.handleMotivationRequest(context, analysis);
-      
       case 'technique_help':
         return this.handleTechniqueHelp(message, context);
-      
-      case 'nutrition_advice':
-        return this.handleNutritionAdvice(context);
-      
+      case 'config_help':
+        return this.handleConfigurationHelp(message);
       default:
         return this.handleGeneralQuery(message, context, analysis);
     }
+  }
+
+  private applyResponseStyle(response: EnhancedAIResponse, context: UserContext): EnhancedAIResponse {
+    const settings = AIConfigService.getSettings();
+    
+    // Aplicar estilo de resposta configurado
+    let styledText = response.text;
+    
+    switch (settings.responseStyle) {
+      case 'formal':
+        styledText = this.applyFormalStyle(styledText, context.profile.name);
+        break;
+      case 'casual':
+        styledText = this.applyCasualStyle(styledText, context.profile.name);
+        break;
+      case 'motivacional':
+        styledText = this.applyMotivationalStyle(styledText, context.profile.name);
+        break;
+    }
+    
+    return {
+      ...response,
+      text: styledText
+    };
+  }
+
+  private handleConfigurationHelp(message: string): EnhancedAIResponse {
+    return {
+      text: `🔧 **Central de Configurações IA**\n\n` +
+        `Você pode personalizar como eu funciono acessando as **Configurações de IA**!\n\n` +
+        `⚙️ **O que você pode ajustar:**\n` +
+        `• Estilo das minhas respostas (formal, casual, motivacional)\n` +
+        `• Intensidade preferida dos treinos (1-10)\n` +
+        `• Complexidade das explicações\n` +
+        `• Frequência das análises\n` +
+        `• Ativar/desativar funcionalidades específicas\n\n` +
+        `🎯 Clique em "Configurar IA" abaixo para personalizar sua experiência!`,
+      type: 'suggestion',
+      quickActions: [
+        { label: 'Configurar IA', action: 'ai_config', icon: '⚙️' },
+        { label: 'Tutorial Completo', action: 'tutorial', icon: '📚' },
+        { label: 'Testar Configuração', action: 'test_config', icon: '🧪' }
+      ]
+    };
+  }
+
+  private applyFormalStyle(text: string, userName: string): string {
+    return text
+      .replace(/🔥|💪|🚀/g, '') // Remove emojis energéticos
+      .replace(/!/g, '.') // Substitui exclamações
+      .replace(userName, `Sr(a). ${userName}`);
+  }
+
+  private applyCasualStyle(text: string, userName: string): string {
+    return text
+      .replace('Olá', 'E aí')
+      .replace('Vamos', 'Bora')
+      .replace(userName, userName.split(' ')[0]); // Usa apenas o primeiro nome
+  }
+
+  private applyMotivationalStyle(text: string, userName: string): string {
+    return text
+      .replace(/\./g, '!')
+      .replace(/^/, '🔥 ')
+      .replace(userName, `${userName.toUpperCase()}`);
   }
 
   private detectUserIntent(message: string): string {
@@ -94,7 +272,7 @@ class EnhancedContextualAIService {
       progress_analysis: ['progresso', 'resultado', 'evolução', 'desempenho', 'melhora'],
       motivation_needed: ['desanimado', 'difícil', 'não consigo', 'motivação', 'parar'],
       technique_help: ['técnica', 'forma', 'execução', 'como fazer', 'postura'],
-      nutrition_advice: ['alimentação', 'dieta', 'nutrição', 'comer', 'proteína']
+      config_help: ['configurar', 'configuração', 'personalizar', 'ajustar', 'settings']
     };
     
     for (const [intent, keywords] of Object.entries(intents)) {
@@ -107,17 +285,23 @@ class EnhancedContextualAIService {
   }
 
   private handleWorkoutRequest(message: string, context: UserContext): EnhancedAIResponse {
+    const settings = AIConfigService.getSettings();
+    
+    if (!settings.workoutGenerationEnabled) {
+      return {
+        text: 'A geração de treinos por IA está desabilitada. Você pode ativá-la nas configurações.',
+        type: 'warning',
+        quickActions: [
+          { label: 'Ativar Geração', action: 'enable_workout_gen', icon: '🔧' }
+        ]
+      };
+    }
+
     // Detectar preferências específicas na mensagem
     const preferences = this.extractWorkoutPreferences(message);
     
-    // Gerar treino personalizado
-    const workoutGoal: WorkoutGoal = {
-      type: preferences.type || (context.profile.objective === 'perda-peso' ? 'perda-peso' : 'condicionamento'),
-      duration: preferences.duration || 45,
-      intensity: preferences.intensity || 'moderada',
-      muscleGroups: preferences.muscleGroups || ['Peitoral', 'Dorsais']
-    };
-    
+    // Gerar treino personalizado baseado nas configurações
+    const workoutGoal = this.buildConfiguredWorkoutGoal(context);
     const workout = workoutGenerationService.generatePersonalizedWorkout(
       context.profile,
       workoutGoal,
@@ -127,7 +311,7 @@ class EnhancedContextualAIService {
     const responseText = `🎯 **Treino Personalizado Gerado!**\n\n` +
       `**${workout.name}**\n` +
       `📅 Duração: ${workout.duration} minutos\n` +
-      `🔥 PSE Alvo: ${workout.targetPSE}/10\n` +
+      `🔥 PSE Alvo: ${workout.targetPSE}/10 (baseado na sua preferência: ${settings.intensityPreference}/10)\n` +
       `⚡ Calorias Estimadas: ${workout.estimatedCalories}\n\n` +
       `${workout.description}\n\n` +
       `💪 **Exercícios principais:**\n` +
@@ -150,6 +334,18 @@ class EnhancedContextualAIService {
 
   private handleProgressAnalysis(context: UserContext): EnhancedAIResponse {
     const { performanceMetrics } = context;
+    const settings = AIConfigService.getSettings();
+    
+    if (!settings.contextualAnalysisEnabled) {
+      return {
+        text: 'A análise contextual está desabilitada. Você pode ativá-la nas configurações para receber insights detalhados.',
+        type: 'warning',
+        quickActions: [
+          { label: 'Ativar Análise', action: 'enable_analysis', icon: '📊' }
+        ]
+      };
+    }
+
     const recentWorkouts = context.recentWorkouts.slice(0, 5);
     
     // Análise estatística
@@ -164,7 +360,7 @@ class EnhancedContextualAIService {
     const responseText = `📊 **Análise Completa do seu Progresso**\n\n` +
       `🏆 **Estatísticas Gerais:**\n` +
       `• Total de Treinos: ${totalWorkouts}\n` +
-      `• PSE Médio: ${avgPSE.toFixed(1)}/10\n` +
+      `• PSE Médio: ${avgPSE.toFixed(1)}/10 (Sua preferência: ${settings.intensityPreference}/10)\n` +
       `• Frequência Semanal: ${weeklyFreq}x\n` +
       `• Score de Consistência: ${consistencyScore}%\n\n` +
       `📈 **Tendências:**\n` +
@@ -176,7 +372,7 @@ class EnhancedContextualAIService {
     return {
       text: responseText,
       type: 'analysis',
-      insights: this.generateAdvancedInsights(context, contextualAI.analyzeUser(context)),
+      insights: this.generateConfiguredInsights(context, contextualAI.analyzeUser(context)),
       quickActions: [
         { label: 'Ver Gráficos', action: 'view_charts', icon: '📊' },
         { label: 'Ajustar Meta', action: 'adjust_goals', icon: '🎯' },
@@ -186,6 +382,18 @@ class EnhancedContextualAIService {
   }
 
   private handleMotivationRequest(context: UserContext, analysis: AIAnalysis): EnhancedAIResponse {
+    const settings = AIConfigService.getSettings();
+    
+    if (!settings.motivationalMessagesEnabled) {
+      return {
+        text: 'Mensagens motivacionais estão desabilitadas. Você pode ativá-las nas configurações.',
+        type: 'warning',
+        quickActions: [
+          { label: 'Ativar Motivação', action: 'enable_motivation', icon: '💪' }
+        ]
+      };
+    }
+
     const motivationalMessages = {
       struggling: [
         `${context.profile.name}, lembre-se: cada campeão já foi um iniciante que nunca desistiu! 💪`,
@@ -210,7 +418,7 @@ class EnhancedContextualAIService {
     const responseText = `💝 **Mensagem Especial para Você**\n\n${selectedMessage}\n\n` +
       `🎯 **Suas Conquistas Recentes:**\n` +
       `• ${context.performanceMetrics.weeklyFrequency} treinos esta semana\n` +
-      `• PSE médio de ${context.performanceMetrics.averagePSE.toFixed(1)} - excelente intensidade!\n` +
+      `• PSE médio de ${context.performanceMetrics.averagePSE.toFixed(1)} - ${context.performanceMetrics.averagePSE >= settings.intensityPreference ? 'meta atingida!' : 'continue evoluindo!'}\n` +
       `• ${context.performanceMetrics.totalWorkouts} treinos no total - que consistência!\n\n` +
       `💡 **Lembrete:** ${analysis.recommendations[0]}`;
     
@@ -226,6 +434,8 @@ class EnhancedContextualAIService {
   }
 
   private handleTechniqueHelp(message: string, context: UserContext): EnhancedAIResponse {
+    const settings = AIConfigService.getSettings();
+    
     // Detectar exercício específico na mensagem
     const exerciseKeywords = ['agachamento', 'flexão', 'prancha', 'burpee', 'abdomen'];
     const detectedExercise = exerciseKeywords.find(keyword => message.includes(keyword));
@@ -234,10 +444,17 @@ class EnhancedContextualAIService {
       this.getSpecificTechniqueAdvice(detectedExercise) :
       this.getGeneralTechniqueAdvice(context.profile.level);
     
+    // Ajustar nível de detalhamento baseado na complexidade configurada
+    const complexityNote = settings.workoutComplexity === 'simples' 
+      ? '\n\n🌟 **Dica:** Foque apenas no básico inicialmente.' 
+      : settings.workoutComplexity === 'avancado'
+      ? '\n\n🎯 **Dica Avançada:** Experimente variações e diferentes tempos de execução.'
+      : '\n\n💡 **Dica:** Qualidade sempre antes da quantidade.';
+    
     const responseText = `🎯 **Dicas de Técnica Personalizadas**\n\n${techniqueAdvice}\n\n` +
       `📌 **Para seu nível (${context.profile.level}):**\n` +
       this.getLevelSpecificTips(context.profile.level) +
-      `\n\n💡 **Lembre-se:** Qualidade > Quantidade sempre!`;
+      complexityNote;
     
     return {
       text: responseText,
@@ -250,106 +467,40 @@ class EnhancedContextualAIService {
     };
   }
 
-  private handleNutritionAdvice(context: UserContext): EnhancedAIResponse {
-    const nutritionTips = {
-      'perda-peso': `🥗 **Nutrição para Perda de Peso:**\n• Déficit calórico moderado (300-500 cal)\n• Proteína alta (1.6-2g/kg)\n• Hidratação constante\n• Refeições menores e frequentes`,
-      'ganho-massa': `🥩 **Nutrição para Ganho de Massa:**\n• Superávit calórico (200-400 cal)\n• Proteína elevada (2-2.5g/kg)\n• Carboidratos pré/pós treino\n• Gorduras boas (20-30% das calorias)`,
-      'condicionamento': `⚡ **Nutrição para Performance:**\n• Carboidratos para energia\n• Proteína para recuperação\n• Eletrólitos para hidratação\n• Timing nutricional adequado`
-    };
-    
-    const advice = nutritionTips[context.profile.objective as keyof typeof nutritionTips] || nutritionTips.condicionamento;
-    
-    const responseText = `🍎 **Orientação Nutricional Personalizada**\n\n${advice}\n\n` +
-      `⏰ **Timing para seus treinos:**\n` +
-      `• Pré-treino (1-2h antes): Carboidrato + pouca proteína\n` +
-      `• Pós-treino (30min depois): Proteína + carboidrato simples\n\n` +
-      `💧 **Hidratação:** ${this.getHydrationRecommendation(context)}`;
-    
-    return {
-      text: responseText,
-      type: 'suggestion',
-      quickActions: [
-        { label: 'Plano Alimentar', action: 'meal_plan', icon: '📋' },
-        { label: 'Receitas Fit', action: 'fit_recipes', icon: '👨‍🍳' },
-        { label: 'Calc Macros', action: 'macro_calc', icon: '🧮' }
-      ]
-    };
-  }
-
   private handleGeneralQuery(message: string, context: UserContext, analysis: AIAnalysis): EnhancedAIResponse {
     const contextualResponse = contextualAI.generateContextualResponse(message, context);
     
     return {
       text: contextualResponse,
       type: 'suggestion',
-      insights: this.generateAdvancedInsights(context, analysis),
-      quickActions: this.generateQuickActions(context, analysis)
+      insights: this.generateConfiguredInsights(context, analysis),
+      quickActions: this.generateConfiguredQuickActions(context, analysis)
     };
   }
 
-  // Métodos auxiliares privados
+  private getBasicAnalysis(context: UserContext): AIAnalysis {
+    return {
+      userState: 'progressing',
+      recommendations: ['Continue mantendo a consistência nos treinos'],
+      nextWorkoutSuggestion: 'Treino equilibrado focando nos seus objetivos',
+      motivationalMessage: `Continue assim, ${context.profile.name}!`,
+      warnings: []
+    };
+  }
+
   private extractWorkoutPreferences(message: string): any {
     const preferences: any = {};
     
-    // Detectar duração
     const durationMatch = message.match(/(\d+)\s*min/);
     if (durationMatch) preferences.duration = parseInt(durationMatch[1]);
     
-    // Detectar intensidade
     if (message.includes('leve') || message.includes('suave')) preferences.intensity = 'baixa';
     if (message.includes('intenso') || message.includes('forte')) preferences.intensity = 'alta';
     
-    // Detectar tipo
     if (message.includes('cardio')) preferences.type = 'perda-peso';
     if (message.includes('força') || message.includes('musculação')) preferences.type = 'forca';
     
     return preferences;
-  }
-
-  private generateAdvancedInsights(context: UserContext, analysis: AIAnalysis): string[] {
-    const insights: string[] = [];
-    
-    // Insight sobre consistência
-    const consistencyScore = this.calculateConsistencyScore(context.recentWorkouts);
-    if (consistencyScore > 80) {
-      insights.push(`🏆 Consistência exemplar de ${consistencyScore}%`);
-    } else if (consistencyScore < 50) {
-      insights.push(`📈 Oportunidade: melhorar consistência (atual: ${consistencyScore}%)`);
-    }
-    
-    // Insight sobre progressão
-    const pseGrowth = this.calculatePSETrend(context.recentWorkouts.slice(0, 5));
-    if (pseGrowth > 0.5) {
-      insights.push(`🚀 Evolução positiva no PSE (+${pseGrowth.toFixed(1)} pontos)`);
-    }
-    
-    // Insights baseados no objetivo
-    if (context.profile.objective === 'perda-peso' && context.performanceMetrics.averagePSE < 6) {
-      insights.push(`💡 Para perda de peso, considere aumentar intensidade (PSE 6-8)`);
-    }
-    
-    return insights;
-  }
-
-  private generateQuickActions(context: UserContext, analysis: AIAnalysis): QuickAction[] {
-    const actions: QuickAction[] = [
-      { label: 'Gerar Treino', action: 'generate_workout', icon: '🏋️‍♂️' },
-      { label: 'Ver Progresso', action: 'view_progress', icon: '📊' }
-    ];
-    
-    // Ações baseadas no estado
-    if (analysis.userState === 'struggling') {
-      actions.push({ label: 'Treino Fácil', action: 'easy_workout', icon: '🌱' });
-    } else if (analysis.userState === 'motivated') {
-      actions.push({ label: 'Desafio Extra', action: 'challenge_workout', icon: '🔥' });
-    }
-    
-    // Ações baseadas nas métricas
-    if (context.performanceMetrics.averagePSE > 8) {
-      actions.push({ label: 'Recuperação', action: 'recovery_session', icon: '🧘‍♂️' });
-    }
-    
-    return actions;
   }
 
   private calculatePSETrend(workouts: any[]): number {
@@ -367,15 +518,14 @@ class EnhancedContextualAIService {
   private calculateConsistencyScore(workouts: any[]): number {
     if (workouts.length === 0) return 0;
     
-    // Calcular baseado na regularidade dos treinos
     const dates = workouts.map(w => new Date(w.date)).sort((a, b) => b.getTime() - a.getTime());
     const gaps = dates.slice(0, -1).map((date, i) => {
       const nextDate = dates[i + 1];
-      return Math.abs(date.getTime() - nextDate.getTime()) / (1000 * 60 * 60 * 24); // dias
+      return Math.abs(date.getTime() - nextDate.getTime()) / (1000 * 60 * 60 * 24);
     });
     
     const avgGap = gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length;
-    const idealGap = 2; // treinar a cada 2 dias
+    const idealGap = 2;
     
     return Math.max(0, Math.min(100, 100 - (avgGap - idealGap) * 10));
   }
@@ -422,12 +572,6 @@ class EnhancedContextualAIService {
     };
     
     return tipsMap[level] || tipsMap.intermediario;
-  }
-
-  private getHydrationRecommendation(context: UserContext): string {
-    const baseWater = '2-3L por dia';
-    const extraWater = context.performanceMetrics.weeklyFrequency > 4 ? ' + 500ml extra por treino' : ' + 300ml por treino';
-    return baseWater + extraWater;
   }
 }
 
