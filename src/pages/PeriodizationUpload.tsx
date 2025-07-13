@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import Navigation from "@/components/Navigation";
-import { periodizationAnalysisService } from "@/services/periodizationAnalysisService";
+import { grokAIService } from "@/services/grokAIService";
 import { toast } from "@/components/ui/use-toast";
 import { 
   Upload, 
@@ -19,13 +19,15 @@ import {
   TrendingUp,
   CheckCircle,
   AlertCircle,
-  Lightbulb
+  Lightbulb,
+  Brain,
+  Zap
 } from "lucide-react";
 
 const PeriodizationUpload = () => {
-  const [uploadedData, setUploadedData] = useState<any>(null);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
   const [formData, setFormData] = useState({
     objetivo: "",
     nivel: "",
@@ -41,28 +43,50 @@ const PeriodizationUpload = () => {
       toast({
         title: "Dados Incompletos",
         description: "Por favor, preencha pelo menos o objetivo e nível do aluno.",
+        variant: "destructive"
       });
       return;
     }
 
     setIsAnalyzing(true);
+    setAnalysisProgress(0);
     
     try {
-      // Simular análise de periodização
-      const analysis = periodizationAnalysisService.analyzePeriodization(formData);
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setAnalysisProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      console.log('Starting AI analysis with data:', formData);
+      
+      const analysis = await grokAIService.analyzePeriodization(formData);
+      
+      clearInterval(progressInterval);
+      setAnalysisProgress(100);
+      
+      console.log('Analysis result:', analysis);
       setAnalysisResult(analysis);
       
       toast({
-        title: "Análise Concluída!",
-        description: "A periodização foi analisada com sucesso.",
+        title: "🤖 Análise IA Concluída!",
+        description: `${analysis.recommendedModels.length} modelos personalizados foram gerados para você.`,
       });
     } catch (error) {
+      console.error('Error during analysis:', error);
       toast({
         title: "Erro na Análise",
-        description: "Ocorreu um erro ao analisar a periodização.",
+        description: "Ocorreu um erro durante a análise. Tentando análise local...",
+        variant: "destructive"
       });
     } finally {
       setIsAnalyzing(false);
+      setTimeout(() => setAnalysisProgress(0), 2000);
     }
   };
 
@@ -78,11 +102,12 @@ const PeriodizationUpload = () => {
       <Navigation />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            📊 Upload de Periodização
+          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center space-x-2">
+            <Brain className="h-8 w-8 text-blue-500" />
+            <span>🤖 Upload de Periodização com IA</span>
           </h1>
           <p className="text-gray-600">
-            Faça upload ou configure a periodização dos seus alunos
+            Configure a periodização e receba recomendações personalizadas geradas por IA
           </p>
         </div>
 
@@ -98,7 +123,7 @@ const PeriodizationUpload = () => {
             <CardContent>
               <form onSubmit={handleFormSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="objetivo">Objetivo Principal</Label>
+                  <Label htmlFor="objetivo">Objetivo Principal *</Label>
                   <Select 
                     value={formData.objetivo} 
                     onValueChange={(value) => handleInputChange("objetivo", value)}
@@ -117,7 +142,7 @@ const PeriodizationUpload = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="nivel">Nível do Aluno</Label>
+                  <Label htmlFor="nivel">Nível do Aluno *</Label>
                   <Select 
                     value={formData.nivel} 
                     onValueChange={(value) => handleInputChange("nivel", value)}
@@ -173,6 +198,16 @@ const PeriodizationUpload = () => {
                   />
                 </div>
 
+                {isAnalyzing && (
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Zap className="h-4 w-4 text-blue-500 animate-pulse" />
+                      <span className="text-sm font-medium">Analisando com IA...</span>
+                    </div>
+                    <Progress value={analysisProgress} className="w-full" />
+                  </div>
+                )}
+
                 <Button 
                   type="submit" 
                   className="w-full"
@@ -181,12 +216,12 @@ const PeriodizationUpload = () => {
                   {isAnalyzing ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Analisando...
+                      Analisando com IA...
                     </>
                   ) : (
                     <>
-                      <TrendingUp className="h-4 w-4 mr-2" />
-                      Analisar Periodização
+                      <Brain className="h-4 w-4 mr-2" />
+                      Analisar com IA
                     </>
                   )}
                 </Button>
@@ -200,7 +235,10 @@ const PeriodizationUpload = () => {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span>Análise de Periodização</span>
+                  <span>Análise de Periodização IA</span>
+                  <Badge variant="secondary" className="ml-2">
+                    {Math.round((analysisResult.confidence || 0.8) * 100)}% confiança
+                  </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -213,24 +251,41 @@ const PeriodizationUpload = () => {
                 <div className="space-y-3">
                   <h4 className="font-semibold flex items-center space-x-2">
                     <Lightbulb className="h-4 w-4 text-yellow-500" />
-                    <span>Modelos Recomendados</span>
+                    <span>Modelos Gerados por IA ({analysisResult.recommendedModels?.length || 0})</span>
                   </h4>
                   
                   {analysisResult.recommendedModels && analysisResult.recommendedModels.length > 0 ? (
-                    <div className="space-y-2">
-                      {analysisResult.recommendedModels.slice(0, 3).map((model: any, index: number) => (
-                        <div key={index} className="p-3 bg-gray-50 rounded-lg">
+                    <div className="space-y-3">
+                      {analysisResult.recommendedModels.slice(0, 4).map((model: any, index: number) => (
+                        <div key={model.id || index} className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <h5 className="font-medium text-gray-900">{model.name}</h5>
-                              <p className="text-sm text-gray-600 mt-1">{model.description}</p>
+                              <div className="flex items-center space-x-2 mb-2">
+                                <h5 className="font-medium text-gray-900">{model.name}</h5>
+                                <Badge variant="outline" className="text-xs">
+                                  {model.category}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-gray-600 mb-2">{model.description}</p>
+                              <div className="flex flex-wrap gap-1 mb-2">
+                                {model.muscleGroups?.slice(0, 3).map((muscle: string, idx: number) => (
+                                  <Badge key={idx} variant="secondary" className="text-xs">
+                                    {muscle}
+                                  </Badge>
+                                ))}
+                              </div>
+                              <div className="flex items-center space-x-4 text-xs text-gray-500 mb-2">
+                                <span>⏱️ {model.duration}min</span>
+                                <span>💪 PSE {model.targetPSE}</span>
+                                <span>📊 {model.phase}</span>
+                              </div>
                               {model.aiReasoning && (
-                                <p className="text-xs text-blue-600 mt-2 italic">
-                                  💡 {model.aiReasoning}
+                                <p className="text-xs text-blue-600 italic bg-blue-50 p-2 rounded">
+                                  {model.aiReasoning}
                                 </p>
                               )}
                             </div>
-                            <Badge variant="secondary" className="ml-2">
+                            <Badge variant="default" className="ml-2 bg-green-100 text-green-800">
                               {model.recommendationScore}%
                             </Badge>
                           </div>
@@ -238,17 +293,20 @@ const PeriodizationUpload = () => {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-sm">Nenhum modelo específico recomendado para estes parâmetros.</p>
+                    <p className="text-gray-500 text-sm">Nenhum modelo específico foi gerado para estes parâmetros.</p>
                   )}
                 </div>
 
                 <div className="space-y-3">
-                  <h4 className="font-semibold">Sugestões de Periodização</h4>
+                  <h4 className="font-semibold flex items-center space-x-2">
+                    <TrendingUp className="h-4 w-4 text-green-500" />
+                    <span>Sugestões de Periodização IA</span>
+                  </h4>
                   {analysisResult.periodizationSuggestions && (
-                    <ul className="space-y-1 text-sm text-gray-700">
+                    <ul className="space-y-2 text-sm text-gray-700">
                       {analysisResult.periodizationSuggestions.map((suggestion: string, index: number) => (
-                        <li key={index} className="flex items-start space-x-2">
-                          <span className="text-blue-500 mt-1">•</span>
+                        <li key={index} className="flex items-start space-x-2 p-2 bg-green-50 rounded">
+                          <span className="text-green-500 mt-1 text-xs">🤖</span>
                           <span>{suggestion}</span>
                         </li>
                       ))}

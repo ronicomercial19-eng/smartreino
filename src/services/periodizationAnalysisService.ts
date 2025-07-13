@@ -1,4 +1,3 @@
-
 // Interface para análise de periodização e modelos de treino
 export interface RecommendedWorkoutModel {
   id: string;
@@ -15,7 +14,8 @@ export interface RecommendedWorkoutModel {
   createdAt: string;
 }
 
-// Classe principal do serviço
+import { grokAIService } from './grokAIService';
+
 class PeriodizationAnalysisService {
   private workoutModels: RecommendedWorkoutModel[] = [];
 
@@ -156,16 +156,32 @@ class PeriodizationAnalysisService {
     ];
   }
 
-  // Método que estava faltando
-  analyzePeriodization(data: any) {
-    // Análise básica dos dados de periodização
-    const analysis = {
-      currentPhase: data.phase || 'Básico',
-      recommendedModels: this.analyzeUserProfile(data),
-      periodizationSuggestions: this.generatePeriodizationSuggestions(data)
-    };
-    
-    return analysis;
+  // Enhanced method using AI analysis
+  async analyzePeriodization(data: any) {
+    try {
+      console.log('Analyzing periodization with AI service...');
+      
+      // Use Grok AI service for analysis
+      const aiAnalysis = await grokAIService.analyzePeriodization(data);
+      
+      return {
+        currentPhase: aiAnalysis.currentPhase,
+        recommendedModels: aiAnalysis.recommendedModels,
+        periodizationSuggestions: aiAnalysis.periodizationSuggestions,
+        confidence: aiAnalysis.confidence
+      };
+    } catch (error) {
+      console.error('AI analysis failed, falling back to local analysis:', error);
+      
+      // Fallback to original analysis
+      const analysis = {
+        currentPhase: data.phase || 'Básico',
+        recommendedModels: this.analyzeUserProfile(data),
+        periodizationSuggestions: this.generatePeriodizationSuggestions(data)
+      };
+      
+      return analysis;
+    }
   }
 
   // Método que estava faltando
