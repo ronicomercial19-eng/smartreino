@@ -1,467 +1,319 @@
+import { expandedExerciseDatabase, Exercise } from '../data/expandedExerciseDatabase';
+import { newExerciseDatabase } from '../data/newExerciseDatabase';
+import { userExerciseDatabase } from '../data/userExerciseDatabase';
 
-import { completeExerciseDatabase } from '@/data/exerciseDatabase';
+// Combine all exercise databases
+const allExercises: Exercise[] = [
+  ...expandedExerciseDatabase,
+  ...newExerciseDatabase,
+  ...userExerciseDatabase
+];
 
-// Interfaces baseadas na estrutura da base de dados
-export interface Student {
+export interface WorkoutPlan {
   id: string;
-  email: string;
   name: string;
-  role: "aluno";
-  adminId: string;
-  createdAt: string;
-}
-
-export interface ExerciseDB {
-  name: string;
-  focus: string[];
-  type: string;
-  equipment: string;
-  difficulty?: string;
-  category?: string;
-}
-
-export interface GeneratedPlan {
-  id: string;
-  studentId: string;
-  periodizationType: string;
+  description: string;
+  duration: string;
+  difficulty: 'Iniciante' | 'Intermediário' | 'Avançado';
+  focus: string;
   weeks: WeekPlan[];
   createdAt: string;
-  generatedBy: string;
 }
 
 export interface WeekPlan {
   weekNumber: number;
-  phase: string;
   focus: string;
-  workouts: DayWorkout[];
+  workouts: WorkoutSession[];
 }
 
-export interface DayWorkout {
-  day: string;
-  exercises: SelectedExercise[];
-  duration: number;
-  intensity: string;
-  focus: string[];
-}
-
-export interface SelectedExercise {
-  exercise: ExerciseDB;
-  sets: number;
-  reps: string;
-  rest: string;
-  load?: string;
+export interface WorkoutSession {
+  day: number;
+  name: string;
+  type: string;
+  exercises: Exercise[];
   notes?: string;
 }
 
-export interface PeriodizationTemplate {
+export interface StudentProfile {
+  id: string;
   name: string;
-  totalWeeks: number;
-  phases: Phase[];
+  email: string;
+  experience: 'Iniciante' | 'Intermediário' | 'Avançado';
+  goals: string[];
+  availableDays: number;
+  timePerSession: number;
+  equipment: string[];
+  limitations?: string[];
 }
 
-interface Phase {
-  name: string;
-  weekRange: [number, number];
-  focus: string[];
-  intensity: 'Baixa' | 'Moderada' | 'Alta';
-  volume: 'Baixo' | 'Moderado' | 'Alto';
-  workoutsPerWeek: number;
-}
+// Periodization phases
+const periodizationPhases = [
+  "Adaptação Inicial",
+  "Desenvolvimento de Força",
+  "Intensificação",
+  "Pico e Recovery"
+];
 
-class PlanGenerationService {
-  private usedExercises: Set<string> = new Set();
+// Training cycles
+const trainingCycles = [
+  "Força",
+  "Hipertrofia",
+  "Resistência",
+  "Potência"
+];
+
+// Helper function to convert Exercise to compatible format
+const adaptExercise = (exercise: Exercise): Exercise => {
+  return {
+    ...exercise,
+    // Ensure all required properties are present
+    targetMuscles: exercise.targetMuscles || [],
+    muscleGroup: exercise.muscleGroup || [],
+    instructions: exercise.instructions || [],
+    benefits: exercise.benefits || [],
+    variations: exercise.variations || [],
+    tips: exercise.tips || [],
+    commonMistakes: exercise.commonMistakes || []
+  };
+};
+
+// Updated exercise selection functions
+const selectExercisesByMuscleGroup = (muscleGroup: string, count: number = 2): Exercise[] => {
+  const filteredExercises = allExercises.filter(exercise => 
+    exercise.muscleGroup.some(group => 
+      group.toLowerCase().includes(muscleGroup.toLowerCase())
+    )
+  );
   
-  // Templates de periodização
-  private periodizationTemplates: Record<string, PeriodizationTemplate> = {
-    "blocos": {
-      name: "Periodização em Blocos",
-      totalWeeks: 24,
-      phases: [
-        {
-          name: "Adaptação Anatômica",
-          weekRange: [1, 4],
-          focus: ["Técnica", "Resistência Muscular", "Mobilidade"],
-          intensity: "Baixa",
-          volume: "Moderado",
-          workoutsPerWeek: 3
-        },
-        {
-          name: "Bloco de Força",
-          weekRange: [5, 12],
-          focus: ["Força Máxima", "Coordenação"],
-          intensity: "Alta",
-          volume: "Moderado",
-          workoutsPerWeek: 4
-        },
-        {
-          name: "Bloco de Potência",
-          weekRange: [13, 20],
-          focus: ["Potência", "Velocidade", "Coordenação"],
-          intensity: "Alta",
-          volume: "Baixo",
-          workoutsPerWeek: 4
-        },
-        {
-          name: "Tapering",
-          weekRange: [21, 24],
-          focus: ["Manutenção", "Recuperação"],
-          intensity: "Moderada",
-          volume: "Baixo",
-          workoutsPerWeek: 3
-        }
-      ]
-    },
-    "linear": {
-      name: "Periodização Linear",
-      totalWeeks: 24,
-      phases: [
-        {
-          name: "Base",
-          weekRange: [1, 8],
-          focus: ["Resistência", "Técnica"],
-          intensity: "Baixa",
-          volume: "Alto",
-          workoutsPerWeek: 4
-        },
-        {
-          name: "Força",
-          weekRange: [9, 16],
-          focus: ["Força", "Hipertrofia"],
-          intensity: "Moderada",
-          volume: "Moderado",
-          workoutsPerWeek: 4
-        },
-        {
-          name: "Potência",
-          weekRange: [17, 24],
-          focus: ["Potência", "Especificidade"],
-          intensity: "Alta",
-          volume: "Baixo",
-          workoutsPerWeek: 3
-        }
-      ]
-    }
-  };
+  return shuffleArray(filteredExercises).slice(0, count).map(adaptExercise);
+};
 
-  // Mapear focos para grupos musculares
-  private focusToMuscleGroups: Record<string, string[]> = {
-    "Cadeia Posterior": ["Isquiotibiais", "Glúteos", "Dorsais"],
-    "Cadeia Anterior": ["Quadríceps", "Peitoral", "Deltoide Anterior"],
-    "Core": ["Abdominais", "Core"],
-    "Membros Superiores": ["Peitoral", "Dorsais", "Deltoide", "Bíceps", "Tríceps"],
-    "Membros Inferiores": ["Quadríceps", "Isquiotibiais", "Glúteos", "Panturrilha"],
-    "Força Máxima": ["Quadríceps", "Dorsais", "Peitoral"],
-    "Potência": ["Corpo Inteiro"],
-    "Resistência": ["Corpo Inteiro"],
-    "Técnica": ["Corpo Inteiro"],
-    "Mobilidade": ["Mobilidade"]
-  };
+const selectExercisesByCategory = (category: string, count: number = 3): Exercise[] => {
+  const filteredExercises = allExercises.filter(exercise => 
+    exercise.category === category
+  );
+  
+  return shuffleArray(filteredExercises).slice(0, count).map(adaptExercise);
+};
 
-  // Gerar plano completo de 24 semanas
-  generateCompletePlan(
-    student: Student, 
-    periodizationType: string = "blocos",
-    adminId: string
-  ): GeneratedPlan {
-    console.log(`🏋️ Iniciando geração do plano para ${student.name}`);
-    
-    const template = this.periodizationTemplates[periodizationType];
-    if (!template) {
-      throw new Error(`Template de periodização '${periodizationType}' não encontrado`);
-    }
+const selectCompoundExercises = (count: number = 2): Exercise[] => {
+  const compoundExercises = allExercises.filter(exercise => 
+    exercise.targetMuscles.length > 1 || 
+    exercise.muscleGroup.some(group => group.includes('Corpo Inteiro'))
+  );
+  
+  return shuffleArray(compoundExercises).slice(0, count).map(adaptExercise);
+};
 
-    // Resetar exercícios usados para nova geração
-    this.usedExercises.clear();
-    
-    const weeks: WeekPlan[] = [];
-    
-    // Gerar cada semana baseada no template
-    for (let weekNumber = 1; weekNumber <= template.totalWeeks; weekNumber++) {
-      const currentPhase = this.getCurrentPhase(weekNumber, template.phases);
-      const weekPlan = this.generateWeekPlan(weekNumber, currentPhase);
-      weeks.push(weekPlan);
-    }
-
-    const plan: GeneratedPlan = {
-      id: `plan_${student.id}_${Date.now()}`,
-      studentId: student.id,
-      periodizationType: template.name,
-      weeks,
-      createdAt: new Date().toISOString(),
-      generatedBy: adminId
-    };
-
-    console.log(`✅ Plano de ${template.totalWeeks} semanas gerado com sucesso!`);
-    return plan;
+// Shuffle array function
+const shuffleArray = <T>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
+  return shuffled;
+};
 
-  // Determinar fase atual baseada no número da semana
-  private getCurrentPhase(weekNumber: number, phases: Phase[]): Phase {
-    for (const phase of phases) {
-      if (weekNumber >= phase.weekRange[0] && weekNumber <= phase.weekRange[1]) {
-        return phase;
-      }
-    }
-    return phases[0]; // Fallback para primeira fase
-  }
+// Updated workout generation functions
+const generateUpperBodyWorkout = (): Exercise[] => {
+  const exercises: Exercise[] = [];
+  
+  // Add compound movements
+  exercises.push(...selectExercisesByMuscleGroup('Peitoral', 1));
+  exercises.push(...selectExercisesByMuscleGroup('Dorsais', 1));
+  
+  // Add isolation exercises
+  exercises.push(...selectExercisesByMuscleGroup('Bíceps', 1));
+  exercises.push(...selectExercisesByMuscleGroup('Tríceps', 1));
+  exercises.push(...selectExercisesByMuscleGroup('Deltoides', 1));
+  
+  return exercises;
+};
 
-  // Gerar plano de uma semana
-  private generateWeekPlan(weekNumber: number, phase: Phase): WeekPlan {
-    const workoutDays = this.getWorkoutDays(phase.workoutsPerWeek);
-    const workouts: DayWorkout[] = [];
+const generateLowerBodyWorkout = (): Exercise[] => {
+  const exercises: Exercise[] = [];
+  
+  // Add compound movements
+  exercises.push(...selectExercisesByMuscleGroup('Quadríceps', 1));
+  exercises.push(...selectExercisesByMuscleGroup('Glúteos', 1));
+  
+  // Add isolation exercises
+  exercises.push(...selectExercisesByMuscleGroup('Isquiotibiais', 1));
+  exercises.push(...selectExercisesByMuscleGroup('Panturrilha', 1));
+  exercises.push(...selectExercisesByMuscleGroup('Abdutores', 1));
+  
+  return exercises;
+};
 
-    workoutDays.forEach((day, index) => {
-      const dailyFocus = this.getDailyFocus(phase.focus, index, phase.workoutsPerWeek);
-      const workout = this.generateDayWorkout(day, dailyFocus, phase);
-      workouts.push(workout);
-    });
+const generateFullBodyWorkout = (): Exercise[] => {
+  const exercises: Exercise[] = [];
+  
+  // Add compound movements that work multiple muscle groups
+  exercises.push(...selectCompoundExercises(2));
+  exercises.push(...selectExercisesByMuscleGroup('Peitoral', 1));
+  exercises.push(...selectExercisesByMuscleGroup('Dorsais', 1));
+  exercises.push(...selectExercisesByMuscleGroup('Quadríceps', 1));
+  exercises.push(...selectExercisesByMuscleGroup('Glúteos', 1));
+  
+  return exercises;
+};
 
-    return {
-      weekNumber,
-      phase: phase.name,
-      focus: phase.focus.join(", "),
-      workouts
-    };
-  }
+const generateCardioWorkout = (): Exercise[] => {
+  return selectExercisesByCategory('cardio', 4);
+};
 
-  // Definir dias da semana para treino
-  private getWorkoutDays(workoutsPerWeek: number): string[] {
-    const allDays = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"];
-    
-    const patterns: Record<number, string[]> = {
-      3: ["Segunda-feira", "Quarta-feira", "Sexta-feira"],
-      4: ["Segunda-feira", "Terça-feira", "Quinta-feira", "Sexta-feira"],
-      5: ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira"],
-      6: ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"]
-    };
+const generateStrengthWorkout = (): Exercise[] => {
+  const exercises: Exercise[] = [];
+  
+  exercises.push(...selectExercisesByCategory('forca', 3));
+  exercises.push(...selectCompoundExercises(2));
+  
+  return exercises;
+};
 
-    return patterns[workoutsPerWeek] || patterns[3];
-  }
-
-  // Definir foco do dia baseado na fase
-  private getDailyFocus(phaseFocus: string[], dayIndex: number, totalDays: number): string[] {
-    // Distribuir focos pelos dias da semana
-    if (totalDays === 3) {
-      const focusDistribution = [
-        ["Membros Superiores"],
-        ["Membros Inferiores"],
-        ["Corpo Inteiro"]
-      ];
-      return focusDistribution[dayIndex] || ["Corpo Inteiro"];
-    }
-    
-    if (totalDays === 4) {
-      const focusDistribution = [
-        ["Cadeia Anterior"],
-        ["Cadeia Posterior"],
-        ["Membros Superiores"],
-        ["Core", "Mobilidade"]
-      ];
-      return focusDistribution[dayIndex] || ["Corpo Inteiro"];
-    }
-
-    // Fallback para distribuição simples
-    return phaseFocus.slice(0, 2);
-  }
-
-  // Gerar treino de um dia
-  private generateDayWorkout(day: string, dailyFocus: string[], phase: Phase): DayWorkout {
-    const targetMuscleGroups = this.getMuscleGroupsFromFocus(dailyFocus);
-    const exercises = this.selectExercisesForDay(targetMuscleGroups, phase);
-    
-    // Calcular duração baseada no volume e quantidade de exercícios
-    const baseDuration = 30;
-    const durationMultiplier = phase.volume === "Alto" ? 1.5 : phase.volume === "Moderado" ? 1.2 : 1;
-    const duration = Math.round((baseDuration + exercises.length * 8) * durationMultiplier);
-
-    return {
-      day,
-      exercises,
-      duration,
-      intensity: phase.intensity,
-      focus: dailyFocus
-    };
-  }
-
-  // Converter focos em grupos musculares
-  private getMuscleGroupsFromFocus(focuses: string[]): string[] {
-    const muscleGroups: Set<string> = new Set();
-    
-    focuses.forEach(focus => {
-      const groups = this.focusToMuscleGroups[focus] || [focus];
-      groups.forEach(group => muscleGroups.add(group));
-    });
-
-    return Array.from(muscleGroups);
-  }
-
-  // Selecionar exercícios para o dia
-  private selectExercisesForDay(targetMuscleGroups: string[], phase: Phase): SelectedExercise[] {
-    const selectedExercises: SelectedExercise[] = [];
-    const exercisesPerMuscleGroup = Math.max(1, Math.floor(6 / targetMuscleGroups.length));
-
-    targetMuscleGroups.forEach(muscleGroup => {
-      const availableExercises = this.getExercisesByMuscleGroup(muscleGroup);
-      const filteredExercises = availableExercises.filter(ex => !this.usedExercises.has(ex.name));
-      
-      // Se não há exercícios não usados, resetar parcialmente
-      const exercisesToUse = filteredExercises.length > 0 ? filteredExercises : availableExercises;
-      
-      // Selecionar exercícios aleatoriamente
-      const shuffled = [...exercisesToUse].sort(() => Math.random() - 0.5);
-      const selected = shuffled.slice(0, exercisesPerMuscleGroup);
-
-      selected.forEach(exercise => {
-        const selectedExercise = this.createSelectedExercise(exercise, phase);
-        selectedExercises.push(selectedExercise);
-        this.usedExercises.add(exercise.name);
+const generatePhase1Workouts = (profile: StudentProfile): WorkoutSession[] => {
+  const workouts: WorkoutSession[] = [];
+  
+  for (let day = 1; day <= profile.availableDays; day++) {
+    if (day % 3 === 1) {
+      workouts.push({
+        day,
+        name: "Treino A - Corpo Superior",
+        type: "Força",
+        exercises: generateUpperBodyWorkout()
       });
+    } else if (day % 3 === 2) {
+      workouts.push({
+        day,
+        name: "Treino B - Corpo Inferior", 
+        type: "Força",
+        exercises: generateLowerBodyWorkout()
+      });
+    } else {
+      workouts.push({
+        day,
+        name: "Treino C - Cardio",
+        type: "Cardio",
+        exercises: generateCardioWorkout()
+      });
+    }
+  }
+  
+  return workouts;
+};
+
+const generatePhase2Workouts = (profile: StudentProfile): WorkoutSession[] => {
+  const workouts: WorkoutSession[] = [];
+  
+  for (let day = 1; day <= profile.availableDays; day++) {
+    if (day % 2 === 1) {
+      workouts.push({
+        day,
+        name: "Treino A - Força Superior",
+        type: "Força",
+        exercises: generateUpperBodyWorkout()
+      });
+    } else {
+      workouts.push({
+        day,
+        name: "Treino B - Força Inferior",
+        type: "Força", 
+        exercises: generateLowerBodyWorkout()
+      });
+    }
+  }
+  
+  return workouts;
+};
+
+const generatePhase3Workouts = (profile: StudentProfile): WorkoutSession[] => {
+  const workouts: WorkoutSession[] = [];
+  
+  for (let day = 1; day <= profile.availableDays; day++) {
+    workouts.push({
+      day,
+      name: `Treino ${day} - Corpo Completo`,
+      type: "Funcional",
+      exercises: generateFullBodyWorkout()
     });
+  }
+  
+  return workouts;
+};
 
-    // Garantir pelo menos 4 exercícios por treino
-    while (selectedExercises.length < 4 && selectedExercises.length < completeExerciseDatabase.length) {
-      const remainingExercises = completeExerciseDatabase.filter(ex => 
-        !selectedExercises.some(sel => sel.exercise.name === ex.name)
-      );
-      
-      if (remainingExercises.length === 0) break;
-      
-      const randomExercise = remainingExercises[Math.floor(Math.random() * remainingExercises.length)];
-      const selectedExercise = this.createSelectedExercise(randomExercise, phase);
-      selectedExercises.push(selectedExercise);
+const generatePhase4Workouts = (profile: StudentProfile): WorkoutSession[] => {
+  const workouts: WorkoutSession[] = [];
+  
+  for (let day = 1; day <= profile.availableDays; day++) {
+    if (day % 2 === 1) {
+      workouts.push({
+        day,
+        name: "Treino Intenso - Força",
+        type: "Força",
+        exercises: generateStrengthWorkout()
+      });
+    } else {
+      workouts.push({
+        day,
+        name: "Treino Recovery - Cardio",
+        type: "Cardio",
+        exercises: generateCardioWorkout()
+      });
     }
-
-    return selectedExercises.slice(0, 8); // Máximo 8 exercícios por treino
   }
+  
+  return workouts;
+};
 
-  // Buscar exercícios por grupo muscular
-  private getExercisesByMuscleGroup(muscleGroup: string): ExerciseDB[] {
-    return completeExerciseDatabase.filter(exercise => {
-      // Verificar se o exercício trabalha o grupo muscular desejado
-      if (Array.isArray(exercise.primaryMuscles)) {
-        return exercise.primaryMuscles.some((muscle: string) => 
-          muscle.toLowerCase().includes(muscleGroup.toLowerCase()) ||
-          muscleGroup.toLowerCase().includes(muscle.toLowerCase())
-        );
-      }
-      
-      if (exercise.category) {
-        return exercise.category.toLowerCase().includes(muscleGroup.toLowerCase()) ||
-               muscleGroup.toLowerCase().includes(exercise.category.toLowerCase());
-      }
-      
-      return false;
-    }).map(ex => ({
-      name: ex.name,
-      focus: Array.isArray(ex.primaryMuscles) ? ex.primaryMuscles : [ex.category || "Geral"],
-      type: ex.category || "Composto",
-      equipment: ex.equipment || "Livre"
-    }));
-  }
-
-  // Criar exercício selecionado com parâmetros
-  private createSelectedExercise(exercise: ExerciseDB, phase: Phase): SelectedExercise {
-    const parameters = this.getExerciseParameters(phase);
+export const generateWorkoutPlan = (profile: StudentProfile): WorkoutPlan => {
+  const weeks: WeekPlan[] = [];
+  
+  // Generate 24 weeks divided into 4 phases of 6 weeks each
+  for (let week = 1; week <= 24; week++) {
+    let weekPlan: WeekPlan;
     
-    return {
-      exercise,
-      sets: parameters.sets,
-      reps: parameters.reps,
-      rest: parameters.rest,
-      load: parameters.load,
-      notes: this.generateExerciseNotes(exercise, phase)
-    };
-  }
-
-  // Definir parâmetros do exercício baseado na fase
-  private getExerciseParameters(phase: Phase): {
-    sets: number;
-    reps: string;
-    rest: string;
-    load: string;
-  } {
-    const phaseParams = {
-      "Adaptação Anatômica": {
-        sets: 2,
-        reps: "15-20",
-        rest: "60s",
-        load: "50-60%"
-      },
-      "Bloco de Força": {
-        sets: 4,
-        reps: "4-6",
-        rest: "180s",
-        load: "85-95%"
-      },
-      "Bloco de Potência": {
-        sets: 5,
-        reps: "3-5",
-        rest: "180s",
-        load: "70-85%"
-      },
-      "Base": {
-        sets: 3,
-        reps: "12-15",
-        rest: "90s",
-        load: "65-75%"
-      },
-      "Força": {
-        sets: 4,
-        reps: "6-8",
-        rest: "120s",
-        load: "80-90%"
-      },
-      "Potência": {
-        sets: 4,
-        reps: "3-5",
-        rest: "180s",
-        load: "70-85%"
-      }
-    };
-
-    return phaseParams[phase.name as keyof typeof phaseParams] || phaseParams["Base"];
-  }
-
-  // Gerar notas para o exercício
-  private generateExerciseNotes(exercise: ExerciseDB, phase: Phase): string {
-    const notes = [
-      "Foque na técnica perfeita",
-      "Controle a fase excêntrica",
-      "Mantenha tensão constante",
-      "Respiração controlada"
-    ];
-
-    if (phase.name.includes("Força")) {
-      notes.push("Carga máxima com segurança");
+    if (week <= 6) {
+      // Phase 1: Adaptação (weeks 1-6)
+      weekPlan = {
+        weekNumber: week,
+        focus: "Adaptação Inicial",
+        workouts: generatePhase1Workouts(profile)
+      };
+    } else if (week <= 12) {
+      // Phase 2: Desenvolvimento (weeks 7-12)
+      weekPlan = {
+        weekNumber: week,
+        focus: "Desenvolvimento de Força",
+        workouts: generatePhase2Workouts(profile)
+      };
+    } else if (week <= 18) {
+      // Phase 3: Intensificação (weeks 13-18)
+      weekPlan = {
+        weekNumber: week,
+        focus: "Intensificação",
+        workouts: generatePhase3Workouts(profile)
+      };
+    } else {
+      // Phase 4: Pico/Recovery (weeks 19-24)
+      weekPlan = {
+        weekNumber: week,
+        focus: "Pico e Recovery",
+        workouts: generatePhase4Workouts(profile)
+      };
     }
     
-    if (phase.name.includes("Potência")) {
-      notes.push("Explosividade na fase concêntrica");
-    }
-
-    return notes[Math.floor(Math.random() * notes.length)];
+    weeks.push(weekPlan);
   }
-
-  // Método para ajustar exercício específico (para o editor)
-  replaceExercise(
-    plan: GeneratedPlan, 
-    weekNumber: number, 
-    dayIndex: number, 
-    exerciseIndex: number, 
-    newExercise: ExerciseDB
-  ): GeneratedPlan {
-    const updatedPlan = { ...plan };
-    const week = updatedPlan.weeks.find(w => w.weekNumber === weekNumber);
-    
-    if (week && week.workouts[dayIndex] && week.workouts[dayIndex].exercises[exerciseIndex]) {
-      const currentPhase = this.getCurrentPhase(weekNumber, this.periodizationTemplates["blocos"].phases);
-      const newSelectedExercise = this.createSelectedExercise(newExercise, currentPhase);
-      
-      week.workouts[dayIndex].exercises[exerciseIndex] = newSelectedExercise;
-    }
-
-    return updatedPlan;
-  }
-}
-
-export const planGenerationService = new PlanGenerationService();
+  
+  return {
+    id: `plan_${Date.now()}`,
+    name: `Plano Personalizado - ${profile.name}`,
+    description: `Plano de treino de 24 semanas personalizado para ${profile.experience}`,
+    duration: "24 semanas",
+    difficulty: profile.experience,
+    focus: profile.goals.join(", "),
+    weeks,
+    createdAt: new Date().toISOString()
+  };
+};
