@@ -8,13 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navigation from "@/components/Navigation";
 import PeriodizationPasteArea from "@/components/PeriodizationPasteArea";
 import PeriodizationAnalysisResults from "@/components/PeriodizationAnalysisResults";
 import { grokAIService } from "@/services/grokAIService";
 import { toast } from "@/components/ui/use-toast";
 import { 
-  Upload, 
+  Settings, 
   FileText, 
   Calendar, 
   Target, 
@@ -25,7 +26,11 @@ import {
   Brain,
   Zap,
   Cpu,
-  BarChart3
+  BarChart3,
+  Activity,
+  Clock,
+  Users,
+  Dumbbell
 } from "lucide-react";
 
 const PeriodizationUpload = () => {
@@ -33,12 +38,19 @@ const PeriodizationUpload = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [pastedData, setPastedData] = useState("");
+  const [activeTab, setActiveTab] = useState("configuracao");
   const [formData, setFormData] = useState({
     objetivo: "",
     nivel: "",
     tempo_disponivel: "",
     restricoes: "",
-    periodizacao: ""
+    periodizacao: "",
+    grupo_prioritario: "",
+    dias_semana: "",
+    variabilidade: "sim",
+    complexidade: "basico",
+    equipamentos: "",
+    lesoes: ""
   });
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -163,171 +175,322 @@ const PeriodizationUpload = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-background">
       <Navigation />
       <div className="container mx-auto px-4 py-8">
+        {/* Enhanced Header */}
         <div className="mb-8">
-          <div className="flex items-center space-x-4 mb-4">
-            <div className="w-2 h-12 bg-gradient-to-b from-orange-500 to-orange-600 rounded-full"></div>
+          <div className="flex items-center space-x-4 mb-6">
+            <div className="w-2 h-16 bg-gradient-to-b from-primary to-orange-600 rounded-full"></div>
             <div>
-              <h1 className="text-4xl font-bold text-white mb-2 flex items-center space-x-3">
-                <Brain className="h-8 w-8 text-orange-500" />
-                <span>Análise Inteligente de Periodização</span>
+              <h1 className="text-5xl font-bold gradient-text mb-2 flex items-center space-x-4">
+                <Brain className="h-12 w-12 text-primary" />
+                <span>9Fit Smart Training</span>
               </h1>
-              <p className="text-slate-400 text-lg">
-                Configure, analise e gere relatórios profissionais com IA avançada
+              <p className="text-muted-foreground text-xl">
+                Painel de Montagem de Treino Inteligente - Configure, analise e gere treinos profissionais com IA
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
-              <Cpu className="h-3 w-3 mr-1" />
+          <div className="flex flex-wrap gap-3">
+            <Badge className="bg-primary/20 text-primary border-primary/30 px-3 py-1">
+              <Cpu className="h-4 w-4 mr-2" />
               IA Powered
             </Badge>
-            <Badge className="bg-slate-700 text-slate-300">
-              <BarChart3 className="h-3 w-3 mr-1" />
+            <Badge className="bg-muted/50 text-muted-foreground border-muted">
+              <BarChart3 className="h-4 w-4 mr-2" />
               Análise Avançada
             </Badge>
-            <Badge className="bg-slate-700 text-slate-300">
-              <FileText className="h-3 w-3 mr-1" />
-              PDF Export
+            <Badge className="bg-muted/50 text-muted-foreground border-muted">
+              <FileText className="h-4 w-4 mr-2" />
+              Relatórios PDF
+            </Badge>
+            <Badge className="bg-muted/50 text-muted-foreground border-muted">
+              <Activity className="h-4 w-4 mr-2" />
+              Analytics Real-time
             </Badge>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8 mb-8">
-          {/* Formulário de Configuração */}
-          <Card className="bg-slate-900 border-slate-700">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-white">
-                <div className="w-1 h-6 bg-orange-500 rounded-full"></div>
-                <Target className="h-5 w-5 text-orange-500" />
-                <span>Configuração de Periodização</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleFormSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="objetivo" className="text-slate-300">Objetivo Principal *</Label>
-                  <Select 
-                    value={formData.objetivo} 
-                    onValueChange={(value) => handleInputChange("objetivo", value)}
-                  >
-                    <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                      <SelectValue placeholder="Selecione o objetivo" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="perda-peso" className="text-white">Perda de Peso</SelectItem>
-                      <SelectItem value="ganho-massa" className="text-white">Ganho de Massa</SelectItem>
-                      <SelectItem value="forca" className="text-white">Força</SelectItem>
-                      <SelectItem value="condicionamento" className="text-white">Condicionamento</SelectItem>
-                      <SelectItem value="mobilidade" className="text-white">Mobilidade</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+        {/* Main Navigation Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 bg-card border border-border">
+            <TabsTrigger 
+              value="configuracao" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Configuração
+            </TabsTrigger>
+            <TabsTrigger 
+              value="treinos" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <Dumbbell className="h-4 w-4 mr-2" />
+              Meus Treinos
+            </TabsTrigger>
+            <TabsTrigger 
+              value="analytics" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger 
+              value="relatorios" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Relatórios
+            </TabsTrigger>
+          </TabsList>
 
-                <div className="space-y-2">
-                  <Label htmlFor="nivel" className="text-slate-300">Nível do Aluno *</Label>
-                  <Select 
-                    value={formData.nivel} 
-                    onValueChange={(value) => handleInputChange("nivel", value)}
-                  >
-                    <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                      <SelectValue placeholder="Selecione o nível" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="iniciante" className="text-white">Iniciante</SelectItem>
-                      <SelectItem value="intermediario" className="text-white">Intermediário</SelectItem>
-                      <SelectItem value="avancado" className="text-white">Avançado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          {/* Configuration Tab */}
+          <TabsContent value="configuracao" className="space-y-6">
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Enhanced Configuration Form */}
+              <Card className="bg-card border-border card-hover">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-3 text-card-foreground">
+                    <div className="w-1 h-8 bg-primary rounded-full"></div>
+                    <Target className="h-6 w-6 text-primary" />
+                    <span>Escolha o Modelo de Treino</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleFormSubmit} className="space-y-6">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-muted-foreground">Objetivo Principal *</Label>
+                        <Select 
+                          value={formData.objetivo} 
+                          onValueChange={(value) => handleInputChange("objetivo", value)}
+                        >
+                          <SelectTrigger className="bg-input border-border text-foreground">
+                            <SelectValue placeholder="Selecione o objetivo" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover border-border">
+                            <SelectItem value="hipertrofia">🏋️ Hipertrofia</SelectItem>
+                            <SelectItem value="forca">💪 Força</SelectItem>
+                            <SelectItem value="potencia">⚡ Potência</SelectItem>
+                            <SelectItem value="resistencia">🏃 Resistência Muscular</SelectItem>
+                            <SelectItem value="perda-peso">🔥 Perda de Peso</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="tempo_disponivel" className="text-slate-300">Tempo Disponível (min)</Label>
-                  <Input
-                    id="tempo_disponivel"
-                    type="number"
-                    placeholder="Ex: 45"
-                    value={formData.tempo_disponivel}
-                    onChange={(e) => handleInputChange("tempo_disponivel", e.target.value)}
-                    className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-400"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="periodizacao" className="text-slate-300">Tipo de Periodização</Label>
-                  <Select 
-                    value={formData.periodizacao} 
-                    onValueChange={(value) => handleInputChange("periodizacao", value)}
-                  >
-                    <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                      <SelectValue placeholder="Selecione a periodização" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="blocos" className="text-white">Periodização em Blocos</SelectItem>
-                      <SelectItem value="linear" className="text-white">Periodização Linear</SelectItem>
-                      <SelectItem value="ondulada" className="text-white">Periodização Ondulatória</SelectItem>
-                      <SelectItem value="conjugada" className="text-white">Método Conjugado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="restricoes" className="text-slate-300">Restrições/Observações</Label>
-                  <Textarea
-                    id="restricoes"
-                    placeholder="Ex: Lesão no joelho direito, evitar impacto..."
-                    value={formData.restricoes}
-                    onChange={(e) => handleInputChange("restricoes", e.target.value)}
-                    rows={3}
-                    className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-400"
-                  />
-                </div>
-
-                {isAnalyzing && (
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Zap className="h-4 w-4 text-orange-500 animate-pulse" />
-                      <span className="text-sm font-medium text-white">Analisando com IA...</span>
+                      <div className="space-y-2">
+                        <Label className="text-muted-foreground">Nível de Experiência *</Label>
+                        <Select 
+                          value={formData.nivel} 
+                          onValueChange={(value) => handleInputChange("nivel", value)}
+                        >
+                          <SelectTrigger className="bg-input border-border text-foreground">
+                            <SelectValue placeholder="Selecione o nível" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover border-border">
+                            <SelectItem value="iniciante">🌱 Iniciante</SelectItem>
+                            <SelectItem value="intermediario">🚀 Intermediário</SelectItem>
+                            <SelectItem value="avancado">🏆 Avançado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <Progress value={analysisProgress} className="w-full bg-slate-700" />
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-muted-foreground">Grupo Prioritário</Label>
+                        <Input
+                          placeholder="Ex: Pernas, Braços, Core..."
+                          value={formData.grupo_prioritario}
+                          onChange={(e) => handleInputChange("grupo_prioritario", e.target.value)}
+                          className="bg-input border-border text-foreground placeholder:text-muted-foreground"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-muted-foreground">Dias por Semana</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="7"
+                          placeholder="3-6 dias"
+                          value={formData.dias_semana}
+                          onChange={(e) => handleInputChange("dias_semana", e.target.value)}
+                          className="bg-input border-border text-foreground placeholder:text-muted-foreground"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-muted-foreground">Variabilidade de Exercícios</Label>
+                        <Select 
+                          value={formData.variabilidade} 
+                          onValueChange={(value) => handleInputChange("variabilidade", value)}
+                        >
+                          <SelectTrigger className="bg-input border-border text-foreground">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover border-border">
+                            <SelectItem value="sim">✅ Sim, quero variar</SelectItem>
+                            <SelectItem value="nao">❌ Não, manter constante</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-muted-foreground">Complexidade</Label>
+                        <Select 
+                          value={formData.complexidade} 
+                          onValueChange={(value) => handleInputChange("complexidade", value)}
+                        >
+                          <SelectTrigger className="bg-input border-border text-foreground">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover border-border">
+                            <SelectItem value="basico">🟢 Prefiro simples</SelectItem>
+                            <SelectItem value="avancado">🔴 Quero avançado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Limitações/Lesões</Label>
+                      <Textarea
+                        placeholder="Descreva qualquer lesão, dor ou limitação física..."
+                        value={formData.lesoes}
+                        onChange={(e) => handleInputChange("lesoes", e.target.value)}
+                        rows={3}
+                        className="bg-input border-border text-foreground placeholder:text-muted-foreground"
+                      />
+                    </div>
+
+                    {isAnalyzing && (
+                      <div className="space-y-3 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <Zap className="h-5 w-5 text-primary animate-pulse" />
+                          <span className="font-medium text-foreground">Gerando treino com IA...</span>
+                        </div>
+                        <Progress value={analysisProgress} className="w-full progress-glow" />
+                        <p className="text-sm text-muted-foreground">
+                          Analisando suas preferências e criando o treino personalizado...
+                        </p>
+                      </div>
+                    )}
+
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 text-lg btn-glow"
+                      disabled={isAnalyzing}
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-foreground mr-3"></div>
+                          Analisando com IA...
+                        </>
+                      ) : (
+                        <>
+                          <Brain className="h-5 w-5 mr-3" />
+                          Gerar Treino Inteligente
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              {/* Enhanced Paste Area */}
+              <PeriodizationPasteArea onPeriodizationData={handlePeriodizationData} />
+            </div>
+          </TabsContent>
+
+          {/* Other Tabs */}
+          <TabsContent value="treinos" className="space-y-6">
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2 text-card-foreground">
+                  <Dumbbell className="h-6 w-6 text-primary" />
+                  <span>Meus Treinos Gerados</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {analysisResult ? (
+                  <PeriodizationAnalysisResults
+                    analysisData={analysisResult}
+                    onGeneratePDF={handleGeneratePDF}
+                    onGenerateLink={handleGenerateLink}
+                  />
+                ) : (
+                  <div className="text-center py-12">
+                    <Activity className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground text-lg">
+                      Nenhum treino gerado ainda. Configure e gere seu primeiro treino!
+                    </p>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-                <Button 
-                  type="submit" 
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-black font-bold"
-                  disabled={isAnalyzing}
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
-                      Analisando com IA...
-                    </>
-                  ) : (
-                    <>
-                      <Brain className="h-4 w-4 mr-2" />
-                      Analisar com IA
-                    </>
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+          <TabsContent value="analytics" className="space-y-6">
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2 text-card-foreground">
+                  <TrendingUp className="h-6 w-6 text-primary" />
+                  <span>Analytics Semanal</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-12">
+                  <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground text-lg">
+                    Gráficos e estatísticas em desenvolvimento...
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-          {/* Área de Colagem */}
-          <PeriodizationPasteArea onPeriodizationData={handlePeriodizationData} />
-        </div>
-
-        {/* Resultados da Análise */}
-        {analysisResult && (
-          <PeriodizationAnalysisResults
-            analysisData={analysisResult}
-            onGeneratePDF={handleGeneratePDF}
-            onGenerateLink={handleGenerateLink}
-          />
-        )}
+          <TabsContent value="relatorios" className="space-y-6">
+            <Card className="bg-card border-border">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2 text-card-foreground">
+                  <FileText className="h-6 w-6 text-primary" />
+                  <span>Relatório Geral</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-12">
+                  <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground text-lg mb-4">
+                    Relatórios completos e exportação em PDF disponível após gerar treinos.
+                  </p>
+                  <div className="flex justify-center gap-4">
+                    <Button 
+                      onClick={handleGeneratePDF}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                      disabled={!analysisResult}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Exportar PDF
+                    </Button>
+                    <Button 
+                      onClick={handleGenerateLink}
+                      variant="outline"
+                      className="border-primary text-primary hover:bg-primary/10"
+                      disabled={!analysisResult}
+                    >
+                      <Lightbulb className="h-4 w-4 mr-2" />
+                      Compartilhar Link
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

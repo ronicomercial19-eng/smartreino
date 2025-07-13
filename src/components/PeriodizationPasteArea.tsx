@@ -69,44 +69,57 @@ const PeriodizationPasteArea = ({ onPeriodizationData }: PeriodizationPasteAreaP
   };
 
   return (
-    <Card className="bg-slate-900 border-slate-700">
+    <Card className="bg-card border-border card-hover">
       <CardHeader>
-        <CardTitle className="text-white flex items-center space-x-3">
-          <div className="w-1 h-6 bg-orange-500 rounded-full"></div>
-          <FileText className="h-6 w-6 text-orange-500" />
-          <span>Colar Periodização de Treino</span>
-          <Badge variant="secondary" className="bg-orange-500/20 text-orange-400">
-            AI Ready
+        <CardTitle className="text-card-foreground flex items-center space-x-3">
+          <div className="w-1 h-8 bg-primary rounded-full"></div>
+          <FileText className="h-6 w-6 text-primary" />
+          <span>Importar Periodização Existente</span>
+          <Badge className="bg-primary/20 text-primary border-primary/30">
+            IA Ready
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         <div className="relative">
           <Textarea
             value={pasteContent}
             onChange={(e) => setPasteContent(e.target.value)}
-            placeholder="Cole aqui a periodização completa do treino...
+            placeholder="📋 Cole aqui sua periodização completa...
 
-Exemplo:
-- Macrociclo: 12 semanas
-- Fase 1: Adaptação Anatômica (3 semanas)
-- Fase 2: Hipertrofia (4 semanas)
-- Fase 3: Força (3 semanas)
-- Fase 4: Potência (2 semanas)"
-            className="min-h-[200px] bg-slate-800 border-slate-600 text-white placeholder:text-slate-400 resize-none focus:border-orange-500 focus:ring-orange-500/20"
+📅 Exemplo de formato:
+• Macrociclo: 16 semanas
+• Mesociclo 1: Adaptação Anatômica (4 semanas)
+  - Volume: Alto | Intensidade: Baixa
+  - Foco: Técnica e resistência muscular
+• Mesociclo 2: Hipertrofia (6 semanas)  
+  - Volume: Muito Alto | Intensidade: Moderada
+  - Foco: Crescimento muscular
+• Mesociclo 3: Força (4 semanas)
+  - Volume: Moderado | Intensidade: Alta
+  - Foco: Força máxima
+• Mesociclo 4: Potência (2 semanas)
+  - Volume: Baixo | Intensidade: Muito Alta
+  - Foco: Explosão e velocidade"
+            className="min-h-[300px] bg-input border-border text-foreground placeholder:text-muted-foreground resize-none focus-ring rounded-lg"
           />
-          <div className="absolute bottom-3 right-3 text-xs text-slate-400">
-            {pasteContent.length} caracteres
+          <div className="absolute bottom-4 right-4 flex items-center space-x-2">
+            <Badge variant="outline" className="text-xs">
+              {pasteContent.length} caracteres
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              {pasteContent.split('\n').filter(line => line.trim()).length} linhas
+            </Badge>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 justify-between">
+        <div className="flex flex-wrap gap-3 justify-between items-center">
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={handleClear}
-              className="bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+              className="border-border hover:bg-muted"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Limpar
@@ -116,10 +129,10 @@ Exemplo:
               variant="outline"
               size="sm"
               onClick={handleCopyToClipboard}
-              className="bg-slate-800 border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+              className="border-border hover:bg-muted"
             >
               {isCopied ? (
-                <Check className="h-4 w-4 mr-2 text-green-400" />
+                <Check className="h-4 w-4 mr-2 text-green-500" />
               ) : (
                 <Copy className="h-4 w-4 mr-2" />
               )}
@@ -130,7 +143,7 @@ Exemplo:
           <Button
             onClick={handleAnalyze}
             disabled={!pasteContent.trim()}
-            className="bg-orange-500 hover:bg-orange-600 text-black font-bold disabled:bg-slate-700 disabled:text-slate-400"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold btn-glow"
           >
             <Zap className="h-4 w-4 mr-2" />
             Analisar com IA
@@ -138,16 +151,33 @@ Exemplo:
         </div>
 
         {pasteContent.trim() && (
-          <div className="mt-4 p-3 bg-slate-800 rounded-lg border border-slate-600">
-            <div className="flex items-center space-x-2 text-sm">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-slate-300">Pronto para análise</span>
-              <Badge variant="outline" className="border-orange-500 text-orange-400">
-                {pasteContent.split('\n').filter(line => line.trim()).length} linhas
-              </Badge>
+          <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse-orange"></div>
+                <span className="text-foreground font-medium">Pronto para análise</span>
+              </div>
+              <div className="flex gap-2">
+                <Badge className="bg-primary/20 text-primary">
+                  {pasteContent.split('•').length - 1} seções detectadas
+                </Badge>
+                <Badge variant="outline" className="border-primary/30">
+                  {Math.ceil(pasteContent.length / 100)} tokens aprox.
+                </Badge>
+              </div>
             </div>
           </div>
         )}
+
+        <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
+          <p className="font-medium mb-2">💡 Dicas para melhor análise:</p>
+          <ul className="space-y-1 text-xs">
+            <li>• Inclua informações sobre volume, intensidade e foco de cada fase</li>
+            <li>• Mencione exercícios específicos quando possível</li>
+            <li>• Indique durações em semanas para cada mesociclo</li>
+            <li>• Adicione observações sobre progressões e adaptações</li>
+          </ul>
+        </div>
       </CardContent>
     </Card>
   );
