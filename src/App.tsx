@@ -11,6 +11,8 @@ import PeriodizationUpload from "@/pages/PeriodizationUpload";
 import ExerciseLibrary from "@/pages/ExerciseLibrary";
 import AIChat from "@/pages/AIChat";
 import AIConfig from "@/pages/AIConfig";
+import AdminStudentManagement from "@/pages/AdminStudentManagement";
+import StudentInterface from "@/pages/StudentInterface";
 import NotFound from "@/pages/NotFound";
 
 function App() {
@@ -28,6 +30,8 @@ function App() {
           <Route path="/exercises" element={<ExerciseLibrary />} />
           <Route path="/ai-chat" element={<AIChat />} />
           <Route path="/ai-config" element={<AIConfig />} />
+          <Route path="/admin-students" element={<AdminStudentManagement />} />
+          <Route path="/student-interface" element={<StudentInterface />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />
