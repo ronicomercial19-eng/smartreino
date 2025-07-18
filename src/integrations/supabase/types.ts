@@ -1055,6 +1055,78 @@ export type Database = {
           },
         ]
       }
+      workout_models: {
+        Row: {
+          additional_observations: string | null
+          created_at: string | null
+          exercise_fields: Json | null
+          format_type: string
+          general_objective: string
+          id: string
+          initial_activation: string
+          level: string
+          method_description: string
+          model_order: number
+          name: string
+          periodization_phase: string
+          sequence_description: string | null
+          stimulus_type: string
+          structure_description: string
+          timer_enabled: boolean
+          timer_type: string | null
+          updated_at: string | null
+          voice_cadence_enabled: boolean
+          voice_cadence_pattern: string | null
+          week_number: number
+        }
+        Insert: {
+          additional_observations?: string | null
+          created_at?: string | null
+          exercise_fields?: Json | null
+          format_type: string
+          general_objective: string
+          id?: string
+          initial_activation: string
+          level: string
+          method_description: string
+          model_order: number
+          name: string
+          periodization_phase: string
+          sequence_description?: string | null
+          stimulus_type: string
+          structure_description: string
+          timer_enabled?: boolean
+          timer_type?: string | null
+          updated_at?: string | null
+          voice_cadence_enabled?: boolean
+          voice_cadence_pattern?: string | null
+          week_number: number
+        }
+        Update: {
+          additional_observations?: string | null
+          created_at?: string | null
+          exercise_fields?: Json | null
+          format_type?: string
+          general_objective?: string
+          id?: string
+          initial_activation?: string
+          level?: string
+          method_description?: string
+          model_order?: number
+          name?: string
+          periodization_phase?: string
+          sequence_description?: string | null
+          stimulus_type?: string
+          structure_description?: string
+          timer_enabled?: boolean
+          timer_type?: string | null
+          updated_at?: string | null
+          voice_cadence_enabled?: boolean
+          voice_cadence_pattern?: string | null
+          week_number?: number
+        }
+        Relationships: []
+      }
       workout_schedules: {
         Row: {
           created_at: string | null

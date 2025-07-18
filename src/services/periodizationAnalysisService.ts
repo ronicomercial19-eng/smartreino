@@ -15,6 +15,7 @@ export interface RecommendedWorkoutModel {
 }
 
 import { grokAIService } from './grokAIService';
+import { workoutModelsService, WorkoutModel } from './workoutModelsService';
 
 class PeriodizationAnalysisService {
   private workoutModels: RecommendedWorkoutModel[] = [];
@@ -23,7 +24,7 @@ class PeriodizationAnalysisService {
     this.initializeWorkoutModels();
   }
 
-  // Inicializar modelos de treino
+  // Inicializar modelos de treino (fallback para compatibilidade)
   private initializeWorkoutModels() {
     this.workoutModels = [
       {
@@ -156,32 +157,158 @@ class PeriodizationAnalysisService {
     ];
   }
 
-  // Enhanced method using AI analysis
+  // Enhanced method using AI analysis and Supabase models
   async analyzePeriodization(data: any) {
     try {
       console.log('Analyzing periodization with AI service...');
       
+      // Get workout models from Supabase
+      const supabaseModels = await workoutModelsService.getRecommendedModels({
+        level: data.experience_level,
+        objective: data.primary_goal
+      });
+
       // Use Grok AI service for analysis
       const aiAnalysis = await grokAIService.analyzePeriodization(data);
       
+      // Enhance analysis with Supabase models
+      const enhancedRecommendations = await this.enhanceRecommendationsWithSupabaseModels(
+        aiAnalysis.recommendedModels,
+        supabaseModels,
+        data
+      );
+
       return {
         currentPhase: aiAnalysis.currentPhase,
-        recommendedModels: aiAnalysis.recommendedModels,
+        recommendedModels: enhancedRecommendations,
         periodizationSuggestions: aiAnalysis.periodizationSuggestions,
-        confidence: aiAnalysis.confidence
+        confidence: aiAnalysis.confidence,
+        supabaseModels: supabaseModels
       };
     } catch (error) {
       console.error('AI analysis failed, falling back to local analysis:', error);
       
-      // Fallback to original analysis
+      // Fallback to original analysis with Supabase models
+      const supabaseModels = await workoutModelsService.getRecommendedModels({
+        level: data.experience_level,
+        objective: data.primary_goal
+      }).catch(() => []);
+
       const analysis = {
-        currentPhase: data.phase || 'Básico',
+        currentPhase: data.phase || 'Base',
         recommendedModels: this.analyzeUserProfile(data),
-        periodizationSuggestions: this.generatePeriodizationSuggestions(data)
+        periodizationSuggestions: this.generatePeriodizationSuggestions(data),
+        supabaseModels: supabaseModels
       };
       
       return analysis;
     }
+  }
+
+  // Convert Supabase models to RecommendedWorkoutModel format
+  private convertSupabaseToRecommended(supabaseModel: WorkoutModel): RecommendedWorkoutModel {
+    return {
+      id: supabaseModel.id,
+      name: supabaseModel.name,
+      description: supabaseModel.general_objective,
+      category: supabaseModel.stimulus_type,
+      phase: supabaseModel.periodization_phase,
+      duration: this.estimateDuration(supabaseModel.format_type),
+      targetPSE: this.estimatePSE(supabaseModel.level),
+      muscleGroups: this.extractMuscleGroups(supabaseModel.structure_description),
+      exercises: this.extractExercises(supabaseModel.structure_description),
+      recommendationScore: this.calculateScore(supabaseModel),
+      aiReasoning: `${supabaseModel.method_description}. Ideal para ${supabaseModel.level.toLowerCase()}.`,
+      createdAt: supabaseModel.created_at || new Date().toISOString()
+    };
+  }
+
+  // Enhance recommendations with Supabase models
+  private async enhanceRecommendationsWithSupabaseModels(
+    aiRecommendations: RecommendedWorkoutModel[],
+    supabaseModels: WorkoutModel[],
+    userProfile: any
+  ): Promise<RecommendedWorkoutModel[]> {
+    const convertedSupabaseModels = supabaseModels.map(model => 
+      this.convertSupabaseToRecommended(model)
+    );
+
+    // Combine AI recommendations with Supabase models
+    const combinedModels = [...aiRecommendations, ...convertedSupabaseModels];
+
+    // Sort by recommendation score and return top results
+    return combinedModels
+      .sort((a, b) => b.recommendationScore - a.recommendationScore)
+      .slice(0, 10);
+  }
+
+  // Helper methods for conversion
+  private estimateDuration(formatType: string): number {
+    const durationMap: Record<string, number> = {
+      'HIIT': 30,
+      'Tabata': 20,
+      'EMOM': 35,
+      'Circuito': 40,
+      'Séries diretas': 45,
+      'Superset': 35,
+      'Bi-set': 40
+    };
+    return durationMap[formatType] || 35;
+  }
+
+  private estimatePSE(level: string): number {
+    const pseMap: Record<string, number> = {
+      'Básico': 6,
+      'Intermediário': 7,
+      'Avançado': 8
+    };
+    return pseMap[level] || 7;
+  }
+
+  private extractMuscleGroups(description: string): string[] {
+    const muscleKeywords = ['core', 'inferior', 'superior', 'quadríceps', 'dorsais', 'glúteos', 'peito', 'ombros'];
+    return muscleKeywords.filter(muscle => 
+      description.toLowerCase().includes(muscle)
+    );
+  }
+
+  private extractExercises(description: string): string[] {
+    // Basic extraction - could be enhanced with more sophisticated parsing
+    if (description.includes('agachar')) return ['Agachamento'];
+    if (description.includes('empurrar')) return ['Flexão'];
+    if (description.includes('puxar')) return ['Puxada'];
+    return ['Exercícios Funcionais'];
+  }
+
+  private calculateScore(model: WorkoutModel): number {
+    let score = 70; // Base score
+    
+    if (model.level === 'Avançado') score += 15;
+    if (model.level === 'Intermediário') score += 10;
+    if (model.timer_enabled) score += 5;
+    if (model.voice_cadence_enabled) score += 5;
+    
+    return Math.min(score, 100);
+  }
+
+  // Get workout models from Supabase
+  async getWorkoutModelsFromDatabase(): Promise<WorkoutModel[]> {
+    return await workoutModelsService.getAllWorkoutModels();
+  }
+
+  // Get models by phase from Supabase
+  async getModelsByPhase(phase: string): Promise<WorkoutModel[]> {
+    return await workoutModelsService.getModelsByPhase(phase);
+  }
+
+  // Get models by week from Supabase
+  async getModelsByWeek(weekNumber: number): Promise<WorkoutModel[]> {
+    return await workoutModelsService.getModelsByWeek(weekNumber);
+  }
+
+  // Search models in Supabase
+  async searchWorkoutModels(searchTerm: string): Promise<WorkoutModel[]> {
+    return await workoutModelsService.searchModels(searchTerm);
   }
 
   // Método que estava faltando
