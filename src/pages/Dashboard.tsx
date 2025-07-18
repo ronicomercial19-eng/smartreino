@@ -304,43 +304,117 @@ const Dashboard = () => {
         )}
 
         {/* Ações Rápidas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Button 
-            variant="outline" 
-            className="h-20 flex flex-col items-center justify-center space-y-2"
-            onClick={() => navigate("/workout-register")}
-          >
-            <span className="text-2xl">📝</span>
-            <span>Registrar Treino</span>
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="h-20 flex flex-col items-center justify-center space-y-2"
-            onClick={() => navigate("/exercises")}
-          >
-            <span className="text-2xl">🏋️</span>
-            <span>Exercícios</span>
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="h-20 flex flex-col items-center justify-center space-y-2"
-            onClick={() => navigate("/workout-history")}
-          >
-            <span className="text-2xl">📈</span>
-            <span>Histórico</span>
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200"
-            onClick={() => navigate("/ai-chat")}
-          >
-            <span className="text-2xl">🤖</span>
-            <span>Chat IA</span>
-          </Button>
-        </div>
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>🚀 Ações Rápidas</CardTitle>
+            <CardDescription>
+              Acesse rapidamente todas as funcionalidades do sistema
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {/* Treino */}
+              <Button 
+                variant="outline" 
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 hover:from-blue-100 hover:to-indigo-100"
+                onClick={() => navigate("/workout-register")}
+              >
+                <span className="text-2xl">📝</span>
+                <span className="text-sm font-medium">Registrar Treino</span>
+              </Button>
+              
+              {/* Periodização */}
+              <Button 
+                variant="outline" 
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-orange-50 to-red-50 border-orange-200 hover:from-orange-100 hover:to-red-100"
+                onClick={() => navigate("/periodization-upload")}
+              >
+                <span className="text-2xl">📊</span>
+                <span className="text-sm font-medium">Periodização</span>
+              </Button>
+              
+              {/* Modelos de Treino */}
+              <Button 
+                variant="outline" 
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-green-50 to-teal-50 border-green-200 hover:from-green-100 hover:to-teal-100"
+                onClick={() => navigate("/workout-models")}
+              >
+                <span className="text-2xl">🎯</span>
+                <span className="text-sm font-medium">Modelos</span>
+              </Button>
+              
+              {/* Banco de Modelos */}
+              <Button 
+                variant="outline" 
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200 hover:from-yellow-100 hover:to-amber-100"
+                onClick={() => navigate("/workout-models-database")}
+              >
+                <span className="text-2xl">🗄️</span>
+                <span className="text-sm font-medium">Banco Modelos</span>
+              </Button>
+              
+              {/* Exercícios */}
+              <Button 
+                variant="outline" 
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-pink-50 to-rose-50 border-pink-200 hover:from-pink-100 hover:to-rose-100"
+                onClick={() => navigate("/exercises")}
+              >
+                <span className="text-2xl">🏋️</span>
+                <span className="text-sm font-medium">Exercícios</span>
+              </Button>
+              
+              {/* Histórico */}
+              <Button 
+                variant="outline" 
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-cyan-50 to-blue-50 border-cyan-200 hover:from-cyan-100 hover:to-blue-100"
+                onClick={() => navigate("/workout-history")}
+              >
+                <span className="text-2xl">📈</span>
+                <span className="text-sm font-medium">Histórico</span>
+              </Button>
+              
+              {/* Chat IA */}
+              <Button 
+                variant="outline" 
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100"
+                onClick={() => navigate("/ai-chat")}
+              >
+                <span className="text-2xl">🤖</span>
+                <span className="text-sm font-medium">Chat IA</span>
+              </Button>
+              
+              {/* Configuração IA */}
+              <Button 
+                variant="outline" 
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-slate-50 to-gray-50 border-slate-200 hover:from-slate-100 hover:to-gray-100"
+                onClick={() => navigate("/ai-config")}
+              >
+                <span className="text-2xl">⚙️</span>
+                <span className="text-sm font-medium">Config IA</span>
+              </Button>
+              
+              {/* Gestão de Alunos */}
+              <Button 
+                variant="outline" 
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200 hover:from-indigo-100 hover:to-purple-100"
+                onClick={() => navigate("/admin-students")}
+              >
+                <span className="text-2xl">👥</span>
+                <span className="text-sm font-medium">Gestão Alunos</span>
+              </Button>
+              
+              {/* Interface do Aluno */}
+              <Button 
+                variant="outline" 
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-emerald-50 to-green-50 border-emerald-200 hover:from-emerald-100 hover:to-green-100"
+                onClick={() => navigate("/student-interface")}
+              >
+                <span className="text-2xl">🎓</span>
+                <span className="text-sm font-medium">Interface Aluno</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
