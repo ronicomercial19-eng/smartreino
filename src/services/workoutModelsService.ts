@@ -167,7 +167,6 @@ export class WorkoutModelsService {
       .from('workout_models')
       .select('*');
 
-    // Aplicar filtros condicionalmente
     if (filters.level) {
       query = query.eq('level', filters.level);
     }
@@ -188,7 +187,6 @@ export class WorkoutModelsService {
       query = query.or(`name.ilike.%${filters.search}%,general_objective.ilike.%${filters.search}%,method_description.ilike.%${filters.search}%`);
     }
 
-    // Ordenação
     query = query.order('model_order', { ascending: true });
 
     const { data, error } = await query;
@@ -202,7 +200,6 @@ export class WorkoutModelsService {
     return (data || []) as WorkoutModel[];
   }
 
-  // Métodos para estatísticas e análises
   static async getModelsStats() {
     console.log('📊 Calculando estatísticas dos modelos...');
     
@@ -223,13 +220,8 @@ export class WorkoutModelsService {
     };
 
     data?.forEach(model => {
-      // Contagem por nível
       stats.byLevel[model.level] = (stats.byLevel[model.level] || 0) + 1;
-      
-      // Contagem por fase
       stats.byPhase[model.periodization_phase] = (stats.byPhase[model.periodization_phase] || 0) + 1;
-      
-      // Contagem por tipo de estímulo
       stats.byStimulusType[model.stimulus_type] = (stats.byStimulusType[model.stimulus_type] || 0) + 1;
     });
 
@@ -259,3 +251,29 @@ export class WorkoutModelsService {
     return distinctValues;
   }
 }
+
+// Adapter de compatibilidade: exporta o objeto esperado pelos consumidores atuais.
+// Mapeia nomes usados em outros arquivos para os métodos da classe acima.
+export const workoutModelsService = {
+  // Usado em páginas/serviços
+  getAllWorkoutModels: () => WorkoutModelsService.getAllModels(),
+  getModelsByLevel: (level: string) => WorkoutModelsService.getModelsByLevel(level),
+  getModelsByPhase: (phase: string) => WorkoutModelsService.getModelsByPhase(phase),
+  getModelsByWeek: (weekNumber: number) => WorkoutModelsService.getModelsByWeek(weekNumber),
+  getModelsByStimulusType: (stimulusType: string) => WorkoutModelsService.getModelsByStimulusType(stimulusType),
+  getModelById: (id: string) => WorkoutModelsService.getModelById(id),
+  searchModels: (term: string) => WorkoutModelsService.searchModels(term),
+  getFilteredModels: (filters: WorkoutModelsFilters) => WorkoutModelsService.getFilteredModels(filters),
+  // Alias para estatísticas com o nome esperado
+  getWorkoutStatistics: () => WorkoutModelsService.getModelsStats(),
+  getDistinctValues: () => WorkoutModelsService.getDistinctValues(),
+  // Compatibilidade com chamadas de recomendação usadas pelo serviço de periodização
+  getRecommendedModels: (params: { level?: string; objective?: string }) => {
+    const filters: WorkoutModelsFilters = {};
+    if (params?.level) filters.level = params.level;
+    // Usamos 'objective' como termo de busca amplo para casar com nome/objetivo/metodologia
+    if (params?.objective) filters.search = params.objective;
+    return WorkoutModelsService.getFilteredModels(filters);
+  },
+};
+
