@@ -1,301 +1,314 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Filter, Clock, Users, Target, Calendar } from 'lucide-react';
-import { workoutModelsService, WorkoutModel } from '@/services/workoutModelsService';
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search, Filter, Download, Eye, BarChart3 } from "lucide-react";
+import { workoutModelsService } from '@/services/workoutModelsService';
 import { useToast } from '@/hooks/use-toast';
-import Navigation from '@/components/Navigation';
 
-const WorkoutModelsDatabase = () => {
-  const [models, setModels] = useState<WorkoutModel[]>([]);
-  const [filteredModels, setFilteredModels] = useState<WorkoutModel[]>([]);
+export default function WorkoutModelsDatabase() {
+  const [models, setModels] = useState([]);
+  const [filteredModels, setFilteredModels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPhase, setSelectedPhase] = useState<string>('all');
-  const [selectedLevel, setSelectedLevel] = useState<string>('all');
-  const [statistics, setStatistics] = useState<any>(null);
+  const [selectedLevel, setSelectedLevel] = useState('');
+  const [selectedPhase, setSelectedPhase] = useState('');
+  const [stats, setStats] = useState(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    loadWorkoutModels();
-    loadStatistics();
+    loadData();
   }, []);
 
   useEffect(() => {
-    filterModels();
-  }, [models, searchTerm, selectedPhase, selectedLevel]);
+    applyFilters();
+  }, [models, searchTerm, selectedLevel, selectedPhase]);
 
-  const loadWorkoutModels = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const data = await workoutModelsService.getAllWorkoutModels();
-      setModels(data);
+      const [modelsData, statsData] = await Promise.all([
+        workoutModelsService.getAllWorkoutModels(),
+        workoutModelsService.getWorkoutStatistics()
+      ]);
+      
+      setModels(modelsData || []);
+      setStats(statsData);
     } catch (error) {
-      console.error('Error loading workout models:', error);
+      console.error('Erro ao carregar dados:', error);
       toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar os modelos de treino',
-        variant: 'destructive'
+        title: "Erro",
+        description: "Falha ao carregar dados da base de modelos",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const loadStatistics = async () => {
-    try {
-      const stats = await workoutModelsService.getWorkoutStatistics();
-      setStatistics(stats);
-    } catch (error) {
-      console.error('Error loading statistics:', error);
-    }
-  };
-
-  const filterModels = () => {
-    let filtered = models;
+  const applyFilters = () => {
+    let filtered = [...models];
 
     if (searchTerm) {
       filtered = filtered.filter(model =>
-        model.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        model.general_objective.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        model.stimulus_type.toLowerCase().includes(searchTerm.toLowerCase())
+        model.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        model.general_objective?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        model.method_description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    if (selectedPhase !== 'all') {
-      filtered = filtered.filter(model => model.periodization_phase === selectedPhase);
+    if (selectedLevel) {
+      filtered = filtered.filter(model => model.level === selectedLevel);
     }
 
-    if (selectedLevel !== 'all') {
-      filtered = filtered.filter(model => model.level === selectedLevel);
+    if (selectedPhase) {
+      filtered = filtered.filter(model => model.periodization_phase === selectedPhase);
     }
 
     setFilteredModels(filtered);
   };
 
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-  };
-
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case 'Básico': return 'bg-green-100 text-green-800';
-      case 'Intermediário': return 'bg-yellow-100 text-yellow-800';
-      case 'Avançado': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPhaseColor = (phase: string) => {
-    switch (phase) {
-      case 'Base': return 'bg-blue-100 text-blue-800';
-      case 'Intensificação': return 'bg-orange-100 text-orange-800';
-      case 'Realização': return 'bg-purple-100 text-purple-800';
-      case 'Deload': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const handleExport = () => {
+    toast({
+      title: "Exportação iniciada",
+      description: "Os dados estão sendo preparados para download..."
+    });
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navigation />
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-lg text-gray-600">Carregando modelos de treino...</div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <div className="animate-pulse-orange">
+            <BarChart3 className="h-12 w-12 mx-auto text-primary" />
           </div>
+          <p className="text-muted-foreground">Carregando base de dados...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navigation />
-      
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Base de Dados de Modelos de Treino
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold font-heading gradient-text">
+            Base de Dados - Modelos de Treino
           </h1>
-          <p className="text-gray-600">
-            Explore nossa coleção completa de modelos de treino estruturados por periodização
+          <p className="text-muted-foreground">
+            Explore e analise todos os modelos de treino disponíveis.
           </p>
         </div>
+        <Button onClick={handleExport} className="btn-glow">
+          <Download className="mr-2 h-4 w-4" />
+          Exportar Dados
+        </Button>
+      </div>
 
-        {/* Statistics Cards */}
-        {statistics && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <Target className="h-5 w-5 text-blue-600" />
-                  <div>
-                    <p className="text-sm text-gray-600">Total de Modelos</p>
-                    <p className="text-2xl font-bold">{statistics.totalModels}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <Calendar className="h-5 w-5 text-green-600" />
-                  <div>
-                    <p className="text-sm text-gray-600">Fases</p>
-                    <p className="text-2xl font-bold">{Object.keys(statistics.byPhase).length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <Users className="h-5 w-5 text-orange-600" />
-                  <div>
-                    <p className="text-sm text-gray-600">Níveis</p>
-                    <p className="text-2xl font-bold">{Object.keys(statistics.byLevel).length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-5 w-5 text-purple-600" />
-                  <div>
-                    <p className="text-sm text-gray-600">Tipos de Estímulo</p>
-                    <p className="text-2xl font-bold">{Object.keys(statistics.byStimulusType).length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+      {/* Stats Overview */}
+      {stats && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="glass border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total de Modelos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold font-heading text-primary">
+                {stats.total}
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Search and Filters */}
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Buscar por nome, objetivo ou tipo de estímulo..."
-                    value={searchTerm}
-                    onChange={(e) => handleSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+          <Card className="glass border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Níveis Únicos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold font-heading text-emerald-600">
+                {Object.keys(stats.byLevel || {}).length}
               </div>
-              
-              <div className="flex gap-2">
-                <select
-                  value={selectedPhase}
-                  onChange={(e) => setSelectedPhase(e.target.value)}
-                  className="px-3 py-2 border rounded-md"
-                >
-                  <option value="all">Todas as Fases</option>
-                  <option value="Base">Base</option>
-                  <option value="Intensificação">Intensificação</option>
-                  <option value="Realização">Realização</option>
-                  <option value="Deload">Deload</option>
-                </select>
-                
-                <select
-                  value={selectedLevel}
-                  onChange={(e) => setSelectedLevel(e.target.value)}
-                  className="px-3 py-2 border rounded-md"
-                >
-                  <option value="all">Todos os Níveis</option>
-                  <option value="Básico">Básico</option>
-                  <option value="Intermediário">Intermediário</option>
-                  <option value="Avançado">Avançado</option>
-                </select>
+            </CardContent>
+          </Card>
+
+          <Card className="glass border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Fases de Periodização
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold font-heading text-blue-600">
+                {Object.keys(stats.byPhase || {}).length}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Tipos de Estímulo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold font-heading text-orange-600">
+                {Object.keys(stats.byStimulusType || {}).length}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Filters */}
+      <Card className="glass border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-heading">
+            <Filter className="h-5 w-5" />
+            Filtros e Busca
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome, objetivo ou metodologia..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 focus-ring"
+              />
             </div>
-          </CardContent>
-        </Card>
+            
+            <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+              <SelectTrigger className="focus-ring">
+                <SelectValue placeholder="Filtrar por nível" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todos os níveis</SelectItem>
+                <SelectItem value="Básico">Básico</SelectItem>
+                <SelectItem value="Intermediário">Intermediário</SelectItem>
+                <SelectItem value="Avançado">Avançado</SelectItem>
+              </SelectContent>
+            </Select>
 
-        {/* Results */}
-        <div className="mb-4">
-          <p className="text-sm text-gray-600">
+            <Select value={selectedPhase} onValueChange={setSelectedPhase}>
+              <SelectTrigger className="focus-ring">
+                <SelectValue placeholder="Filtrar por fase" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todas as fases</SelectItem>
+                <SelectItem value="Base">Base</SelectItem>
+                <SelectItem value="Intensificação">Intensificação</SelectItem>
+                <SelectItem value="Realização">Realização</SelectItem>
+                <SelectItem value="Deload">Deload</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <BarChart3 className="h-4 w-4" />
             Mostrando {filteredModels.length} de {models.length} modelos
-          </p>
-        </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Models Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredModels.map((model) => (
-            <Card key={model.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-lg">{model.name}</CardTitle>
-                  <Badge className={getLevelColor(model.level)}>
-                    {model.level}
-                  </Badge>
-                </div>
-                <div className="flex gap-2">
-                  <Badge className={getPhaseColor(model.periodization_phase)}>
-                    {model.periodization_phase}
-                  </Badge>
-                  <Badge variant="outline">
-                    Semana {model.week_number}
-                  </Badge>
-                </div>
-              </CardHeader>
-              
-              <CardContent>
-                <p className="text-sm text-gray-600 mb-4">
-                  {model.general_objective}
-                </p>
-                
-                <div className="space-y-2 text-sm">
-                  <div>
-                    <span className="font-medium">Método:</span> {model.method_description}
+      {/* Models Grid */}
+      <Tabs defaultValue="grid" className="space-y-4">
+        <TabsList className="glass">
+          <TabsTrigger value="grid">Visualização em Grade</TabsTrigger>
+          <TabsTrigger value="list">Visualização em Lista</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="grid" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredModels.map((model) => (
+              <Card key={model.id} className="glass border-border/50 card-hover">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="font-heading text-lg">
+                      {model.name}
+                    </CardTitle>
+                    <div className="flex gap-1">
+                      <Badge variant="secondary" className="text-xs">
+                        {model.level}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {model.periodization_phase}
+                      </Badge>
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-medium">Formato:</span> {model.format_type}
-                  </div>
-                  <div>
-                    <span className="font-medium">Estímulo:</span> {model.stimulus_type}
+                  <CardDescription className="line-clamp-2">
+                    {model.general_objective}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="text-sm space-y-1">
+                    <p><strong>Metodologia:</strong> {model.method_description}</p>
+                    <p><strong>Semana:</strong> {model.week_number}</p>
+                    <p><strong>Estímulo:</strong> {model.stimulus_type}</p>
                   </div>
                   
-                  {model.timer_enabled && (
-                    <div className="flex items-center gap-1 text-blue-600">
-                      <Clock className="h-4 w-4" />
-                      <span>Timer: {model.timer_type}</span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-xs text-gray-500">
-                    {model.structure_description}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {filteredModels.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">
-              Nenhum modelo encontrado com os filtros selecionados
-            </p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="flex-1 btn-glow">
+                      <Eye className="mr-2 h-4 w-4" />
+                      Visualizar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        )}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="list" className="space-y-4">
+          <div className="space-y-2">
+            {filteredModels.map((model) => (
+              <Card key={model.id} className="glass border-border/50">
+                <CardContent className="flex items-center justify-between p-4">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-heading font-semibold">{model.name}</h3>
+                      <Badge variant="secondary" className="text-xs">
+                        {model.level}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {model.periodization_phase}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-1">
+                      {model.general_objective}
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" className="btn-glow">
+                    <Eye className="mr-2 h-4 w-4" />
+                    Visualizar
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {filteredModels.length === 0 && (
+        <Card className="glass border-border/50">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Search className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold font-heading mb-2">
+              Nenhum modelo encontrado
+            </h3>
+            <p className="text-muted-foreground text-center">
+              Tente ajustar os filtros ou termos de busca para encontrar modelos.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
-};
-
-export default WorkoutModelsDatabase;
+}

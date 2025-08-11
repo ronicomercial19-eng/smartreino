@@ -1,6 +1,6 @@
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { Toaster } from "@/components/ui/toaster";
+import { AppLayout } from "@/components/AppLayout";
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
@@ -23,18 +23,80 @@ function App() {
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/workout-models" element={<WorkoutModels />} />
-          <Route path="/workout-models-database" element={<WorkoutModelsDatabase />} />
-          <Route path="/periodization-upload" element={<PeriodizationUpload />} />
-          <Route path="/exercises" element={<ExerciseLibrary />} />
-          <Route path="/ai-chat" element={<AIChat />} />
-          <Route path="/ai-config" element={<AIConfig />} />
-          <Route path="/admin-students" element={<AdminStudentManagement />} />
-          <Route path="/student-interface" element={<StudentInterface />} />
+          <Route 
+            path="/dashboard" 
+            element={
+              <AppLayout>
+                <Dashboard />
+              </AppLayout>
+            } 
+          />
+          <Route 
+            path="/workout-models" 
+            element={
+              <AppLayout>
+                <WorkoutModels />
+              </AppLayout>
+            } 
+          />
+          <Route 
+            path="/workout-models-database" 
+            element={
+              <AppLayout>
+                <WorkoutModelsDatabase />
+              </AppLayout>
+            } 
+          />
+          <Route 
+            path="/periodization-upload" 
+            element={
+              <AppLayout>
+                <PeriodizationUpload />
+              </AppLayout>
+            } 
+          />
+          <Route 
+            path="/exercises" 
+            element={
+              <AppLayout>
+                <ExerciseLibrary />
+              </AppLayout>
+            } 
+          />
+          <Route 
+            path="/ai-chat" 
+            element={
+              <AppLayout>
+                <AIChat />
+              </AppLayout>
+            } 
+          />
+          <Route 
+            path="/ai-config" 
+            element={
+              <AppLayout>
+                <AIConfig />
+              </AppLayout>
+            } 
+          />
+          <Route 
+            path="/admin-students" 
+            element={
+              <AppLayout>
+                <AdminStudentManagement />
+              </AppLayout>
+            } 
+          />
+          <Route 
+            path="/student-interface" 
+            element={
+              <AppLayout>
+                <StudentInterface />
+              </AppLayout>
+            } 
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
-        <Toaster />
       </div>
     </Router>
   );
