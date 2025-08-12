@@ -1,489 +1,244 @@
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import Navigation from "@/components/Navigation";
-import { toast } from "@/components/ui/use-toast";
-import { 
-  Calendar as CalendarIcon, 
-  Dumbbell, 
-  Clock, 
-  Target, 
-  Bell,
-  CheckCircle,
-  Play,
-  MessageCircle
-} from "lucide-react";
+import { Calendar, Play, TrendingUp, BookOpen, MessageCircle, Bell } from "lucide-react";
+import { StudentPeriodizationService } from '@/services/studentPeriodizationService';
+import { StudentModelsService } from '@/services/studentModelsService';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
-interface TrainingPlan {
-  id: string;
-  studentId: string;
-  periodizationType: string;
-  weeks: WeekPlan[];
-  createdAt: string;
-}
+export default function StudentInterface() {
+  const [periodizations, setPeriodizations] = useState<any[]>([]);
+  const [selectedModels, setSelectedModels] = useState<any[]>([]);
+  const [currentWeek, setCurrentWeek] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-interface WeekPlan {
-  weekNumber: number;
-  focus: string;
-  workouts: DayWorkout[];
-}
-
-interface DayWorkout {
-  day: string;
-  exercises: Exercise[];
-  duration: number;
-  intensity: string;
-}
-
-interface Exercise {
-  name: string;
-  sets: number;
-  reps: string;
-  rest: string;
-  focus: string[];
-}
-
-interface Notification {
-  id: string;
-  studentId: string;
-  whatsappNumber: string;
-  scheduledAt: string;
-  message: string;
-  status: "pendente" | "enviado";
-}
-
-const StudentInterface = () => {
-  const [studentPlan, setStudentPlan] = useState<TrainingPlan | null>(null);
-  const [selectedWeek, setSelectedWeek] = useState(1);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [notificationForm, setNotificationForm] = useState({
-    time: "",
-    whatsappNumber: "",
-    message: "Lembrete: Hora do seu treino! 💪"
-  });
-
-  // Simular carregamento do plano do aluno
   useEffect(() => {
-    const mockPlan: TrainingPlan = {
-      id: "plan_1",
-      studentId: "student_1",
-      periodizationType: "Periodização em Blocos",
-      createdAt: "2024-01-15",
-      weeks: [
-        {
-          weekNumber: 1,
-          focus: "Adaptação Anatômica",
-          workouts: [
-            {
-              day: "Segunda-feira",
-              duration: 45,
-              intensity: "Moderada",
-              exercises: [
-                {
-                  name: "Agachamento com Barra",
-                  sets: 3,
-                  reps: "12-15",
-                  rest: "60s",
-                  focus: ["Quadríceps", "Glúteos"]
-                },
-                {
-                  name: "Supino Reto com Halteres",
-                  sets: 3,
-                  reps: "10-12", 
-                  rest: "60s",
-                  focus: ["Peitoral", "Tríceps"]
-                },
-                {
-                  name: "Remada Curvada",
-                  sets: 3,
-                  reps: "12-15",
-                  rest: "60s",
-                  focus: ["Dorsais", "Bíceps"]
-                }
-              ]
-            },
-            {
-              day: "Quarta-feira",
-              duration: 40,
-              intensity: "Baixa",
-              exercises: [
-                {
-                  name: "Leg Press 45°",
-                  sets: 3,
-                  reps: "15-20",
-                  rest: "45s",
-                  focus: ["Quadríceps", "Glúteos"]
-                },
-                {
-                  name: "Desenvolvimento com Halteres",
-                  sets: 3,
-                  reps: "12-15",
-                  rest: "45s",
-                  focus: ["Deltoide"]
-                }
-              ]
-            },
-            {
-              day: "Sexta-feira", 
-              duration: 50,
-              intensity: "Moderada",
-              exercises: [
-                {
-                  name: "Levantamento Terra",
-                  sets: 3,
-                  reps: "8-10",
-                  rest: "90s",
-                  focus: ["Cadeia Posterior", "Core"]
-                },
-                {
-                  name: "Flexão de Braços",
-                  sets: 3,
-                  reps: "10-15",
-                  rest: "60s",
-                  focus: ["Peitoral", "Tríceps"]
-                }
-              ]
-            }
-          ]
-        }
-        // Mais semanas seriam adicionadas aqui...
-      ]
-    };
-    
-    setStudentPlan(mockPlan);
+    loadStudentData();
   }, []);
 
-  const handleScheduleNotification = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedDate || !notificationForm.time || !notificationForm.whatsappNumber) {
-      toast({
-        title: "Dados Incompletos",
-        description: "Por favor, preencha todos os campos.",
-        variant: "destructive"
-      });
-      return;
-    }
-
+  const loadStudentData = async () => {
     try {
-      const notification: Notification = {
-        id: `notif_${Date.now()}`,
-        studentId: "student_1", // ID do aluno logado
-        whatsappNumber: notificationForm.whatsappNumber,
-        scheduledAt: `${selectedDate.toISOString().split('T')[0]}T${notificationForm.time}`,
-        message: notificationForm.message,
-        status: "pendente"
-      };
-
-      setNotifications(prev => [...prev, notification]);
+      setLoading(true);
       
-      toast({
-        title: "Lembrete Agendado!",
-        description: `Notificação marcada para ${selectedDate.toLocaleDateString('pt-PT')} às ${notificationForm.time}`,
-      });
+      // Obter o ID do aluno atual baseado no email do usuário logado
+      const { data: { user } } = await (await import('@/integrations/supabase/client')).supabase.auth.getUser();
+      if (!user?.email) {
+        throw new Error('Usuário não autenticado');
+      }
 
-      // Limpar formulário
-      setNotificationForm(prev => ({
-        ...prev,
-        time: ""
-      }));
+      // Buscar dados do aluno na tabela students pelo email
+      const { data: student } = await (await import('@/integrations/supabase/client')).supabase
+        .from('students')
+        .select('id')
+        .eq('email', user.email)
+        .single();
 
+      if (!student) {
+        throw new Error('Aluno não encontrado');
+      }
+
+      const [periodizationsData, modelsData] = await Promise.all([
+        StudentPeriodizationService.getStudentPeriodizations(student.id),
+        StudentModelsService.getStudentSelectedModels(student.id)
+      ]);
+
+      setPeriodizations(periodizationsData);
+      setSelectedModels(modelsData);
     } catch (error) {
+      console.error('Erro ao carregar dados do aluno:', error);
       toast({
-        title: "Erro ao Agendar",
-        description: "Ocorreu um erro ao agendar o lembrete.",
+        title: "Erro",
+        description: "Falha ao carregar seus dados",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const currentWeek = studentPlan?.weeks.find(w => w.weekNumber === selectedWeek);
+  const handleStartWorkout = (week: number, day: number) => {
+    navigate('/treino/recomendado', { 
+      state: { 
+        week, 
+        day,
+        periodizations,
+        selectedModels 
+      } 
+    });
+  };
+
+  const generateWeeks = () => {
+    const maxWeeks = periodizations.length > 0 
+      ? Math.max(...periodizations.map(p => p.macrocycle_duration_weeks || 12))
+      : 12;
+    
+    return Array.from({ length: maxWeeks }, (_, i) => i + 1);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <div className="animate-pulse-orange">
+            <Calendar className="h-12 w-12 mx-auto text-primary" />
+          </div>
+          <p className="text-muted-foreground">Carregando seus treinos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navigation />
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            🏋️ Meu Plano de Treino
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold font-heading gradient-text">
+            Meus Treinos
           </h1>
-          <p className="text-gray-600">
-            Acompanhe seu programa personalizado de 24 semanas
+          <p className="text-muted-foreground">
+            Acompanhe sua periodização e execute seus treinos.
           </p>
         </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate('/chat-ia')}>
+            <MessageCircle className="mr-2 h-4 w-4" />
+            IA Coach
+          </Button>
+          <Button variant="outline" onClick={() => navigate('/lembretes')}>
+            <Bell className="mr-2 h-4 w-4" />
+            Lembretes
+          </Button>
+        </div>
+      </div>
 
-        {!studentPlan ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <Dumbbell className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                Nenhum Plano Disponível
-              </h3>
-              <p className="text-gray-500">
-                Entre em contato com seu personal trainer para gerar seu plano personalizado.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <Tabs defaultValue="plan" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="plan" className="flex items-center space-x-2">
-                <Dumbbell className="h-4 w-4" />
-                <span>Plano de Treino</span>
-              </TabsTrigger>
-              <TabsTrigger value="calendar" className="flex items-center space-x-2">
-                <CalendarIcon className="h-4 w-4" />
-                <span>Lembretes</span>
-              </TabsTrigger>
-              <TabsTrigger value="progress" className="flex items-center space-x-2">
-                <Target className="h-4 w-4" />
-                <span>Progresso</span>
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="plan" className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold">
-                    {studentPlan.periodizationType}
-                  </h2>
-                  <p className="text-gray-600">
-                    Criado em {new Date(studentPlan.createdAt).toLocaleDateString('pt-PT')}
-                  </p>
+      {/* Resumo da Periodização */}
+      {periodizations.length > 0 && (
+        <Card className="glass border-border/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-heading">
+              <TrendingUp className="h-5 w-5" />
+              Sua Periodização Atual
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              {periodizations.map((p) => (
+                <div key={p.id} className="text-center p-4 bg-muted rounded-lg">
+                  <h3 className="font-semibold">{p.plan_name}</h3>
+                  <p className="text-sm text-muted-foreground">{p.periodization_type}</p>
+                  <div className="mt-2">
+                    <Badge variant="outline">
+                      Fase {p.current_phase} de {p.total_phases}
+                    </Badge>
+                  </div>
                 </div>
-                <Badge className="bg-blue-100 text-blue-800">
-                  Semana {selectedWeek} de 24
-                </Badge>
-              </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-              {/* Seletor de Semana */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Selecionar Semana</CardTitle>
+      {/* Modelos Atribuídos */}
+      {selectedModels.length > 0 && (
+        <Card className="glass border-border/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-heading">
+              <BookOpen className="h-5 w-5" />
+              Seus Modelos de Treino
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 md:grid-cols-2">
+              {selectedModels.map((model) => (
+                <div key={model.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div>
+                    <h4 className="font-medium">{model.model_name}</h4>
+                    <p className="text-sm text-muted-foreground">{model.general_objective}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Badge variant="secondary" className="text-xs">
+                      {model.level}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {model.stimulus_type}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Semanas de Treino */}
+      <Card className="glass border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-heading">
+            <Calendar className="h-5 w-5" />
+            Cronograma de Treinos
+          </CardTitle>
+          <CardDescription>
+            Selecione a semana e o dia para iniciar seu treino
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
+            {generateWeeks().map((week) => (
+              <Card key={week} className="border-border/30">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">
+                    Semana {week}
+                    {week === currentWeek && (
+                      <Badge className="ml-2" variant="default">Atual</Badge>
+                    )}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {Array.from({ length: 8 }, (_, i) => i + 1).map((week) => (
+                  <div className="grid gap-2 md:grid-cols-7">
+                    {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'].map((day, index) => (
                       <Button
-                        key={week}
-                        variant={selectedWeek === week ? "default" : "outline"}
+                        key={day}
+                        variant={index < 5 ? "outline" : "ghost"}
                         size="sm"
-                        onClick={() => setSelectedWeek(week)}
+                        onClick={() => handleStartWorkout(week, index + 1)}
+                        className="flex flex-col h-auto p-3"
+                        disabled={index >= 5} // Sábado e domingo desabilitados por padrão
                       >
-                        {week}
+                        <span className="text-xs font-medium">{day}</span>
+                        <Play className="h-3 w-3 mt-1" />
                       </Button>
                     ))}
-                    <Button variant="outline" size="sm" disabled>
-                      ...
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-              {/* Treinos da Semana */}
-              {currentWeek && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>Semana {currentWeek.weekNumber}: {currentWeek.focus}</span>
-                      <Badge variant="outline">{currentWeek.workouts.length} treinos</Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {currentWeek.workouts.map((workout, index) => (
-                      <div key={index} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="font-semibold text-lg">{workout.day}</h3>
-                          <div className="flex items-center space-x-4 text-sm text-gray-600">
-                            <div className="flex items-center space-x-1">
-                              <Clock className="h-4 w-4" />
-                              <span>{workout.duration}min</span>
-                            </div>
-                            <Badge 
-                              variant="outline" 
-                              className={
-                                workout.intensity === "Alta" ? "border-red-200 text-red-700" :
-                                workout.intensity === "Moderada" ? "border-yellow-200 text-yellow-700" :
-                                "border-green-200 text-green-700"
-                              }
-                            >
-                              {workout.intensity}
-                            </Badge>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-3">
-                          {workout.exercises.map((exercise, exerciseIndex) => (
-                            <div key={exerciseIndex} className="bg-gray-50 rounded-lg p-3">
-                              <div className="flex justify-between items-start mb-2">
-                                <h4 className="font-medium">{exercise.name}</h4>
-                                <div className="flex flex-wrap gap-1">
-                                  {exercise.focus.map((focus, focusIndex) => (
-                                    <Badge key={focusIndex} variant="secondary" className="text-xs">
-                                      {focus}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-3 gap-4 text-sm text-gray-600">
-                                <div>
-                                  <span className="font-medium">Séries:</span> {exercise.sets}
-                                </div>
-                                <div>
-                                  <span className="font-medium">Reps:</span> {exercise.reps}
-                                </div>
-                                <div>
-                                  <span className="font-medium">Descanso:</span> {exercise.rest}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        
-                        <div className="mt-4 pt-4 border-t flex justify-between">
-                          <Button variant="outline" size="sm">
-                            <Play className="h-4 w-4 mr-2" />
-                            Iniciar Treino
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Marcar Concluído
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-
-            <TabsContent value="calendar" className="space-y-6">
-              <div className="grid lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Bell className="h-5 w-5" />
-                      <span>Agendar Lembrete</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      className="rounded-md border"
-                    />
-                    
-                    <form onSubmit={handleScheduleNotification} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="time">Horário</Label>
-                        <Input
-                          id="time"
-                          type="time"
-                          value={notificationForm.time}
-                          onChange={(e) => setNotificationForm(prev => ({ ...prev, time: e.target.value }))}
-                          required
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="whatsapp">WhatsApp (com código país)</Label>
-                        <Input
-                          id="whatsapp"
-                          type="tel"
-                          placeholder="+351 912 345 678"
-                          value={notificationForm.whatsappNumber}
-                          onChange={(e) => setNotificationForm(prev => ({ ...prev, whatsappNumber: e.target.value }))}
-                          required
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="message">Mensagem</Label>
-                        <Input
-                          id="message"
-                          type="text"
-                          value={notificationForm.message}
-                          onChange={(e) => setNotificationForm(prev => ({ ...prev, message: e.target.value }))}
-                        />
-                      </div>
-                      
-                      <Button type="submit" className="w-full">
-                        <Bell className="h-4 w-4 mr-2" />
-                        Agendar Lembrete
-                      </Button>
-                    </form>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Lembretes Agendados</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {notifications.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>Nenhum lembrete agendado</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {notifications.map((notification) => (
-                          <div key={notification.id} className="border rounded-lg p-3">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <p className="font-medium text-sm">
-                                  {new Date(notification.scheduledAt).toLocaleDateString('pt-PT')} às{' '}
-                                  {new Date(notification.scheduledAt).toLocaleTimeString('pt-PT', { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit' 
-                                  })}
-                                </p>
-                                <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
-                                <p className="text-xs text-gray-500 mt-1">{notification.whatsappNumber}</p>
-                              </div>
-                              <Badge 
-                                variant={notification.status === "enviado" ? "default" : "secondary"}
-                                className="text-xs"
-                              >
-                                {notification.status}
-                              </Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="progress" className="space-y-6">
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <Target className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                    Acompanhamento de Progresso
-                  </h3>
-                  <p className="text-gray-500">
-                    Funcionalidade em desenvolvimento. Em breve você poderá acompanhar seu progresso detalhado.
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        )}
-      </div>
+      {/* Estado vazio */}
+      {periodizations.length === 0 && selectedModels.length === 0 && (
+        <Card className="glass border-border/50">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold font-heading mb-2">
+              Nenhuma periodização encontrada
+            </h3>
+            <p className="text-muted-foreground text-center mb-4">
+              Entre em contato com seu treinador para que ele configure sua periodização e modelos de treino.
+            </p>
+            <Button onClick={() => navigate('/chat-ia')} className="btn-glow">
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Falar com IA Coach
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
-};
-
-export default StudentInterface;
+}
