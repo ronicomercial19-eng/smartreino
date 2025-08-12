@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,34 +9,49 @@ import { Search, Filter, Download, Eye, BarChart3 } from "lucide-react";
 import { workoutModelsService } from '@/services/workoutModelsService';
 import { useToast } from '@/hooks/use-toast';
 
+type DistinctValues = {
+  levels: string[];
+  phases: string[];
+  stimulusTypes: string[];
+} | null;
+
 export default function WorkoutModelsDatabase() {
-  const [models, setModels] = useState([]);
-  const [filteredModels, setFilteredModels] = useState([]);
+  const [models, setModels] = useState<any[]>([]);
+  const [filteredModels, setFilteredModels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filtering, setFiltering] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('');
   const [selectedPhase, setSelectedPhase] = useState('');
-  const [stats, setStats] = useState(null);
+  const [distinctValues, setDistinctValues] = useState<DistinctValues>(null);
+  const [stats, setStats] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     loadData();
   }, []);
 
+  // Reaplicar filtros sempre que os critérios mudarem
   useEffect(() => {
     applyFilters();
-  }, [models, searchTerm, selectedLevel, selectedPhase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, selectedLevel, selectedPhase]);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [modelsData, statsData] = await Promise.all([
+      console.log('➡️ Carregando modelos, estatísticas e valores distintos...');
+      const [modelsData, statsData, distinct] = await Promise.all([
         workoutModelsService.getAllWorkoutModels(),
-        workoutModelsService.getWorkoutStatistics()
+        workoutModelsService.getWorkoutStatistics(),
+        workoutModelsService.getDistinctValues(),
       ]);
-      
+
       setModels(modelsData || []);
+      setFilteredModels(modelsData || []);
       setStats(statsData);
+      setDistinctValues(distinct);
+      console.log('✅ Dados carregados com sucesso');
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       toast({
@@ -49,26 +64,33 @@ export default function WorkoutModelsDatabase() {
     }
   };
 
-  const applyFilters = () => {
-    let filtered = [...models];
+  const applyFilters = async () => {
+    try {
+      setFiltering(true);
+      console.log('🎛️ Aplicando filtros no Supabase:', {
+        level: selectedLevel || undefined,
+        periodization_phase: selectedPhase || undefined,
+        search: searchTerm || undefined,
+      });
 
-    if (searchTerm) {
-      filtered = filtered.filter(model =>
-        model.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        model.general_objective?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        model.method_description?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      const filtered = await workoutModelsService.getFilteredModels({
+        level: selectedLevel || undefined,
+        periodization_phase: selectedPhase || undefined,
+        search: searchTerm || undefined,
+      });
+
+      setFilteredModels(filtered || []);
+      console.log(`✅ ${filtered?.length || 0} modelos após filtros`);
+    } catch (error) {
+      console.error('Erro ao aplicar filtros:', error);
+      toast({
+        title: "Erro nos filtros",
+        description: "Não foi possível aplicar os filtros. Mostrando dados atuais.",
+        variant: "destructive",
+      });
+    } finally {
+      setFiltering(false);
     }
-
-    if (selectedLevel) {
-      filtered = filtered.filter(model => model.level === selectedLevel);
-    }
-
-    if (selectedPhase) {
-      filtered = filtered.filter(model => model.periodization_phase === selectedPhase);
-    }
-
-    setFilteredModels(filtered);
   };
 
   const handleExport = () => {
@@ -77,6 +99,10 @@ export default function WorkoutModelsDatabase() {
       description: "Os dados estão sendo preparados para download..."
     });
   };
+
+  const showingInfo = useMemo(() => {
+    return `Mostrando ${filteredModels.length} de ${models.length} modelos`;
+  }, [filteredModels.length, models.length]);
 
   if (loading) {
     return (
@@ -108,7 +134,6 @@ export default function WorkoutModelsDatabase() {
         </Button>
       </div>
 
-      {/* Stats Overview */}
       {stats && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card className="glass border-border/50">
@@ -165,7 +190,6 @@ export default function WorkoutModelsDatabase() {
         </div>
       )}
 
-      {/* Filters */}
       <Card className="glass border-border/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 font-heading">
@@ -184,16 +208,16 @@ export default function WorkoutModelsDatabase() {
                 className="pl-10 focus-ring"
               />
             </div>
-            
+
             <Select value={selectedLevel} onValueChange={setSelectedLevel}>
               <SelectTrigger className="focus-ring">
                 <SelectValue placeholder="Filtrar por nível" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Todos os níveis</SelectItem>
-                <SelectItem value="Básico">Básico</SelectItem>
-                <SelectItem value="Intermediário">Intermediário</SelectItem>
-                <SelectItem value="Avançado">Avançado</SelectItem>
+                {distinctValues?.levels?.map((lvl) => (
+                  <SelectItem key={lvl} value={lvl}>{lvl}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
@@ -203,22 +227,20 @@ export default function WorkoutModelsDatabase() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Todas as fases</SelectItem>
-                <SelectItem value="Base">Base</SelectItem>
-                <SelectItem value="Intensificação">Intensificação</SelectItem>
-                <SelectItem value="Realização">Realização</SelectItem>
-                <SelectItem value="Deload">Deload</SelectItem>
+                {distinctValues?.phases?.map((ph) => (
+                  <SelectItem key={ph} value={ph}>{ph}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <BarChart3 className="h-4 w-4" />
-            Mostrando {filteredModels.length} de {models.length} modelos
+            {filtering ? 'Filtrando...' : showingInfo}
           </div>
         </CardContent>
       </Card>
 
-      {/* Models Grid */}
       <Tabs defaultValue="grid" className="space-y-4">
         <TabsList className="glass">
           <TabsTrigger value="grid">Visualização em Grade</TabsTrigger>
@@ -253,7 +275,7 @@ export default function WorkoutModelsDatabase() {
                     <p><strong>Semana:</strong> {model.week_number}</p>
                     <p><strong>Estímulo:</strong> {model.stimulus_type}</p>
                   </div>
-                  
+
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="flex-1 btn-glow">
                       <Eye className="mr-2 h-4 w-4" />

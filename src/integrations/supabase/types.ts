@@ -10,10 +10,153 @@ export type Database = {
   // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "13.0.4"
   }
   public: {
     Tables: {
+      aluno_periodizacao: {
+        Row: {
+          aluno_id: string
+          compatibilidade: number | null
+          created_at: string
+          explicacao: string | null
+          id: string
+          periodizacao_id: string
+          updated_at: string
+        }
+        Insert: {
+          aluno_id: string
+          compatibilidade?: number | null
+          created_at?: string
+          explicacao?: string | null
+          id?: string
+          periodizacao_id: string
+          updated_at?: string
+        }
+        Update: {
+          aluno_id?: string
+          compatibilidade?: number | null
+          created_at?: string
+          explicacao?: string | null
+          id?: string
+          periodizacao_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aluno_periodizacao_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aluno_periodizacao_periodizacao_id_fkey"
+            columns: ["periodizacao_id"]
+            isOneToOne: false
+            referencedRelation: "periodizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      athletes: {
+        Row: {
+          altura_cm: number | null
+          birthdate: string | null
+          coach_id: string
+          created_at: string
+          goals: string[] | null
+          id: string
+          injuries: string[] | null
+          metadata: Json | null
+          name: string
+          nivel: string | null
+          objetivo: string | null
+          perfil_classificado: Json | null
+          peso_kg: number | null
+          respostas_anamnese: Json | null
+          restricoes: Json | null
+          sessions_per_week: number | null
+          training_level: string | null
+          updated_at: string
+        }
+        Insert: {
+          altura_cm?: number | null
+          birthdate?: string | null
+          coach_id: string
+          created_at?: string
+          goals?: string[] | null
+          id?: string
+          injuries?: string[] | null
+          metadata?: Json | null
+          name: string
+          nivel?: string | null
+          objetivo?: string | null
+          perfil_classificado?: Json | null
+          peso_kg?: number | null
+          respostas_anamnese?: Json | null
+          restricoes?: Json | null
+          sessions_per_week?: number | null
+          training_level?: string | null
+          updated_at?: string
+        }
+        Update: {
+          altura_cm?: number | null
+          birthdate?: string | null
+          coach_id?: string
+          created_at?: string
+          goals?: string[] | null
+          id?: string
+          injuries?: string[] | null
+          metadata?: Json | null
+          name?: string
+          nivel?: string | null
+          objetivo?: string | null
+          perfil_classificado?: Json | null
+          peso_kg?: number | null
+          respostas_anamnese?: Json | null
+          restricoes?: Json | null
+          sessions_per_week?: number | null
+          training_level?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      class_bookings: {
+        Row: {
+          booking_time: string | null
+          class_id: string | null
+          created_at: string | null
+          id: string
+          status: string | null
+          user_email: string
+        }
+        Insert: {
+          booking_time?: string | null
+          class_id?: string | null
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          user_email: string
+        }
+        Update: {
+          booking_time?: string | null
+          class_id?: string | null
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          user_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_bookings_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "gym_classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_workouts: {
         Row: {
           created_at: string | null
@@ -162,6 +305,39 @@ export type Database = {
           },
         ]
       }
+      gym_classes: {
+        Row: {
+          available_slots: number
+          class_datetime: string
+          class_name: string
+          created_at: string | null
+          description: string | null
+          id: string
+          instructor_name: string | null
+          location: string
+        }
+        Insert: {
+          available_slots?: number
+          class_datetime: string
+          class_name: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          instructor_name?: string | null
+          location: string
+        }
+        Update: {
+          available_slots?: number
+          class_datetime?: string
+          class_name?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          instructor_name?: string | null
+          location?: string
+        }
+        Relationships: []
+      }
       link_de_video: {
         Row: {
           created_at: string
@@ -297,12 +473,19 @@ export type Database = {
         Row: {
           created_at: string | null
           current_phase: string | null
+          description: string | null
+          duration: string | null
           file_type: string | null
           file_url: string | null
+          graph_data: Json | null
           id: string
+          macrocycle: Json | null
+          mesocycle: Json | null
+          microcycle: Json | null
           periodization_data: Json | null
           phase_duration_weeks: number | null
           professor_id: string
+          recommended_for: Json | null
           title: string
           total_phases: number | null
           updated_at: string | null
@@ -311,12 +494,19 @@ export type Database = {
         Insert: {
           created_at?: string | null
           current_phase?: string | null
+          description?: string | null
+          duration?: string | null
           file_type?: string | null
           file_url?: string | null
+          graph_data?: Json | null
           id?: string
+          macrocycle?: Json | null
+          mesocycle?: Json | null
+          microcycle?: Json | null
           periodization_data?: Json | null
           phase_duration_weeks?: number | null
           professor_id: string
+          recommended_for?: Json | null
           title: string
           total_phases?: number | null
           updated_at?: string | null
@@ -325,12 +515,19 @@ export type Database = {
         Update: {
           created_at?: string | null
           current_phase?: string | null
+          description?: string | null
+          duration?: string | null
           file_type?: string | null
           file_url?: string | null
+          graph_data?: Json | null
           id?: string
+          macrocycle?: Json | null
+          mesocycle?: Json | null
+          microcycle?: Json | null
           periodization_data?: Json | null
           phase_duration_weeks?: number | null
           professor_id?: string
+          recommended_for?: Json | null
           title?: string
           total_phases?: number | null
           updated_at?: string | null
@@ -398,6 +595,60 @@ export type Database = {
         }
         Relationships: []
       }
+      plans: {
+        Row: {
+          athlete_id: string
+          created_at: string
+          filled_variables: Json | null
+          generated_html: string | null
+          id: string
+          pdf_url: string | null
+          periodization_id: string
+          start_date: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          athlete_id: string
+          created_at?: string
+          filled_variables?: Json | null
+          generated_html?: string | null
+          id?: string
+          pdf_url?: string | null
+          periodization_id: string
+          start_date: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          athlete_id?: string
+          created_at?: string
+          filled_variables?: Json | null
+          generated_html?: string | null
+          id?: string
+          pdf_url?: string | null
+          periodization_id?: string
+          start_date?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_plans_athlete"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_plans_periodization"
+            columns: ["periodization_id"]
+            isOneToOne: false
+            referencedRelation: "periodizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profile_periodization_matches: {
         Row: {
           created_at: string | null
@@ -442,6 +693,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      program_workouts: {
+        Row: {
+          created_at: string | null
+          id: string
+          program_id: string | null
+          workout_id: string | null
+          workout_order: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          program_id?: string | null
+          workout_id?: string | null
+          workout_order: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          program_id?: string | null
+          workout_id?: string | null
+          workout_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_workouts_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "program_workouts_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      programs: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          program_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          program_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          program_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       questionnaire_responses: {
         Row: {
@@ -643,6 +957,33 @@ export type Database = {
         }
         Relationships: []
       }
+      system_health: {
+        Row: {
+          created_at: string
+          details: Json | null
+          id: string
+          key: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          key: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          key?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       training_phases: {
         Row: {
           created_at: string | null
@@ -795,6 +1136,69 @@ export type Database = {
         }
         Relationships: []
       }
+      user_achievements: {
+        Row: {
+          achievement_name: string
+          achievement_type: string
+          created_at: string | null
+          description: string | null
+          id: string
+          points: number | null
+          unlocked_at: string | null
+          user_email: string
+        }
+        Insert: {
+          achievement_name: string
+          achievement_type: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          points?: number | null
+          unlocked_at?: string | null
+          user_email: string
+        }
+        Update: {
+          achievement_name?: string
+          achievement_type?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          points?: number | null
+          unlocked_at?: string | null
+          user_email?: string
+        }
+        Relationships: []
+      }
+      user_credits: {
+        Row: {
+          created_at: string | null
+          credits_remaining: number | null
+          id: string
+          plan_type: string | null
+          total_credits: number | null
+          updated_at: string | null
+          user_email: string
+        }
+        Insert: {
+          created_at?: string | null
+          credits_remaining?: number | null
+          id?: string
+          plan_type?: string | null
+          total_credits?: number | null
+          updated_at?: string | null
+          user_email: string
+        }
+        Update: {
+          created_at?: string | null
+          credits_remaining?: number | null
+          id?: string
+          plan_type?: string | null
+          total_credits?: number | null
+          updated_at?: string | null
+          user_email?: string
+        }
+        Relationships: []
+      }
       user_metrics: {
         Row: {
           category: string | null
@@ -831,6 +1235,84 @@ export type Database = {
           unit?: string
           user_id?: string
           value?: number
+        }
+        Relationships: []
+      }
+      user_plans: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          monthly_price: number | null
+          plan_name: string
+          plan_type: string
+          started_at: string | null
+          user_email: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          monthly_price?: number | null
+          plan_name: string
+          plan_type: string
+          started_at?: string | null
+          user_email: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          monthly_price?: number | null
+          plan_name?: string
+          plan_type?: string
+          started_at?: string | null
+          user_email?: string
+        }
+        Relationships: []
+      }
+      user_profile_details: {
+        Row: {
+          body_fat_percentage: number | null
+          created_at: string | null
+          goal: string | null
+          id: string
+          name: string | null
+          payment_method: string | null
+          photo_url: string | null
+          updated_at: string | null
+          user_email: string
+          weight: number | null
+        }
+        Insert: {
+          body_fat_percentage?: number | null
+          created_at?: string | null
+          goal?: string | null
+          id?: string
+          name?: string | null
+          payment_method?: string | null
+          photo_url?: string | null
+          updated_at?: string | null
+          user_email: string
+          weight?: number | null
+        }
+        Update: {
+          body_fat_percentage?: number | null
+          created_at?: string | null
+          goal?: string | null
+          id?: string
+          name?: string | null
+          payment_method?: string | null
+          photo_url?: string | null
+          updated_at?: string | null
+          user_email?: string
+          weight?: number | null
         }
         Relationships: []
       }
@@ -954,6 +1436,140 @@ export type Database = {
           user_id?: string
           user_type?: string
           weight?: number | null
+        }
+        Relationships: []
+      }
+      user_program_progress: {
+        Row: {
+          created_at: string | null
+          current_workout_index: number | null
+          id: string
+          is_active: boolean | null
+          program_id: string | null
+          program_start_date: string | null
+          support_level: string | null
+          updated_at: string | null
+          user_email: string
+          workouts_completed: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_workout_index?: number | null
+          id?: string
+          is_active?: boolean | null
+          program_id?: string | null
+          program_start_date?: string | null
+          support_level?: string | null
+          updated_at?: string | null
+          user_email: string
+          workouts_completed?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          current_workout_index?: number | null
+          id?: string
+          is_active?: boolean | null
+          program_id?: string | null
+          program_start_date?: string | null
+          support_level?: string | null
+          updated_at?: string | null
+          user_email?: string
+          workouts_completed?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_program_progress_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_workout_logs: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          date: string | null
+          exercise_name: string
+          id: string
+          program_id: string | null
+          sets_completed: Json | null
+          total_time_minutes: number | null
+          user_email: string
+          workout_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          date?: string | null
+          exercise_name: string
+          id?: string
+          program_id?: string | null
+          sets_completed?: Json | null
+          total_time_minutes?: number | null
+          user_email: string
+          workout_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          date?: string | null
+          exercise_name?: string
+          id?: string
+          program_id?: string | null
+          sets_completed?: Json | null
+          total_time_minutes?: number | null
+          user_email?: string
+          workout_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_workout_logs_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_workout_logs_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vacation_freeze_requests: {
+        Row: {
+          created_at: string | null
+          freeze_end_date: string
+          freeze_start_date: string
+          id: string
+          reason: string | null
+          request_date: string | null
+          status: string | null
+          user_email: string
+        }
+        Insert: {
+          created_at?: string | null
+          freeze_end_date: string
+          freeze_start_date: string
+          id?: string
+          reason?: string | null
+          request_date?: string | null
+          status?: string | null
+          user_email: string
+        }
+        Update: {
+          created_at?: string | null
+          freeze_end_date?: string
+          freeze_start_date?: string
+          id?: string
+          reason?: string | null
+          request_date?: string | null
+          status?: string | null
+          user_email?: string
         }
         Relationships: []
       }
@@ -1126,6 +1742,53 @@ export type Database = {
           week_number?: number
         }
         Relationships: []
+      }
+      workout_program_exercises: {
+        Row: {
+          created_at: string | null
+          default_reps: string
+          default_series: number
+          description: string | null
+          exercise_name: string
+          exercise_order: number
+          id: string
+          rest_time_seconds: number | null
+          video_url: string | null
+          workout_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_reps?: string
+          default_series?: number
+          description?: string | null
+          exercise_name: string
+          exercise_order: number
+          id?: string
+          rest_time_seconds?: number | null
+          video_url?: string | null
+          workout_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_reps?: string
+          default_series?: number
+          description?: string | null
+          exercise_name?: string
+          exercise_order?: number
+          id?: string
+          rest_time_seconds?: number | null
+          video_url?: string | null
+          workout_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_program_exercises_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workout_schedules: {
         Row: {
