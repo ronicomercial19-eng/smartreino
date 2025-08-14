@@ -6,70 +6,108 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
-import { initializeMockData, mockUserProfiles } from "@/data/mockData";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (email && password) {
-      // Buscar perfil existente ou criar um novo
-      const existingProfile = mockUserProfiles.find(profile => profile.email === email);
-      
-      const userProfile = existingProfile || {
-        id: Date.now().toString(),
-        email,
-        loggedIn: true,
-        name: email.split('@')[0] || "Usuário",
-        level: "intermediario" as const,
-        objective: "Melhoria da forma física",
-        age: 25
-      };
-
-      // Inicializa dados mock para demonstração
-      initializeMockData();
-      
-      localStorage.setItem("user", JSON.stringify(userProfile));
-      
-      toast({
-        title: "Login realizado com sucesso!",
-        description: `Bem-vindo ${userProfile.name}!`,
-      });
-      navigate("/dashboard");
-    } else {
+    if (!email || !password) {
       toast({
         title: "Erro no login",
         description: "Por favor, preencha todos os campos",
         variant: "destructive",
       });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.user) {
+        toast({
+          title: "Login realizado com sucesso!",
+          description: `Bem-vindo!`,
+        });
+        
+        // O redirecionamento será feito automaticamente pelo App.tsx
+        // através do useEffect que monitora o estado de autenticação
+      }
+    } catch (error: any) {
+      console.error('Erro no login:', error);
+      toast({
+        title: "Erro no login",
+        description: error.message || "Erro ao fazer login. Verifique suas credenciais.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDemoLogin = () => {
-    // Login de demonstração com perfil completo
-    initializeMockData();
+  const handleDemoLogin = async () => {
+    setLoading(true);
     
-    const demoUser = {
-      id: "demo-user",
-      email: "demo@10xtraining.com", 
-      loggedIn: true,
-      name: "Usuário Demo",
-      level: "intermediario",
-      objective: "Teste da aplicação",
-      age: 25
-    };
-    
-    localStorage.setItem("user", JSON.stringify(demoUser));
-    
-    toast({
-      title: "Modo demonstração ativado!",
-      description: "Explore todas as funcionalidades com dados de exemplo",
-    });
-    navigate("/dashboard");
+    try {
+      // Criar um usuário demo ou fazer login com credenciais demo
+      const demoEmail = "demo@trainsync.com";
+      const demoPassword = "demo123456";
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: demoEmail,
+        password: demoPassword,
+      });
+
+      if (error) {
+        // Se o usuário demo não existe, vamos criá-lo
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: demoEmail,
+          password: demoPassword,
+          options: {
+            emailRedirectTo: `${window.location.origin}/dashboard`
+          }
+        });
+
+        if (signUpError) {
+          throw signUpError;
+        }
+
+        if (signUpData.user) {
+          toast({
+            title: "Usuário demo criado!",
+            description: "Fazendo login automaticamente...",
+          });
+        }
+      }
+
+      toast({
+        title: "Modo demonstração ativado!",
+        description: "Explore todas as funcionalidades com dados de exemplo",
+      });
+    } catch (error: any) {
+      console.error('Erro no login demo:', error);
+      toast({
+        title: "Erro no modo demo",
+        description: error.message || "Erro ao ativar modo demonstração",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -77,7 +115,7 @@ const Login = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-blue-600">
-            Sistema de Treino 10X
+            TrainSync
           </CardTitle>
           <CardDescription>
             Entre com suas credenciais para acessar o sistema
@@ -94,6 +132,7 @@ const Login = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
                 required
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -105,10 +144,15 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Sua senha"
                 required
+                disabled={loading}
               />
             </div>
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-              Entrar
+            <Button 
+              type="submit" 
+              className="w-full bg-blue-600 hover:bg-blue-700"
+              disabled={loading}
+            >
+              {loading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
           
@@ -127,8 +171,9 @@ const Login = () => {
             variant="outline" 
             className="w-full"
             onClick={handleDemoLogin}
+            disabled={loading}
           >
-            🚀 Entrar no Modo Demonstração
+            {loading ? "Ativando..." : "🚀 Entrar no Modo Demonstração"}
           </Button>
           
           <div className="text-center">

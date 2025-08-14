@@ -45,6 +45,7 @@ function App() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('Auth state changed:', _event, session?.user?.email);
       setUser(session?.user ?? null);
       if (session?.user) {
         getUserType(session.user.id);
@@ -137,6 +138,23 @@ function App() {
     }
   };
 
+  // Add redirect for authenticated users trying to access login
+  const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      );
+    }
+
+    if (user) {
+      return <Navigate to="/dashboard" replace />;
+    }
+
+    return <>{children}</>;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -154,8 +172,22 @@ function App() {
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            <Route 
+              path="/login" 
+              element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              } 
+            />
+            <Route 
+              path="/register" 
+              element={
+                <PublicRoute>
+                  <Register />
+                </PublicRoute>
+              } 
+            />
 
             {/* Protected routes with layout */}
             <Route path="/dashboard" element={<DashboardRedirect />} />
