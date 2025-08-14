@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navigation from "@/components/Navigation";
 import PeriodizationPasteArea from "@/components/PeriodizationPasteArea";
 import PeriodizationAnalysisResults from "@/components/PeriodizationAnalysisResults";
+import ExerciseSelection from "@/components/ExerciseSelection";
 import { grokAIService } from "@/services/grokAIService";
 import { toast } from "@/components/ui/use-toast";
 import { 
@@ -39,6 +39,8 @@ const PeriodizationUpload = () => {
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [pastedData, setPastedData] = useState("");
   const [activeTab, setActiveTab] = useState("configuracao");
+  const [showExerciseSelection, setShowExerciseSelection] = useState(false);
+  const [selectedExercises, setSelectedExercises] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     objetivo: "",
     nivel: "",
@@ -124,10 +126,12 @@ const PeriodizationUpload = () => {
       };
       
       setAnalysisResult(enhancedAnalysis);
+      setShowExerciseSelection(true);
+      setActiveTab("treinos");
       
       toast({
         title: "🤖 Análise IA Concluída!",
-        description: `Periodização analisada com ${enhancedAnalysis.confidence}% de confiança.`,
+        description: `Periodização analisada com ${enhancedAnalysis.confidence}% de confiança. Agora selecione os exercícios.`,
       });
     } catch (error) {
       console.error('Error during analysis:', error);
@@ -155,6 +159,22 @@ const PeriodizationUpload = () => {
     if (formData.objetivo && formData.nivel) {
       setTimeout(() => analyzeWithAI(), 500);
     }
+  };
+
+  const handleExercisesSelected = (exercises: any[]) => {
+    setSelectedExercises(exercises);
+    setShowExerciseSelection(false);
+    
+    // Update analysis result with selected exercises
+    setAnalysisResult(prev => ({
+      ...prev,
+      selectedExercises: exercises
+    }));
+
+    toast({
+      title: "✅ Exercícios Selecionados",
+      description: `${exercises.length} exercícios adicionados ao treino personalizado.`,
+    });
   };
 
   const handleGeneratePDF = () => {
@@ -406,32 +426,72 @@ const PeriodizationUpload = () => {
             </div>
           </TabsContent>
 
-          {/* Other Tabs */}
+          {/* Treinos Tab with Exercise Selection */}
           <TabsContent value="treinos" className="space-y-6">
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-card-foreground">
-                  <Dumbbell className="h-6 w-6 text-primary" />
-                  <span>Meus Treinos Gerados</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {analysisResult ? (
+            {showExerciseSelection && analysisResult ? (
+              <ExerciseSelection
+                analysisData={analysisResult}
+                onExercisesSelected={handleExercisesSelected}
+              />
+            ) : analysisResult ? (
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-card-foreground">
+                    <Dumbbell className="h-6 w-6 text-primary" />
+                    <span>Treino Gerado com Sucesso</span>
+                    {selectedExercises.length > 0 && (
+                      <Badge className="bg-green-500/20 text-green-600">
+                        {selectedExercises.length} exercícios selecionados
+                      </Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <PeriodizationAnalysisResults
                     analysisData={analysisResult}
                     onGeneratePDF={handleGeneratePDF}
                     onGenerateLink={handleGenerateLink}
                   />
-                ) : (
+                  
+                  {selectedExercises.length === 0 && (
+                    <div className="mt-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold text-orange-600">Selecione os Exercícios</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Complete seu treino selecionando exercícios específicos.
+                          </p>
+                        </div>
+                        <Button 
+                          onClick={() => setShowExerciseSelection(true)}
+                          className="bg-primary hover:bg-primary/90"
+                        >
+                          <Target className="h-4 w-4 mr-2" />
+                          Selecionar Exercícios
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-card-foreground">
+                    <Dumbbell className="h-6 w-6 text-primary" />
+                    <span>Meus Treinos Gerados</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="text-center py-12">
                     <Activity className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground text-lg">
                       Nenhum treino gerado ainda. Configure e gere seu primeiro treino!
                     </p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
