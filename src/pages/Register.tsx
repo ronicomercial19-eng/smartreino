@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -17,28 +18,77 @@ const Register = () => {
     objective: "",
     level: "",
   });
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (Object.values(formData).every(value => value !== "")) {
-      // Simulação de cadastro - em produção seria integrado com Supabase
-      localStorage.setItem("user", JSON.stringify({ 
-        ...formData, 
-        loggedIn: true 
-      }));
-      toast({
-        title: "Cadastro realizado com sucesso!",
-        description: "Bem-vindo ao Sistema de Treino 10X",
-      });
-      navigate("/dashboard");
-    } else {
+    if (!Object.values(formData).every(value => value !== "")) {
       toast({
         title: "Erro no cadastro",
         description: "Por favor, preencha todos os campos",
         variant: "destructive",
       });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Sign up with Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: {
+            name: formData.name,
+            age: parseInt(formData.age),
+            objective: formData.objective,
+            level: formData.level,
+          }
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.user) {
+        // Create extended profile
+        const { error: profileError } = await supabase
+          .from('user_profiles_extended')
+          .insert({
+            user_id: data.user.id,
+            name: formData.name,
+            email: formData.email,
+            age: parseInt(formData.age),
+            primary_goal: formData.objective,
+            experience_level: formData.level,
+            user_type: 'admin' // Default to admin for new registrations
+          });
+
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+        }
+
+        toast({
+          title: "Cadastro realizado com sucesso!",
+          description: "Bem-vindo ao TrainSync! Você já está logado.",
+        });
+
+        // User will be automatically redirected by the auth state change in App.tsx
+      }
+    } catch (error: any) {
+      console.error('Erro no cadastro:', error);
+      toast({
+        title: "Erro no cadastro",
+        description: error.message || "Erro ao criar conta. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -67,6 +117,7 @@ const Register = () => {
                 onChange={(e) => handleInputChange("name", e.target.value)}
                 placeholder="Seu nome completo"
                 required
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -78,6 +129,7 @@ const Register = () => {
                 onChange={(e) => handleInputChange("email", e.target.value)}
                 placeholder="seu@email.com"
                 required
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -89,6 +141,7 @@ const Register = () => {
                 onChange={(e) => handleInputChange("password", e.target.value)}
                 placeholder="Crie uma senha"
                 required
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -100,6 +153,7 @@ const Register = () => {
                 onChange={(e) => handleInputChange("age", e.target.value)}
                 placeholder="Sua idade"
                 required
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -110,11 +164,15 @@ const Register = () => {
                 onChange={(e) => handleInputChange("objective", e.target.value)}
                 placeholder="Ex: Ganhar massa, Emagrecer..."
                 required
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="level">Nível de Experiência</Label>
-              <Select onValueChange={(value) => handleInputChange("level", value)}>
+              <Select 
+                onValueChange={(value) => handleInputChange("level", value)}
+                disabled={loading}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione seu nível" />
                 </SelectTrigger>
@@ -125,10 +183,15 @@ const Register = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-              Criar Conta
+            <Button 
+              type="submit" 
+              className="w-full bg-blue-600 hover:bg-blue-700"
+              disabled={loading}
+            >
+              {loading ? "Criando conta..." : "Criar Conta"}
             </Button>
           </form>
+          
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-600">
               Já tem uma conta?{" "}
