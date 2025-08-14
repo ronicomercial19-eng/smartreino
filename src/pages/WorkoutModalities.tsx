@@ -4,11 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Dumbbell, Users, Plus, CheckCircle } from "lucide-react";
+import { ArrowLeft, Dumbbell, Users, CheckCircle } from "lucide-react";
 import { StudentModelsService, WorkoutModality } from '@/services/studentModelsService';
 import { StudentsService, Student } from '@/services/studentsService';
 import { workoutModelsService, WorkoutModel } from '@/services/workoutModelsService';
@@ -106,7 +105,7 @@ export default function WorkoutModalities() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center space-y-4">
-          <div className="animate-pulse-orange">
+          <div className="animate-pulse">
             <Dumbbell className="h-12 w-12 mx-auto text-primary" />
           </div>
           <p className="text-muted-foreground">Carregando modalidades...</p>
@@ -116,7 +115,7 @@ export default function WorkoutModalities() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6">
       <div className="flex items-center gap-4">
         {selectedModality && (
           <Button variant="outline" onClick={() => setSelectedModality(null)}>
@@ -125,7 +124,7 @@ export default function WorkoutModalities() {
           </Button>
         )}
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold font-heading gradient-text">
+          <h1 className="text-3xl font-bold">
             {selectedModality ? `Modelos de ${selectedModality}` : 'Modalidades de Treino'}
           </h1>
           <p className="text-muted-foreground">
@@ -142,12 +141,12 @@ export default function WorkoutModalities() {
           {modalities.map((modality) => (
             <Card 
               key={modality.modality} 
-              className="glass border-border/50 card-hover cursor-pointer"
+              className="cursor-pointer hover:shadow-lg transition-shadow"
               onClick={() => handleModalityClick(modality.modality)}
             >
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="font-heading text-xl">
+                  <CardTitle className="text-xl">
                     {modality.modality}
                   </CardTitle>
                   <Dumbbell className="h-6 w-6 text-primary" />
@@ -171,10 +170,10 @@ export default function WorkoutModalities() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {models.map((model) => (
-            <Card key={model.id} className="glass border-border/50 card-hover">
+            <Card key={model.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
-                  <CardTitle className="font-heading text-lg">
+                  <CardTitle className="text-lg">
                     {model.name}
                   </CardTitle>
                   <div className="flex gap-1">
@@ -198,7 +197,7 @@ export default function WorkoutModalities() {
 
                 <Button 
                   onClick={() => handleAssignModel(model)}
-                  className="w-full btn-glow"
+                  className="w-full"
                 >
                   <Users className="mr-2 h-4 w-4" />
                   Atribuir a Aluno
@@ -252,7 +251,6 @@ export default function WorkoutModalities() {
               <Button 
                 onClick={confirmAssignment}
                 disabled={!selectedStudent || assignLoading}
-                className="btn-glow"
               >
                 {assignLoading ? (
                   "Atribuindo..."

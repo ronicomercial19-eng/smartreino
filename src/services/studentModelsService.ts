@@ -1,4 +1,5 @@
 
+import { supabaseUntyped } from "@/integrations/supabase/untypedClient";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface StudentSelectedModel {
@@ -20,7 +21,7 @@ export class StudentModelsService {
   static async getWorkoutModalities(): Promise<WorkoutModality[]> {
     console.log('🎯 Buscando modalidades de treino...');
     
-    const { data, error } = await supabase
+    const { data, error } = await supabaseUntyped
       .from('vw_workout_modalities')
       .select('*');
 
@@ -30,18 +31,20 @@ export class StudentModelsService {
     }
 
     console.log(`✅ ${data?.length || 0} modalidades encontradas`);
-    return data || [];
+    return (data || []) as WorkoutModality[];
   }
 
   static async assignModelToStudent(studentId: string, modelId: string, notes?: string): Promise<void> {
     console.log(`📝 Atribuindo modelo ${modelId} ao aluno ${studentId}`);
     
-    const { error } = await supabase
+    const { data: user } = await supabase.auth.getUser();
+    
+    const { error } = await supabaseUntyped
       .from('student_selected_models')
       .insert({
         student_id: studentId,
         model_id: modelId,
-        assigned_by: (await supabase.auth.getUser()).data.user?.id || '',
+        assigned_by: user.user?.id || '',
         notes
       });
 
@@ -56,7 +59,7 @@ export class StudentModelsService {
   static async getStudentSelectedModels(studentId: string): Promise<any[]> {
     console.log(`👤 Buscando modelos selecionados do aluno ${studentId}`);
     
-    const { data, error } = await supabase
+    const { data, error } = await supabaseUntyped
       .from('vw_student_selected_models')
       .select('*')
       .eq('student_id', studentId);
@@ -73,7 +76,7 @@ export class StudentModelsService {
   static async removeModelFromStudent(studentId: string, modelId: string): Promise<void> {
     console.log(`🗑️ Removendo modelo ${modelId} do aluno ${studentId}`);
     
-    const { error } = await supabase
+    const { error } = await supabaseUntyped
       .from('student_selected_models')
       .delete()
       .eq('student_id', studentId)

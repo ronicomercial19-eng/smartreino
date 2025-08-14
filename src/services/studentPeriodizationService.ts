@@ -1,4 +1,5 @@
 
+import { supabaseUntyped } from "@/integrations/supabase/untypedClient";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface StudentPeriodization {
@@ -13,12 +14,14 @@ export class StudentPeriodizationService {
   static async assignPeriodizationToStudent(studentId: string, periodizationId: string): Promise<void> {
     console.log(`📅 Atribuindo periodização ${periodizationId} ao aluno ${studentId}`);
     
-    const { error } = await supabase
+    const { data: user } = await supabase.auth.getUser();
+    
+    const { error } = await supabaseUntyped
       .from('student_periodizations')
       .insert({
         student_id: studentId,
         periodization_plan_id: periodizationId,
-        assigned_by: (await supabase.auth.getUser()).data.user?.id || ''
+        assigned_by: user.user?.id || ''
       });
 
     if (error) {
@@ -32,7 +35,7 @@ export class StudentPeriodizationService {
   static async getStudentPeriodizations(studentId: string): Promise<any[]> {
     console.log(`📊 Buscando periodizações do aluno ${studentId}`);
     
-    const { data, error } = await supabase
+    const { data, error } = await supabaseUntyped
       .from('vw_student_periodizations')
       .select('*')
       .eq('student_id', studentId);

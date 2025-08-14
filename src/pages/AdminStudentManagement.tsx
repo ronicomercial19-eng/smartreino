@@ -3,12 +3,12 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Plus, FileText, Upload, UserPlus, Calendar, Target } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Users, Plus, Eye, FileText, Calendar, Settings } from "lucide-react";
 import { StudentsService, Student } from '@/services/studentsService';
 import { StudentPeriodizationService } from '@/services/studentPeriodizationService';
 import { StudentModelsService } from '@/services/studentModelsService';
@@ -18,19 +18,21 @@ import { useNavigate } from 'react-router-dom';
 export default function AdminStudentManagement() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [studentModels, setStudentModels] = useState<any[]>([]);
-  const [studentPeriodizations, setStudentPeriodizations] = useState<any[]>([]);
+  const [studentPeriodizations, setStudentPeriodizations] = useState<Record<string, any[]>>({});
+  const [studentModels, setStudentModels] = useState<Record<string, any[]>>({});
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
   const [newStudent, setNewStudent] = useState({
     nome: '',
     email: '',
     objetivo: '',
     telefone: '',
-    nivel_experiencia: 'iniciante'
+    nivel_experiencia: 'iniciante',
+    observacoes: ''
   });
-  const { toast } = useToast();
-  const navigate = useNavigate();
 
   useEffect(() => {
     loadStudents();
@@ -41,6 +43,26 @@ export default function AdminStudentManagement() {
       setLoading(true);
       const studentsData = await StudentsService.getAllStudents();
       setStudents(studentsData);
+
+      // Load periodizations and models for each student
+      const periodizationsMap: Record<string, any[]> = {};
+      const modelsMap: Record<string, any[]> = {};
+
+      for (const student of studentsData) {
+        try {
+          const [periodizations, models] = await Promise.all([
+            StudentPeriodizationService.getStudentPeriodizations(student.id),
+            StudentModelsService.getStudentSelectedModels(student.id)
+          ]);
+          periodizationsMap[student.id] = periodizations;
+          modelsMap[student.id] = models;
+        } catch (error) {
+          console.error(`Erro ao carregar dados do aluno ${student.id}:`, error);
+        }
+      }
+
+      setStudentPeriodizations(periodizationsMap);
+      setStudentModels(modelsMap);
     } catch (error) {
       console.error('Erro ao carregar alunos:', error);
       toast({
@@ -53,109 +75,59 @@ export default function AdminStudentManagement() {
     }
   };
 
-  const handleCreateStudent = async () => {
-    if (!newStudent.nome || !newStudent.email || !newStudent.objetivo) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Preencha nome, email e objetivo",
-        variant: "destructive"
-      });
-      return;
-    }
-
+  const handleAddStudent = async () => {
     try {
-      const currentUser = (await import('@/integrations/supabase/client')).supabase.auth.getUser();
-      const professorId = (await currentUser).data.user?.id;
-      
-      if (!professorId) {
-        throw new Error('Usuário não autenticado');
+      if (!newStudent.nome || !newStudent.email || !newStudent.objetivo) {
+        toast({
+          title: "Erro",
+          description: "Nome, email e objetivo são obrigatórios",
+          variant: "destructive"
+        });
+        return;
       }
 
       await StudentsService.createStudent({
         ...newStudent,
-        professor_id: professorId,
-        ativo: true
-      });
+        professor_id: '', // Will be set by RLS/auth
+        ativo: true,
+        created_at: '',
+        updated_at: ''
+      } as any);
 
       toast({
         title: "Sucesso",
-        description: "Aluno criado com sucesso"
+        description: "Aluno adicionado com sucesso",
       });
 
-      setIsCreateDialogOpen(false);
+      setIsAddDialogOpen(false);
       setNewStudent({
         nome: '',
         email: '',
         objetivo: '',
         telefone: '',
-        nivel_experiencia: 'iniciante'
+        nivel_experiencia: 'iniciante',
+        observacoes: ''
       });
       loadStudents();
     } catch (error) {
-      console.error('Erro ao criar aluno:', error);
+      console.error('Erro ao adicionar aluno:', error);
       toast({
         title: "Erro",
-        description: "Falha ao criar aluno",
+        description: "Falha ao adicionar aluno",
         variant: "destructive"
       });
     }
   };
 
-  const handleViewStudent = async (student: Student) => {
-    try {
-      setSelectedStudent(student);
-      const [models, periodizations] = await Promise.all([
-        StudentModelsService.getStudentSelectedModels(student.id),
-        StudentPeriodizationService.getStudentPeriodizations(student.id)
-      ]);
-      setStudentModels(models);
-      setStudentPeriodizations(periodizations);
-    } catch (error) {
-      console.error('Erro ao carregar dados do aluno:', error);
-      toast({
-        title: "Erro",
-        description: "Falha ao carregar dados do aluno",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleGeneratePlan = async (student: Student) => {
-    const hasPeriodization = await StudentPeriodizationService.hasStudentPeriodization(student.id);
-    
-    if (!hasPeriodization) {
-      toast({
-        title: "Periodização necessária",
-        description: "Este aluno precisa ter uma periodização antes de gerar um plano de treino",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Aqui implementaremos a geração do plano posteriormente
-    toast({
-      title: "Em desenvolvimento",
-      description: "Funcionalidade de geração de plano será implementada em breve"
-    });
-  };
-
-  const handleAddPeriodization = (student: Student, type: 'upload' | 'manual') => {
-    if (type === 'upload') {
-      navigate('/periodizacao/upload', { state: { studentId: student.id } });
-    } else {
-      // Modal para periodização manual será implementado
-      toast({
-        title: "Em desenvolvimento",
-        description: "Periodização manual será implementada em breve"
-      });
-    }
+  const hasStudentPeriodization = (studentId: string): boolean => {
+    return (studentPeriodizations[studentId]?.length || 0) > 0;
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center space-y-4">
-          <div className="animate-pulse-orange">
+          <div className="animate-pulse">
             <Users className="h-12 w-12 mx-auto text-primary" />
           </div>
           <p className="text-muted-foreground">Carregando alunos...</p>
@@ -165,96 +137,106 @@ export default function AdminStudentManagement() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold font-heading gradient-text">
+          <h1 className="text-3xl font-bold">
             Gestão de Alunos
           </h1>
           <p className="text-muted-foreground">
-            Gerencie seus alunos, periodizações e planos de treino.
+            Gerencie seus alunos, periodizações e modelos de treino.
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="btn-glow">
-              <UserPlus className="mr-2 h-4 w-4" />
-              Novo Aluno
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Adicionar Aluno
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Criar Novo Aluno</DialogTitle>
+              <DialogTitle>Adicionar Novo Aluno</DialogTitle>
               <DialogDescription>
-                Preencha as informações básicas do novo aluno.
+                Preencha os dados do novo aluno.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="nome">Nome *</Label>
-                <Input
-                  id="nome"
-                  value={newStudent.nome}
-                  onChange={(e) => setNewStudent(prev => ({ ...prev, nome: e.target.value }))}
-                  placeholder="Nome completo do aluno"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newStudent.email}
-                  onChange={(e) => setNewStudent(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="email@exemplo.com"
-                />
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="nome">Nome *</Label>
+                  <Input
+                    id="nome"
+                    value={newStudent.nome}
+                    onChange={(e) => setNewStudent({...newStudent, nome: e.target.value})}
+                    placeholder="Nome completo"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newStudent.email}
+                    onChange={(e) => setNewStudent({...newStudent, email: e.target.value})}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="objetivo">Objetivo *</Label>
-                <Textarea
+                <Input
                   id="objetivo"
                   value={newStudent.objetivo}
-                  onChange={(e) => setNewStudent(prev => ({ ...prev, objetivo: e.target.value }))}
-                  placeholder="Qual o objetivo do aluno?"
+                  onChange={(e) => setNewStudent({...newStudent, objetivo: e.target.value})}
+                  placeholder="Ex: Hipertrofia, Emagrecimento, Força..."
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="telefone">Telefone</Label>
+                  <Input
+                    id="telefone"
+                    value={newStudent.telefone}
+                    onChange={(e) => setNewStudent({...newStudent, telefone: e.target.value})}
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nivel">Nível de Experiência</Label>
+                  <Select value={newStudent.nivel_experiencia} onValueChange={(value) => setNewStudent({...newStudent, nivel_experiencia: value})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="iniciante">Iniciante</SelectItem>
+                      <SelectItem value="intermediario">Intermediário</SelectItem>
+                      <SelectItem value="avancado">Avançado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="observacoes">Observações</Label>
+                <Textarea
+                  id="observacoes"
+                  value={newStudent.observacoes}
+                  onChange={(e) => setNewStudent({...newStudent, observacoes: e.target.value})}
+                  placeholder="Lesões, restrições, observações importantes..."
                   rows={3}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone</Label>
-                <Input
-                  id="telefone"
-                  value={newStudent.telefone}
-                  onChange={(e) => setNewStudent(prev => ({ ...prev, telefone: e.target.value }))}
-                  placeholder="(11) 99999-9999"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="nivel">Nível de Experiência</Label>
-                <Select 
-                  value={newStudent.nivel_experiencia} 
-                  onValueChange={(value) => setNewStudent(prev => ({ ...prev, nivel_experiencia: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="iniciante">Iniciante</SelectItem>
-                    <SelectItem value="intermediario">Intermediário</SelectItem>
-                    <SelectItem value="avancado">Avançado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleCreateStudent} className="btn-glow">
-                  Criar Aluno
+                <Button onClick={handleAddStudent}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Adicionar Aluno
                 </Button>
               </div>
             </div>
@@ -264,143 +246,97 @@ export default function AdminStudentManagement() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {students.map((student) => (
-          <Card key={student.id} className="glass border-border/50 card-hover">
+          <Card key={student.id}>
             <CardHeader>
               <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="font-heading text-lg">
-                    {student.nome}
-                  </CardTitle>
-                  <CardDescription>
-                    {student.email}
-                  </CardDescription>
-                </div>
-                <Badge variant="secondary" className="text-xs">
-                  {student.nivel_experiencia}
+                <CardTitle className="text-lg">
+                  {student.nome}
+                </CardTitle>
+                <Badge variant={student.ativo ? "default" : "secondary"}>
+                  {student.ativo ? "Ativo" : "Inativo"}
                 </Badge>
               </div>
+              <CardDescription>
+                {student.email}
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="text-sm">
+            <CardContent className="space-y-4">
+              <div className="text-sm space-y-1">
                 <p><strong>Objetivo:</strong> {student.objetivo}</p>
-                {student.telefone && (
-                  <p><strong>Telefone:</strong> {student.telefone}</p>
-                )}
+                <p><strong>Nível:</strong> {student.nivel_experiencia}</p>
+                {student.telefone && <p><strong>Telefone:</strong> {student.telefone}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  <span className="text-sm">
+                    {(studentPeriodizations[student.id]?.length || 0)} periodização(ões)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  <span className="text-sm">
+                    {(studentModels[student.id]?.length || 0)} modelo(s) atribuído(s)
+                  </span>
+                </div>
               </div>
 
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
+                <Button 
+                  variant="outline" 
                   size="sm"
-                  onClick={() => handleViewStudent(student)}
-                  className="flex-1"
+                  onClick={() => navigate('/student-interface', { state: { studentId: student.id } })}
                 >
-                  <FileText className="mr-2 h-4 w-4" />
+                  <Eye className="mr-2 h-4 w-4" />
                   Ver Perfil
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={() => handleGeneratePlan(student)}
-                  className="flex-1 btn-glow"
-                >
-                  <Target className="mr-2 h-4 w-4" />
-                  Gerar Plano
-                </Button>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleAddPeriodization(student, 'upload')}
-                  className="flex-1"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleAddPeriodization(student, 'manual')}
-                  className="flex-1"
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Manual
-                </Button>
+                
+                {hasStudentPeriodization(student.id) ? (
+                  <Button 
+                    size="sm"
+                    onClick={() => {
+                      toast({
+                        title: "Recurso em Desenvolvimento",
+                        description: "Geração de planos será implementada em breve",
+                      });
+                    }}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Gerar Plano
+                  </Button>
+                ) : (
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate('/periodizacao/upload')}
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    Periodização
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {selectedStudent && (
-        <Dialog open={!!selectedStudent} onOpenChange={() => setSelectedStudent(null)}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Perfil de {selectedStudent.nome}</DialogTitle>
-              <DialogDescription>
-                Informações detalhadas e recursos atribuídos ao aluno.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <strong>Email:</strong> {selectedStudent.email}
-                </div>
-                <div>
-                  <strong>Telefone:</strong> {selectedStudent.telefone || 'Não informado'}
-                </div>
-                <div>
-                  <strong>Nível:</strong> {selectedStudent.nivel_experiencia}
-                </div>
-                <div>
-                  <strong>Objetivo:</strong> {selectedStudent.objetivo}
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="font-semibold">Modelos Atribuídos</h4>
-                {studentModels.length > 0 ? (
-                  <div className="space-y-2">
-                    {studentModels.map((model) => (
-                      <div key={model.id} className="flex items-center justify-between p-2 bg-muted rounded">
-                        <div>
-                          <p className="font-medium">{model.model_name}</p>
-                          <p className="text-sm text-muted-foreground">{model.stimulus_type} - {model.level}</p>
-                        </div>
-                        <Badge variant="outline">{model.stimulus_type}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">Nenhum modelo atribuído</p>
-                )}
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="font-semibold">Periodizações</h4>
-                {studentPeriodizations.length > 0 ? (
-                  <div className="space-y-2">
-                    {studentPeriodizations.map((periodization) => (
-                      <div key={periodization.id} className="flex items-center justify-between p-2 bg-muted rounded">
-                        <div>
-                          <p className="font-medium">{periodization.plan_name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {periodization.periodization_type} - {periodization.macrocycle_duration_weeks} semanas
-                          </p>
-                        </div>
-                        <Badge variant="outline">Fase {periodization.current_phase}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">Nenhuma periodização atribuída</p>
-                )}
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+      {students.length === 0 && (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Users className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+              Nenhum aluno cadastrado
+            </h3>
+            <p className="text-muted-foreground text-center mb-4">
+              Comece adicionando seu primeiro aluno ao sistema.
+            </p>
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Adicionar Primeiro Aluno
+            </Button>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
