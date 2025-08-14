@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,8 @@ export default function WorkoutModelsDatabase() {
   const [loading, setLoading] = useState(true);
   const [filtering, setFiltering] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedLevel, setSelectedLevel] = useState('');
-  const [selectedPhase, setSelectedPhase] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState('all');
+  const [selectedPhase, setSelectedPhase] = useState('all');
   const [distinctValues, setDistinctValues] = useState<DistinctValues>(null);
   const [stats, setStats] = useState<any>(null);
   const { toast } = useToast();
@@ -68,14 +69,14 @@ export default function WorkoutModelsDatabase() {
     try {
       setFiltering(true);
       console.log('🎛️ Aplicando filtros no Supabase:', {
-        level: selectedLevel || undefined,
-        periodization_phase: selectedPhase || undefined,
+        level: selectedLevel === 'all' ? undefined : selectedLevel,
+        periodization_phase: selectedPhase === 'all' ? undefined : selectedPhase,
         search: searchTerm || undefined,
       });
 
       const filtered = await workoutModelsService.getFilteredModels({
-        level: selectedLevel || undefined,
-        periodization_phase: selectedPhase || undefined,
+        level: selectedLevel === 'all' ? undefined : selectedLevel,
+        periodization_phase: selectedPhase === 'all' ? undefined : selectedPhase,
         search: searchTerm || undefined,
       });
 
@@ -214,7 +215,7 @@ export default function WorkoutModelsDatabase() {
                 <SelectValue placeholder="Filtrar por nível" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os níveis</SelectItem>
+                <SelectItem value="all">Todos os níveis</SelectItem>
                 {distinctValues?.levels?.map((lvl) => (
                   <SelectItem key={lvl} value={lvl}>{lvl}</SelectItem>
                 ))}
@@ -226,7 +227,7 @@ export default function WorkoutModelsDatabase() {
                 <SelectValue placeholder="Filtrar por fase" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as fases</SelectItem>
+                <SelectItem value="all">Todas as fases</SelectItem>
                 {distinctValues?.phases?.map((ph) => (
                   <SelectItem key={ph} value={ph}>{ph}</SelectItem>
                 ))}
