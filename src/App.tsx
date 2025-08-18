@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +21,7 @@ import AIConfig from "./pages/AIConfig";
 import AdminStudentManagement from "./pages/AdminStudentManagement";
 import StudentInterface from "./pages/StudentInterface";
 import PeriodizationUpload from "./pages/PeriodizationUpload";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -97,6 +97,8 @@ const App = () => {
                     <Route path="/" element={<Navigate to="/admin-students" replace />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/exercise-library" element={<ExerciseLibrary />} />
+                    <Route path="/exercises" element={<Navigate to="/exercise-library" replace />} />
+                    <Route path="/exercicios" element={<Navigate to="/exercise-library" replace />} />
                     <Route path="/workout-history" element={<WorkoutHistory />} />
                     <Route path="/ai-chat" element={<AIChat />} />
                     <Route path="/workout-models" element={<WorkoutModels />} />
@@ -108,6 +110,9 @@ const App = () => {
                     <Route path="/ai-config" element={<AIConfig />} />
                     <Route path="/admin-students" element={<AdminStudentManagement />} />
                     <Route path="/periodization-upload" element={<PeriodizationUpload />} />
+                    <Route path="/periodizacao/upload" element={<Navigate to="/periodization-upload" replace />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/perfil" element={<Navigate to="/profile" replace />} />
                     <Route path="*" element={<NotFound />} />
                   </>
                 )}

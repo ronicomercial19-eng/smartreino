@@ -1,73 +1,96 @@
-
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Plus, Eye, FileText, Calendar, Settings } from "lucide-react";
-import { StudentsService, Student } from '@/services/studentsService';
-import { StudentPeriodizationService } from '@/services/studentPeriodizationService';
-import { StudentModelsService } from '@/services/studentModelsService';
-import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { toast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import Navigation from "@/components/Navigation";
+import { 
+  Settings, 
+  FileText, 
+  Calendar, 
+  Target, 
+  TrendingUp,
+  CheckCircle,
+  AlertCircle,
+  Lightbulb,
+  Brain,
+  Zap,
+  Cpu,
+  BarChart3,
+  Activity,
+  Clock,
+  Users,
+  UserPlus,
+  Dumbbell
+} from "lucide-react";
+import { StudentPeriodizationService } from "@/services/studentPeriodizationService";
 
-export default function AdminStudentManagement() {
+interface Student {
+  id: string;
+  created_at: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  level: string;
+  objective: string;
+}
+
+const AdminStudentManagement = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [studentPeriodizations, setStudentPeriodizations] = useState<Record<string, any[]>>({});
-  const [studentModels, setStudentModels] = useState<Record<string, any[]>>({});
-  const { toast } = useToast();
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newStudent, setNewStudent] = useState<Omit<Student, 'id' | 'created_at'>>({
+    full_name: '',
+    email: '',
+    phone: '',
+    level: 'iniciante',
+    objective: 'hipertrofia'
+  });
   const navigate = useNavigate();
 
-  const [newStudent, setNewStudent] = useState({
-    nome: '',
-    email: '',
-    objetivo: '',
-    telefone: '',
-    nivel_experiencia: 'iniciante',
-    observacoes: ''
-  });
-
   useEffect(() => {
-    loadStudents();
+    fetchStudents();
   }, []);
 
-  const loadStudents = async () => {
+  const fetchStudents = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const studentsData = await StudentsService.getAllStudents();
-      setStudents(studentsData);
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      // Load periodizations and models for each student
-      const periodizationsMap: Record<string, any[]> = {};
-      const modelsMap: Record<string, any[]> = {};
-
-      for (const student of studentsData) {
-        try {
-          const [periodizations, models] = await Promise.all([
-            StudentPeriodizationService.getStudentPeriodizations(student.id),
-            StudentModelsService.getStudentSelectedModels(student.id)
-          ]);
-          periodizationsMap[student.id] = periodizations;
-          modelsMap[student.id] = models;
-        } catch (error) {
-          console.error(`Erro ao carregar dados do aluno ${student.id}:`, error);
-        }
+      if (error) {
+        console.error('Erro ao buscar alunos:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar a lista de alunos.",
+          variant: "destructive"
+        });
+        return;
       }
 
-      setStudentPeriodizations(periodizationsMap);
-      setStudentModels(modelsMap);
+      setStudents(data || []);
     } catch (error) {
-      console.error('Erro ao carregar alunos:', error);
+      console.error('Erro inesperado:', error);
       toast({
         title: "Erro",
-        description: "Falha ao carregar lista de alunos",
+        description: "Ocorreu um erro inesperado ao carregar os alunos.",
         variant: "destructive"
       });
     } finally {
@@ -75,273 +98,289 @@ export default function AdminStudentManagement() {
     }
   };
 
-  const handleAddStudent = async () => {
+  const handleInputChange = (field: string, value: string) => {
+    setNewStudent(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newStudent.full_name || !newStudent.email) {
+      toast({
+        title: "Dados Incompletos",
+        description: "Por favor, preencha o nome e o email do aluno.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
-      if (!newStudent.nome || !newStudent.email || !newStudent.objetivo) {
+      const { data, error } = await supabase
+        .from('students')
+        .insert(newStudent)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erro ao adicionar aluno:', error);
         toast({
           title: "Erro",
-          description: "Nome, email e objetivo são obrigatórios",
+          description: "Não foi possível adicionar o aluno.",
           variant: "destructive"
         });
         return;
       }
 
-      console.log('🧪 Enviando novo aluno:', newStudent);
-
-      await StudentsService.createStudent({
-        nome: newStudent.nome,
-        email: newStudent.email,
-        objetivo: newStudent.objetivo,
-        telefone: newStudent.telefone || undefined,
-        nivel_experiencia: newStudent.nivel_experiencia || undefined,
-        observacoes: newStudent.observacoes || undefined,
+      setStudents(prev => [data, ...prev]);
+      setNewStudent({
+        full_name: '',
+        email: '',
+        phone: '',
+        level: 'iniciante',
+        objective: 'hipertrofia'
       });
+      setShowAddForm(false);
 
       toast({
         title: "Sucesso",
-        description: "Aluno adicionado com sucesso",
+        description: "Aluno adicionado com sucesso!",
       });
-
-      setIsAddDialogOpen(false);
-      setNewStudent({
-        nome: '',
-        email: '',
-        objetivo: '',
-        telefone: '',
-        nivel_experiencia: 'iniciante',
-        observacoes: ''
-      });
-      loadStudents();
-    } catch (error: any) {
-      console.error('Erro ao adicionar aluno:', error);
-      const message = error?.message || 'Falha ao adicionar aluno';
+    } catch (error) {
+      console.error('Erro inesperado:', error);
       toast({
         title: "Erro",
-        description: message,
+        description: "Ocorreu um erro inesperado ao adicionar o aluno.",
         variant: "destructive"
       });
     }
   };
 
-  const hasStudentPeriodization = (studentId: string): boolean => {
-    return (studentPeriodizations[studentId]?.length || 0) > 0;
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center space-y-4">
-          <div className="animate-pulse">
-            <Users className="h-12 w-12 mx-auto text-primary" />
-          </div>
-          <p className="text-muted-foreground">Carregando alunos...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold">
-            Gestão de Alunos
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie seus alunos, periodizações e modelos de treino.
-          </p>
+    <div className="min-h-screen bg-background">
+      <Navigation />
+      <div className="container mx-auto px-4 py-8">
+        {/* Enhanced Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-4">
+              <div className="w-2 h-16 bg-gradient-to-b from-primary to-orange-600 rounded-full"></div>
+              <div>
+                <h1 className="text-5xl font-bold gradient-text mb-2 flex items-center space-x-4">
+                  <Users className="h-12 w-12 text-primary" />
+                  <span>Gestão de Alunos</span>
+                </h1>
+                <p className="text-muted-foreground text-xl">
+                  Gerencie alunos, periodizações e modelos de treino com inteligência artificial
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button 
+                onClick={() => navigate('/periodization-upload')}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Periodização
+              </Button>
+              <Button 
+                onClick={() => setShowAddForm(true)}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Novo Aluno
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Badge className="bg-primary/20 text-primary border-primary/30 px-3 py-1">
+              <Cpu className="h-4 w-4 mr-2" />
+              IA Powered
+            </Badge>
+            <Badge className="bg-muted/50 text-muted-foreground border-muted">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Periodização
+            </Badge>
+            <Badge className="bg-muted/50 text-muted-foreground border-muted">
+              <FileText className="h-4 w-4 mr-2" />
+              Histórico
+            </Badge>
+            <Badge className="bg-muted/50 text-muted-foreground border-muted">
+              <Activity className="h-4 w-4 mr-2" />
+              Analytics Real-time
+            </Badge>
+          </div>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Adicionar Aluno
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Adicionar Novo Aluno</DialogTitle>
-              <DialogDescription>
-                Preencha os dados do novo aluno.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="nome">Nome *</Label>
-                  <Input
-                    id="nome"
-                    value={newStudent.nome}
-                    onChange={(e) => setNewStudent({...newStudent, nome: e.target.value})}
-                    placeholder="Nome completo"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={newStudent.email}
-                    onChange={(e) => setNewStudent({...newStudent, email: e.target.value})}
-                    placeholder="email@exemplo.com"
-                  />
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="objetivo">Objetivo *</Label>
-                <Input
-                  id="objetivo"
-                  value={newStudent.objetivo}
-                  onChange={(e) => setNewStudent({...newStudent, objetivo: e.target.value})}
-                  placeholder="Ex: Hipertrofia, Emagrecimento, Força..."
-                />
-              </div>
+        {/* Add Student Form */}
+        {showAddForm && (
+          <Card className="bg-card border-border mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 text-card-foreground">
+                <UserPlus className="h-5 w-5 text-primary" />
+                <span>Adicionar Novo Aluno</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Nome Completo</Label>
+                    <Input
+                      value={newStudent.full_name}
+                      onChange={(e) => handleInputChange('full_name', e.target.value)}
+                      placeholder="Nome completo do aluno"
+                    />
+                  </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="telefone">Telefone</Label>
-                  <Input
-                    id="telefone"
-                    value={newStudent.telefone}
-                    onChange={(e) => setNewStudent({...newStudent, telefone: e.target.value})}
-                    placeholder="(11) 99999-9999"
-                  />
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={newStudent.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      placeholder="Email do aluno"
+                    />
+                  </div>
                 </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Telefone</Label>
+                    <Input
+                      value={newStudent.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      placeholder="Telefone do aluno"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Nível</Label>
+                    <Select 
+                      value={newStudent.level} 
+                      onValueChange={(value) => handleInputChange('level', value)}
+                    >
+                      <SelectTrigger className="bg-input border-border text-foreground">
+                        <SelectValue placeholder="Selecione o nível" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border-border">
+                        <SelectItem value="iniciante">Iniciante</SelectItem>
+                        <SelectItem value="intermediario">Intermediário</SelectItem>
+                        <SelectItem value="avancado">Avançado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="nivel">Nível de Experiência</Label>
-                  <Select value={newStudent.nivel_experiencia} onValueChange={(value) => setNewStudent({...newStudent, nivel_experiencia: value})}>
-                    <SelectTrigger>
-                      <SelectValue />
+                  <Label>Objetivo</Label>
+                  <Select 
+                    value={newStudent.objective} 
+                    onValueChange={(value) => handleInputChange('objective', value)}
+                  >
+                    <SelectTrigger className="bg-input border-border text-foreground">
+                      <SelectValue placeholder="Selecione o objetivo" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="iniciante">Iniciante</SelectItem>
-                      <SelectItem value="intermediario">Intermediário</SelectItem>
-                      <SelectItem value="avancado">Avançado</SelectItem>
+                    <SelectContent className="bg-popover border-border">
+                      <SelectItem value="hipertrofia">Hipertrofia</SelectItem>
+                      <SelectItem value="forca">Força</SelectItem>
+                      <SelectItem value="resistencia">Resistência</SelectItem>
+                      <SelectItem value="perda-peso">Perda de Peso</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="observacoes">Observações</Label>
-                <Textarea
-                  id="observacoes"
-                  value={newStudent.observacoes}
-                  onChange={(e) => setNewStudent({...newStudent, observacoes: e.target.value})}
-                  placeholder="Lesões, restrições, observações importantes..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleAddStudent}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Adicionar Aluno
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {students.map((student) => (
-          <Card key={student.id}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <CardTitle className="text-lg">
-                  {student.nome}
-                </CardTitle>
-                <Badge variant={student.ativo ? "default" : "secondary"}>
-                  {student.ativo ? "Ativo" : "Inativo"}
-                </Badge>
-              </div>
-              <CardDescription>
-                {student.email}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-sm space-y-1">
-                <p><strong>Objetivo:</strong> {student.objetivo}</p>
-                <p><strong>Nível:</strong> {student.nivel_experiencia}</p>
-                {student.telefone && <p><strong>Telefone:</strong> {student.telefone}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm">
-                    {(studentPeriodizations[student.id]?.length || 0)} periodização(ões)
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  <span className="text-sm">
-                    {(studentModels[student.id]?.length || 0)} modelo(s) atribuído(s)
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate('/student-interface', { state: { studentId: student.id } })}
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  Ver Perfil
-                </Button>
-                
-                {hasStudentPeriodization(student.id) ? (
+                <div className="flex justify-end">
                   <Button 
-                    size="sm"
-                    onClick={() => {
-                      toast({
-                        title: "Recurso em Desenvolvimento",
-                        description: "Geração de planos será implementada em breve",
-                      });
-                    }}
+                    type="submit" 
+                    className="bg-green-600 hover:bg-green-700 text-white"
                   >
-                    <FileText className="mr-2 h-4 w-4" />
-                    Gerar Plano
+                    Adicionar Aluno
                   </Button>
-                ) : (
-                  <Button 
-                    size="sm"
-                    variant="outline"
-                    onClick={() => navigate('/periodizacao/upload')}
-                  >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Periodização
-                  </Button>
-                )}
-              </div>
+                </div>
+              </form>
             </CardContent>
           </Card>
-        ))}
-      </div>
+        )}
 
-      {students.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Users className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">
-              Nenhum aluno cadastrado
-            </h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Comece adicionando seu primeiro aluno ao sistema.
-            </p>
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Adicionar Primeiro Aluno
-            </Button>
+        {/* Students Table */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-card-foreground">
+              <Users className="h-5 w-5 text-primary" />
+              <span>Lista de Alunos</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="text-center py-8">
+                <Clock className="h-6 w-6 text-muted-foreground animate-pulse mx-auto mb-2" />
+                <p className="text-muted-foreground">Carregando alunos...</p>
+              </div>
+            ) : students.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[200px]">Nome</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>Nível</TableHead>
+                    <TableHead>Objetivo</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {students.map((student) => (
+                    <TableRow key={student.id}>
+                      <TableCell className="font-medium">{student.full_name}</TableCell>
+                      <TableCell>{student.email}</TableCell>
+                      <TableCell>{student.phone}</TableCell>
+                      <TableCell>{student.level}</TableCell>
+                      <TableCell>{student.objective}</TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          variant="secondary"
+                          size="sm"
+                          onClick={async () => {
+                            const hasPeriodization = await StudentPeriodizationService.hasStudentPeriodization(student.id);
+                            if (hasPeriodization) {
+                              navigate(`/periodization-upload?studentId=${student.id}`);
+                            } else {
+                              toast({
+                                title: "Aluno sem periodização",
+                                description: "Este aluno ainda não possui uma periodização atribuída. Deseja criar uma agora?",
+                                variant: "warning",
+                                action: (
+                                  <Button variant="link" onClick={() => navigate(`/periodization-upload?studentId=${student.id}`)}>
+                                    Criar Periodização
+                                  </Button>
+                                ),
+                              });
+                            }
+                          }}
+                        >
+                          Ver Detalhes
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8">
+                <AlertCircle className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+                <p className="text-muted-foreground">Nenhum aluno cadastrado ainda.</p>
+              </div>
+            )}
           </CardContent>
         </Card>
-      )}
+      </div>
     </div>
   );
-}
+};
+
+export default AdminStudentManagement;

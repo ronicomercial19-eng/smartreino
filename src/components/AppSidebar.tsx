@@ -63,7 +63,7 @@ const navigationItems = [
   },
   {
     title: "Exercícios",
-    url: "/exercises",
+    url: "/exercise-library",
     icon: BookOpen,
   },
   {
