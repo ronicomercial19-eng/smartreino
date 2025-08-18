@@ -18,6 +18,18 @@ export interface Student {
   updated_at: string;
 }
 
+export type NewStudentInput = {
+  nome: string;
+  email: string;
+  objetivo: string;
+  telefone?: string;
+  data_nascimento?: string;
+  peso_kg?: number;
+  altura_cm?: number;
+  nivel_experiencia?: string;
+  observacoes?: string;
+};
+
 export class StudentsService {
   static async getAllStudents(): Promise<Student[]> {
     console.log('👥 Buscando todos os alunos...');
@@ -55,12 +67,39 @@ export class StudentsService {
     return data as Student;
   }
 
-  static async createStudent(student: Omit<Student, 'id' | 'created_at' | 'updated_at'>): Promise<Student> {
+  static async createStudent(student: NewStudentInput): Promise<Student> {
     console.log(`➕ Criando novo aluno: ${student.nome}`);
     
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      console.error('❌ Erro ao obter usuário autenticado:', userError);
+      throw userError;
+    }
+    const professorId = userData.user?.id;
+    if (!professorId) {
+      const authErr = new Error('Usuário não autenticado. Faça login para adicionar alunos.');
+      console.error('❌', authErr);
+      throw authErr;
+    }
+
+    // Montar payload válido para RLS (professor_id deve ser o auth.uid())
+    const payload = {
+      professor_id: professorId,
+      nome: student.nome,
+      email: student.email,
+      objetivo: student.objetivo,
+      telefone: student.telefone,
+      data_nascimento: student.data_nascimento,
+      peso_kg: student.peso_kg,
+      altura_cm: student.altura_cm,
+      nivel_experiencia: student.nivel_experiencia,
+      observacoes: student.observacoes,
+      // 'ativo', 'created_at' e 'updated_at' são definidos pelo banco (defaults)
+    };
+
     const { data, error } = await supabase
       .from('students')
-      .insert(student)
+      .insert(payload)
       .select()
       .single();
 
@@ -93,7 +132,7 @@ export class StudentsService {
   }
 
   static async deleteStudent(id: string): Promise<void> {
-    console.log(`🗑️ Excluindo aluno: ${id}`);
+    console.log(`🗑️ Excluindo aluno (soft delete): ${id}`);
     
     const { error } = await supabase
       .from('students')

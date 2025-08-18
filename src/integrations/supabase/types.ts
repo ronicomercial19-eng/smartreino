@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -373,12 +373,12 @@ export type Database = {
           description: string
           duration: string
           goal: string
-          graph_data: Json
+          graph_data?: Json
           id: string
-          macrocycle: Json
-          mesocycle: Json
-          microcycle: Json
-          recommended_for: Json
+          macrocycle?: Json
+          mesocycle?: Json
+          microcycle?: Json
+          recommended_for?: Json
           title: string
           updated_at?: string | null
         }
@@ -683,6 +683,13 @@ export type Database = {
             columns: ["periodization_model_id"]
             isOneToOne: false
             referencedRelation: "periodization_models"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_periodization_matches_periodization_model_id_fkey"
+            columns: ["periodization_model_id"]
+            isOneToOne: false
+            referencedRelation: "v_periodizations_catalog"
             referencedColumns: ["id"]
           },
           {
@@ -1930,19 +1937,72 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_periodizations_catalog: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          duration: string | null
+          goal: string | null
+          graph_data: Json | null
+          id: string | null
+          macrocycle: Json | null
+          mesocycle: Json | null
+          microcycle: Json | null
+          recommended_for: Json | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          duration?: string | null
+          goal?: string | null
+          graph_data?: Json | null
+          id?: string | null
+          macrocycle?: Json | null
+          mesocycle?: Json | null
+          microcycle?: Json | null
+          recommended_for?: Json | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          duration?: string | null
+          goal?: string | null
+          graph_data?: Json | null
+          id?: string | null
+          macrocycle?: Json | null
+          mesocycle?: Json | null
+          microcycle?: Json | null
+          recommended_for?: Json | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       calculate_periodization_match: {
         Args: {
-          profile_goal: string
-          profile_experience: string
-          profile_age: number
-          profile_injuries: string
           model_goal: string
           model_recommended_for: Json
+          profile_age: number
+          profile_experience: string
+          profile_goal: string
+          profile_injuries: string
         }
         Returns: number
+      }
+      match_periodizations_for_profile: {
+        Args: { p_user_profile_id: string }
+        Returns: {
+          match_factors: Json
+          match_percentage: number
+          periodization_model_id: string
+          title: string
+        }[]
       }
     }
     Enums: {

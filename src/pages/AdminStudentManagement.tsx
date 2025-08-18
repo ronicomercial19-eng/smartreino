@@ -86,13 +86,16 @@ export default function AdminStudentManagement() {
         return;
       }
 
+      console.log('🧪 Enviando novo aluno:', newStudent);
+
       await StudentsService.createStudent({
-        ...newStudent,
-        professor_id: '', // Will be set by RLS/auth
-        ativo: true,
-        created_at: '',
-        updated_at: ''
-      } as any);
+        nome: newStudent.nome,
+        email: newStudent.email,
+        objetivo: newStudent.objetivo,
+        telefone: newStudent.telefone || undefined,
+        nivel_experiencia: newStudent.nivel_experiencia || undefined,
+        observacoes: newStudent.observacoes || undefined,
+      });
 
       toast({
         title: "Sucesso",
@@ -109,11 +112,12 @@ export default function AdminStudentManagement() {
         observacoes: ''
       });
       loadStudents();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao adicionar aluno:', error);
+      const message = error?.message || 'Falha ao adicionar aluno';
       toast({
         title: "Erro",
-        description: "Falha ao adicionar aluno",
+        description: message,
         variant: "destructive"
       });
     }
