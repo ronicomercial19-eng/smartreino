@@ -198,6 +198,108 @@ export type Database = {
           },
         ]
       }
+      estruturas_de_treinamento: {
+        Row: {
+          carga: number | null
+          dia: number
+          exercicio_id: string | null
+          id: string
+          modelo_id: string | null
+          ordem: number
+          repeticoes: string | null
+          series: number | null
+        }
+        Insert: {
+          carga?: number | null
+          dia: number
+          exercicio_id?: string | null
+          id?: string
+          modelo_id?: string | null
+          ordem: number
+          repeticoes?: string | null
+          series?: number | null
+        }
+        Update: {
+          carga?: number | null
+          dia?: number
+          exercicio_id?: string | null
+          id?: string
+          modelo_id?: string | null
+          ordem?: number
+          repeticoes?: string | null
+          series?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estruturas_de_treinamento_exercicio_id_fkey"
+            columns: ["exercicio_id"]
+            isOneToOne: false
+            referencedRelation: "exercicios_novos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estruturas_de_treinamento_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "modelos_de_treino"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estudantes: {
+        Row: {
+          altura: number | null
+          criado_em: string | null
+          data_nascimento: string | null
+          email: string
+          id: string
+          nome: string
+          peso: number | null
+        }
+        Insert: {
+          altura?: number | null
+          criado_em?: string | null
+          data_nascimento?: string | null
+          email: string
+          id?: string
+          nome: string
+          peso?: number | null
+        }
+        Update: {
+          altura?: number | null
+          criado_em?: string | null
+          data_nascimento?: string | null
+          email?: string
+          id?: string
+          nome?: string
+          peso?: number | null
+        }
+        Relationships: []
+      }
+      exercicios_novos: {
+        Row: {
+          criado_em: string | null
+          grupo_muscular: string
+          id: string
+          nome: string
+          video_url: string | null
+        }
+        Insert: {
+          criado_em?: string | null
+          grupo_muscular: string
+          id?: string
+          nome: string
+          video_url?: string | null
+        }
+        Update: {
+          criado_em?: string | null
+          grupo_muscular?: string
+          id?: string
+          nome?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       exercise_library: {
         Row: {
           categoria: Json | null
@@ -352,6 +454,65 @@ export type Database = {
           id?: number
         }
         Relationships: []
+      }
+      modelos_de_treino: {
+        Row: {
+          criado_em: string | null
+          descricao: string | null
+          duracao_em_semanas: number | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          criado_em?: string | null
+          descricao?: string | null
+          duracao_em_semanas?: number | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          criado_em?: string | null
+          descricao?: string | null
+          duracao_em_semanas?: number | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      periodizacoes_novas: {
+        Row: {
+          carga_prevista: number | null
+          carga_real: number | null
+          criado_em: string | null
+          estudante_id: string | null
+          id: string
+          semana: number
+        }
+        Insert: {
+          carga_prevista?: number | null
+          carga_real?: number | null
+          criado_em?: string | null
+          estudante_id?: string | null
+          id?: string
+          semana: number
+        }
+        Update: {
+          carga_prevista?: number | null
+          carga_real?: number | null
+          criado_em?: string | null
+          estudante_id?: string | null
+          id?: string
+          semana?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "periodizacoes_novas_estudante_id_fkey"
+            columns: ["estudante_id"]
+            isOneToOne: false
+            referencedRelation: "estudantes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       periodization_models: {
         Row: {
@@ -594,6 +755,42 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      planos_de_treino_gerados: {
+        Row: {
+          criado_em: string | null
+          estudante_id: string | null
+          id: string
+          modelo_id: string | null
+        }
+        Insert: {
+          criado_em?: string | null
+          estudante_id?: string | null
+          id?: string
+          modelo_id?: string | null
+        }
+        Update: {
+          criado_em?: string | null
+          estudante_id?: string | null
+          id?: string
+          modelo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planos_de_treino_gerados_estudante_id_fkey"
+            columns: ["estudante_id"]
+            isOneToOne: false
+            referencedRelation: "estudantes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planos_de_treino_gerados_modelo_id_fkey"
+            columns: ["modelo_id"]
+            isOneToOne: false
+            referencedRelation: "modelos_de_treino"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plans: {
         Row: {
@@ -1984,6 +2181,15 @@ export type Database = {
       }
     }
     Functions: {
+      calcular_periodizacao_correspondencia: {
+        Args: { estudante: string }
+        Returns: {
+          carga_prevista: number
+          carga_real: number
+          diferenca: number
+          semana: number
+        }[]
+      }
       calculate_periodization_match: {
         Args: {
           model_goal: string
