@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
@@ -36,30 +37,33 @@ import {
   Clock,
   Users,
   UserPlus,
-  Dumbbell
+  Dumbbell,
+  Upload
 } from "lucide-react";
 import { StudentPeriodizationService } from "@/services/studentPeriodizationService";
+import { StudentsService, Student as ServiceStudent, NewStudentInput } from "@/services/studentsService";
 
-interface Student {
+// Interface local que mapeia os campos do banco para o componente
+interface DisplayStudent {
   id: string;
   created_at: string;
-  full_name: string;
+  nome: string; // campo do banco
   email: string;
-  phone: string;
-  level: string;
-  objective: string;
+  telefone: string;
+  nivel_experiencia: string; // campo do banco
+  objetivo: string;
 }
 
 const AdminStudentManagement = () => {
-  const [students, setStudents] = useState<Student[]>([]);
+  const [students, setStudents] = useState<DisplayStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newStudent, setNewStudent] = useState<Omit<Student, 'id' | 'created_at'>>({
-    full_name: '',
+  const [newStudent, setNewStudent] = useState<NewStudentInput>({
+    nome: '',
     email: '',
-    phone: '',
-    level: 'iniciante',
-    objective: 'hipertrofia'
+    objetivo: 'hipertrofia',
+    telefone: '',
+    nivel_experiencia: 'iniciante'
   });
   const navigate = useNavigate();
 
@@ -70,27 +74,25 @@ const AdminStudentManagement = () => {
   const fetchStudents = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('students')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const data = await StudentsService.getAllStudents();
+      
+      // Mapear os dados do serviço para a interface local
+      const displayStudents: DisplayStudent[] = data.map(student => ({
+        id: student.id,
+        created_at: student.created_at,
+        nome: student.nome,
+        email: student.email,
+        telefone: student.telefone || '',
+        nivel_experiencia: student.nivel_experiencia || 'iniciante',
+        objetivo: student.objetivo
+      }));
 
-      if (error) {
-        console.error('Erro ao buscar alunos:', error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar a lista de alunos.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      setStudents(data || []);
+      setStudents(displayStudents);
     } catch (error) {
-      console.error('Erro inesperado:', error);
+      console.error('Erro ao buscar alunos:', error);
       toast({
         title: "Erro",
-        description: "Ocorreu um erro inesperado ao carregar os alunos.",
+        description: "Não foi possível carregar a lista de alunos.",
         variant: "destructive"
       });
     } finally {
@@ -98,7 +100,7 @@ const AdminStudentManagement = () => {
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: keyof NewStudentInput, value: string) => {
     setNewStudent(prev => ({
       ...prev,
       [field]: value
@@ -108,7 +110,7 @@ const AdminStudentManagement = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newStudent.full_name || !newStudent.email) {
+    if (!newStudent.nome || !newStudent.email) {
       toast({
         title: "Dados Incompletos",
         description: "Por favor, preencha o nome e o email do aluno.",
@@ -118,29 +120,26 @@ const AdminStudentManagement = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('students')
-        .insert(newStudent)
-        .select()
-        .single();
+      const createdStudent = await StudentsService.createStudent(newStudent);
+      
+      // Mapear o novo aluno para a interface local
+      const displayStudent: DisplayStudent = {
+        id: createdStudent.id,
+        created_at: createdStudent.created_at,
+        nome: createdStudent.nome,
+        email: createdStudent.email,
+        telefone: createdStudent.telefone || '',
+        nivel_experiencia: createdStudent.nivel_experiencia || 'iniciante',
+        objetivo: createdStudent.objetivo
+      };
 
-      if (error) {
-        console.error('Erro ao adicionar aluno:', error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível adicionar o aluno.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      setStudents(prev => [data, ...prev]);
+      setStudents(prev => [displayStudent, ...prev]);
       setNewStudent({
-        full_name: '',
+        nome: '',
         email: '',
-        phone: '',
-        level: 'iniciante',
-        objective: 'hipertrofia'
+        objetivo: 'hipertrofia',
+        telefone: '',
+        nivel_experiencia: 'iniciante'
       });
       setShowAddForm(false);
 
@@ -231,8 +230,8 @@ const AdminStudentManagement = () => {
                   <div className="space-y-2">
                     <Label>Nome Completo</Label>
                     <Input
-                      value={newStudent.full_name}
-                      onChange={(e) => handleInputChange('full_name', e.target.value)}
+                      value={newStudent.nome}
+                      onChange={(e) => handleInputChange('nome', e.target.value)}
                       placeholder="Nome completo do aluno"
                     />
                   </div>
@@ -252,8 +251,8 @@ const AdminStudentManagement = () => {
                   <div className="space-y-2">
                     <Label>Telefone</Label>
                     <Input
-                      value={newStudent.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      value={newStudent.telefone || ''}
+                      onChange={(e) => handleInputChange('telefone', e.target.value)}
                       placeholder="Telefone do aluno"
                     />
                   </div>
@@ -261,8 +260,8 @@ const AdminStudentManagement = () => {
                   <div className="space-y-2">
                     <Label>Nível</Label>
                     <Select 
-                      value={newStudent.level} 
-                      onValueChange={(value) => handleInputChange('level', value)}
+                      value={newStudent.nivel_experiencia || 'iniciante'} 
+                      onValueChange={(value) => handleInputChange('nivel_experiencia', value)}
                     >
                       <SelectTrigger className="bg-input border-border text-foreground">
                         <SelectValue placeholder="Selecione o nível" />
@@ -279,8 +278,8 @@ const AdminStudentManagement = () => {
                 <div className="space-y-2">
                   <Label>Objetivo</Label>
                   <Select 
-                    value={newStudent.objective} 
-                    onValueChange={(value) => handleInputChange('objective', value)}
+                    value={newStudent.objetivo} 
+                    onValueChange={(value) => handleInputChange('objetivo', value)}
                   >
                     <SelectTrigger className="bg-input border-border text-foreground">
                       <SelectValue placeholder="Selecione o objetivo" />
@@ -294,7 +293,14 @@ const AdminStudentManagement = () => {
                   </Select>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAddForm(false)}
+                  >
+                    Cancelar
+                  </Button>
                   <Button 
                     type="submit" 
                     className="bg-green-600 hover:bg-green-700 text-white"
@@ -336,11 +342,11 @@ const AdminStudentManagement = () => {
                 <TableBody>
                   {students.map((student) => (
                     <TableRow key={student.id}>
-                      <TableCell className="font-medium">{student.full_name}</TableCell>
+                      <TableCell className="font-medium">{student.nome}</TableCell>
                       <TableCell>{student.email}</TableCell>
-                      <TableCell>{student.phone}</TableCell>
-                      <TableCell>{student.level}</TableCell>
-                      <TableCell>{student.objective}</TableCell>
+                      <TableCell>{student.telefone}</TableCell>
+                      <TableCell>{student.nivel_experiencia}</TableCell>
+                      <TableCell>{student.objetivo}</TableCell>
                       <TableCell className="text-right">
                         <Button 
                           variant="secondary"
@@ -353,7 +359,6 @@ const AdminStudentManagement = () => {
                               toast({
                                 title: "Aluno sem periodização",
                                 description: "Este aluno ainda não possui uma periodização atribuída. Deseja criar uma agora?",
-                                variant: "warning",
                                 action: (
                                   <Button variant="link" onClick={() => navigate(`/periodization-upload?studentId=${student.id}`)}>
                                     Criar Periodização
