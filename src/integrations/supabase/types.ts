@@ -59,6 +59,63 @@ export type Database = {
           },
         ]
       }
+      ambiente_config: {
+        Row: {
+          chave: string
+          valor: string
+        }
+        Insert: {
+          chave: string
+          valor: string
+        }
+        Update: {
+          chave?: string
+          valor?: string
+        }
+        Relationships: []
+      }
+      appointments: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          duration: number | null
+          id: string
+          location: string | null
+          scheduled_at: string
+          status: Database["public"]["Enums"]["appointment_status"] | null
+          student_id: string
+          teacher_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          duration?: number | null
+          id?: string
+          location?: string | null
+          scheduled_at: string
+          status?: Database["public"]["Enums"]["appointment_status"] | null
+          student_id: string
+          teacher_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          duration?: number | null
+          id?: string
+          location?: string | null
+          scheduled_at?: string
+          status?: Database["public"]["Enums"]["appointment_status"] | null
+          student_id?: string
+          teacher_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       athletes: {
         Row: {
           altura_cm: number | null
@@ -318,16 +375,65 @@ export type Database = {
         }
         Relationships: []
       }
+      exercise_logs: {
+        Row: {
+          exercise_id: string
+          id: string
+          notes: string | null
+          reps_completed: string | null
+          sets_completed: number | null
+          weight_used: number | null
+          workout_log_id: string
+        }
+        Insert: {
+          exercise_id: string
+          id?: string
+          notes?: string | null
+          reps_completed?: string | null
+          sets_completed?: number | null
+          weight_used?: number | null
+          workout_log_id: string
+        }
+        Update: {
+          exercise_id?: string
+          id?: string
+          notes?: string | null
+          reps_completed?: string | null
+          sets_completed?: number | null
+          weight_used?: number | null
+          workout_log_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercise_logs_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exercise_logs_workout_log_id_fkey"
+            columns: ["workout_log_id"]
+            isOneToOne: false
+            referencedRelation: "workout_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercises: {
         Row: {
           created_at: string | null
+          created_by: string | null
           description: string | null
           difficulty_level: string | null
           equipment: string | null
+          equipment_needed: string | null
           goal: string | null
           id: string
+          image_url: string | null
           instructions: string | null
           is_optional: boolean | null
+          muscle_groups: Json | null
           name: string
           phase: string | null
           target_muscles: string[]
@@ -336,13 +442,17 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           difficulty_level?: string | null
           equipment?: string | null
+          equipment_needed?: string | null
           goal?: string | null
           id?: string
+          image_url?: string | null
           instructions?: string | null
           is_optional?: boolean | null
+          muscle_groups?: Json | null
           name: string
           phase?: string | null
           target_muscles?: string[]
@@ -351,13 +461,17 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           difficulty_level?: string | null
           equipment?: string | null
+          equipment_needed?: string | null
           goal?: string | null
           id?: string
+          image_url?: string | null
           instructions?: string | null
           is_optional?: boolean | null
+          muscle_groups?: Json | null
           name?: string
           phase?: string | null
           target_muscles?: string[]
@@ -460,22 +574,109 @@ export type Database = {
           criado_em: string | null
           descricao: string | null
           duracao_em_semanas: number | null
+          estudante_id: string | null
           id: string
+          nivel: string | null
           nome: string
+          objetivo: string | null
+          periodizacao: Json | null
+          tag: string | null
         }
         Insert: {
           criado_em?: string | null
           descricao?: string | null
           duracao_em_semanas?: number | null
+          estudante_id?: string | null
           id?: string
+          nivel?: string | null
           nome: string
+          objetivo?: string | null
+          periodizacao?: Json | null
+          tag?: string | null
         }
         Update: {
           criado_em?: string | null
           descricao?: string | null
           duracao_em_semanas?: number | null
+          estudante_id?: string | null
           id?: string
+          nivel?: string | null
           nome?: string
+          objetivo?: string | null
+          periodizacao?: Json | null
+          tag?: string | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string
+          title: string
+          type: Database["public"]["Enums"]["notification_type"] | null
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          title: string
+          type?: Database["public"]["Enums"]["notification_type"] | null
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          paid_at: string | null
+          payment_method: string | null
+          status: Database["public"]["Enums"]["payment_status"] | null
+          student_id: string
+          transaction_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          status?: Database["public"]["Enums"]["payment_status"] | null
+          student_id: string
+          transaction_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          status?: Database["public"]["Enums"]["payment_status"] | null
+          student_id?: string
+          transaction_id?: string | null
         }
         Relationships: []
       }
@@ -760,18 +961,21 @@ export type Database = {
         Row: {
           criado_em: string | null
           estudante_id: string | null
+          estudante_id_ref: string | null
           id: string
           modelo_id: string | null
         }
         Insert: {
           criado_em?: string | null
           estudante_id?: string | null
+          estudante_id_ref?: string | null
           id?: string
           modelo_id?: string | null
         }
         Update: {
           criado_em?: string | null
           estudante_id?: string | null
+          estudante_id_ref?: string | null
           id?: string
           modelo_id?: string | null
         }
@@ -846,6 +1050,93 @@ export type Database = {
           },
         ]
       }
+      posts: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          image_url: string | null
+          is_published: boolean | null
+          published_at: string | null
+          target_audience: string | null
+          title: string
+          type: Database["public"]["Enums"]["post_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_published?: boolean | null
+          published_at?: string | null
+          target_audience?: string | null
+          title: string
+          type: Database["public"]["Enums"]["post_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_published?: boolean | null
+          published_at?: string | null
+          target_audience?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["post_type"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          price: number | null
+          stock_quantity: number | null
+          type: Database["public"]["Enums"]["product_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          price?: number | null
+          stock_quantity?: number | null
+          type: Database["public"]["Enums"]["product_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          price?: number | null
+          stock_quantity?: number | null
+          type?: Database["public"]["Enums"]["product_type"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profile_periodization_matches: {
         Row: {
           created_at: string | null
@@ -897,6 +1188,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          date_of_birth: string | null
+          email: string
+          first_name: string | null
+          full_name: string | null
+          id: string
+          is_active: boolean | null
+          last_login: string | null
+          last_name: string | null
+          phone: string | null
+          profile_image_url: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          status: Database["public"]["Enums"]["user_status"] | null
+          subscription_expires_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          email: string
+          first_name?: string | null
+          full_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_login?: string | null
+          last_name?: string | null
+          phone?: string | null
+          profile_image_url?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["user_status"] | null
+          subscription_expires_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          email?: string
+          first_name?: string | null
+          full_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_login?: string | null
+          last_name?: string | null
+          phone?: string | null
+          profile_image_url?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["user_status"] | null
+          subscription_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       program_workouts: {
         Row: {
@@ -1074,6 +1425,51 @@ export type Database = {
         }
         Relationships: []
       }
+      reference_series: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          difficulty_level:
+            | Database["public"]["Enums"]["difficulty_level"]
+            | null
+          duration_weeks: number | null
+          exercises: Json
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          difficulty_level?:
+            | Database["public"]["Enums"]["difficulty_level"]
+            | null
+          duration_weeks?: number | null
+          exercises?: Json
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          difficulty_level?:
+            | Database["public"]["Enums"]["difficulty_level"]
+            | null
+          duration_weeks?: number | null
+          exercises?: Json
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       strength_records: {
         Row: {
           created_at: string
@@ -1110,13 +1506,293 @@ export type Database = {
         }
         Relationships: []
       }
+      student_activity_history: {
+        Row: {
+          activity_date: string
+          activity_name: string
+          activity_type: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          status: string | null
+          student_id: string
+        }
+        Insert: {
+          activity_date?: string
+          activity_name: string
+          activity_type: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          status?: string | null
+          student_id: string
+        }
+        Update: {
+          activity_date?: string
+          activity_name?: string
+          activity_type?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          status?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_activity_history_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_anamnesis: {
+        Row: {
+          category: string
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          questions_answers: Json
+          student_id: string
+          title: string
+        }
+        Insert: {
+          category: string
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          questions_answers?: Json
+          student_id: string
+          title: string
+        }
+        Update: {
+          category?: string
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          questions_answers?: Json
+          student_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_anamnesis_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_measurements: {
+        Row: {
+          altura_cm: number | null
+          circunferencia_braco_cm: number | null
+          circunferencia_cintura_cm: number | null
+          circunferencia_coxa_cm: number | null
+          circunferencia_panturrilha_cm: number | null
+          circunferencia_peitoral_cm: number | null
+          circunferencia_quadril_cm: number | null
+          created_at: string | null
+          gordura_corporal: number | null
+          id: string
+          imc: number | null
+          massa_muscular: number | null
+          measurement_date: string
+          observacoes: string | null
+          peso_kg: number | null
+          student_id: string
+        }
+        Insert: {
+          altura_cm?: number | null
+          circunferencia_braco_cm?: number | null
+          circunferencia_cintura_cm?: number | null
+          circunferencia_coxa_cm?: number | null
+          circunferencia_panturrilha_cm?: number | null
+          circunferencia_peitoral_cm?: number | null
+          circunferencia_quadril_cm?: number | null
+          created_at?: string | null
+          gordura_corporal?: number | null
+          id?: string
+          imc?: number | null
+          massa_muscular?: number | null
+          measurement_date?: string
+          observacoes?: string | null
+          peso_kg?: number | null
+          student_id: string
+        }
+        Update: {
+          altura_cm?: number | null
+          circunferencia_braco_cm?: number | null
+          circunferencia_cintura_cm?: number | null
+          circunferencia_coxa_cm?: number | null
+          circunferencia_panturrilha_cm?: number | null
+          circunferencia_peitoral_cm?: number | null
+          circunferencia_quadril_cm?: number | null
+          created_at?: string | null
+          gordura_corporal?: number | null
+          id?: string
+          imc?: number | null
+          massa_muscular?: number | null
+          measurement_date?: string
+          observacoes?: string | null
+          peso_kg?: number | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_measurements_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_photos: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          photo_category: string | null
+          photo_type: string
+          photo_url: string
+          student_id: string
+          taken_date: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          photo_category?: string | null
+          photo_type: string
+          photo_url: string
+          student_id: string
+          taken_date?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          photo_category?: string | null
+          photo_type?: string
+          photo_url?: string
+          student_id?: string
+          taken_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_photos_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_profiles: {
+        Row: {
+          created_at: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          fitness_goals: string | null
+          id: string
+          medical_conditions: string | null
+          notes: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"] | null
+          teacher_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          fitness_goals?: string | null
+          id?: string
+          medical_conditions?: string | null
+          notes?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          teacher_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          fitness_goals?: string | null
+          id?: string
+          medical_conditions?: string | null
+          notes?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          teacher_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      student_training_assignments: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          start_date: string
+          student_id: string
+          training_data: Json
+          training_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          start_date?: string
+          student_id: string
+          training_data?: Json
+          training_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          start_date?: string
+          student_id?: string
+          training_data?: Json
+          training_name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_training_assignments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           altura_cm: number | null
           ativo: boolean | null
+          cpf: string | null
           created_at: string | null
           data_nascimento: string | null
+          data_vencimento_plano: string | null
           email: string
+          endereco_completo: string | null
+          estado_civil: string | null
+          forma_pagamento: string | null
+          foto_url: string | null
           id: string
           nivel_experiencia: string | null
           nome: string
@@ -1124,15 +1800,26 @@ export type Database = {
           observacoes: string | null
           peso_kg: number | null
           professor_id: string
+          profile_id: string | null
+          profissao: string | null
+          status_pagamento: string | null
           telefone: string | null
           updated_at: string | null
+          valor_mensalidade: number | null
+          whatsapp: string | null
         }
         Insert: {
           altura_cm?: number | null
           ativo?: boolean | null
+          cpf?: string | null
           created_at?: string | null
           data_nascimento?: string | null
+          data_vencimento_plano?: string | null
           email: string
+          endereco_completo?: string | null
+          estado_civil?: string | null
+          forma_pagamento?: string | null
+          foto_url?: string | null
           id?: string
           nivel_experiencia?: string | null
           nome: string
@@ -1140,15 +1827,26 @@ export type Database = {
           observacoes?: string | null
           peso_kg?: number | null
           professor_id: string
+          profile_id?: string | null
+          profissao?: string | null
+          status_pagamento?: string | null
           telefone?: string | null
           updated_at?: string | null
+          valor_mensalidade?: number | null
+          whatsapp?: string | null
         }
         Update: {
           altura_cm?: number | null
           ativo?: boolean | null
+          cpf?: string | null
           created_at?: string | null
           data_nascimento?: string | null
+          data_vencimento_plano?: string | null
           email?: string
+          endereco_completo?: string | null
+          estado_civil?: string | null
+          forma_pagamento?: string | null
+          foto_url?: string | null
           id?: string
           nivel_experiencia?: string | null
           nome?: string
@@ -1156,7 +1854,59 @@ export type Database = {
           observacoes?: string | null
           peso_kg?: number | null
           professor_id?: string
+          profile_id?: string | null
+          profissao?: string | null
+          status_pagamento?: string | null
           telefone?: string | null
+          updated_at?: string | null
+          valor_mensalidade?: number | null
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supersets: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          difficulty_level:
+            | Database["public"]["Enums"]["difficulty_level"]
+            | null
+          exercises: Json
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          difficulty_level?:
+            | Database["public"]["Enums"]["difficulty_level"]
+            | null
+          exercises?: Json
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          difficulty_level?:
+            | Database["public"]["Enums"]["difficulty_level"]
+            | null
+          exercises?: Json
+          id?: string
+          name?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -1339,6 +2089,41 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      uploads_periodizacao: {
+        Row: {
+          arquivo_url: string
+          criado_em: string | null
+          estudante_id: string
+          id: string
+          meta: Json | null
+          nome_arquivo: string | null
+        }
+        Insert: {
+          arquivo_url: string
+          criado_em?: string | null
+          estudante_id: string
+          id?: string
+          meta?: Json | null
+          nome_arquivo?: string | null
+        }
+        Update: {
+          arquivo_url?: string
+          criado_em?: string | null
+          estudante_id?: string
+          id?: string
+          meta?: Json | null
+          nome_arquivo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uploads_periodizacao_estudante_id_fkey"
+            columns: ["estudante_id"]
+            isOneToOne: false
+            referencedRelation: "estudantes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_achievements: {
         Row: {
@@ -1815,6 +2600,50 @@ export type Database = {
           },
         ]
       }
+      workout_assignments_new: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string
+          end_date: string | null
+          id: string
+          notes: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["workout_status"] | null
+          student_id: string
+          workout_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["workout_status"] | null
+          student_id: string
+          workout_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["workout_status"] | null
+          student_id?: string
+          workout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_assignments_new_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts_new"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workout_exercises: {
         Row: {
           created_at: string | null
@@ -1871,6 +2700,98 @@ export type Database = {
             columns: ["exercise_id"]
             isOneToOne: false
             referencedRelation: "exercise_library"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_exercises_new: {
+        Row: {
+          created_at: string | null
+          exercise_id: string
+          id: string
+          notes: string | null
+          order_index: number | null
+          reps: string | null
+          rest_time: number | null
+          sets: number | null
+          weight: number | null
+          workout_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          exercise_id: string
+          id?: string
+          notes?: string | null
+          order_index?: number | null
+          reps?: string | null
+          rest_time?: number | null
+          sets?: number | null
+          weight?: number | null
+          workout_id: string
+        }
+        Update: {
+          created_at?: string | null
+          exercise_id?: string
+          id?: string
+          notes?: string | null
+          order_index?: number | null
+          reps?: string | null
+          rest_time?: number | null
+          sets?: number | null
+          weight?: number | null
+          workout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_exercises_new_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_exercises_new_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts_new"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_logs: {
+        Row: {
+          completed_at: string | null
+          id: string
+          notes: string | null
+          rating: number | null
+          started_at: string | null
+          student_id: string
+          workout_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          notes?: string | null
+          rating?: number | null
+          started_at?: string | null
+          student_id: string
+          workout_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          notes?: string | null
+          rating?: number | null
+          started_at?: string | null
+          student_id?: string
+          workout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_logs_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts_new"
             referencedColumns: ["id"]
           },
         ]
@@ -2132,6 +3053,51 @@ export type Database = {
           },
         ]
       }
+      workouts_new: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          difficulty_level:
+            | Database["public"]["Enums"]["difficulty_level"]
+            | null
+          estimated_duration: number | null
+          id: string
+          is_template: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          difficulty_level?:
+            | Database["public"]["Enums"]["difficulty_level"]
+            | null
+          estimated_duration?: number | null
+          id?: string
+          is_template?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          difficulty_level?:
+            | Database["public"]["Enums"]["difficulty_level"]
+            | null
+          estimated_duration?: number | null
+          id?: string
+          is_template?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       v_periodizations_catalog: {
@@ -2201,6 +3167,17 @@ export type Database = {
         }
         Returns: number
       }
+      gerar_modelo_treino: {
+        Args: {
+          p_estudante_id: string
+          p_nivel: string
+          p_objetivo: string
+          p_periodizacao?: Json
+        }
+        Returns: {
+          modelo_id: string
+        }[]
+      }
       match_periodizations_for_profile: {
         Args: { p_user_profile_id: string }
         Returns: {
@@ -2212,7 +3189,15 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      appointment_status: "scheduled" | "completed" | "cancelled" | "no_show"
+      difficulty_level: "beginner" | "intermediate" | "advanced"
+      notification_type: "info" | "warning" | "success" | "error"
+      payment_status: "pending" | "paid" | "overdue" | "cancelled"
+      post_type: "announcement" | "workout" | "nutrition" | "tips"
+      product_type: "supplement" | "equipment" | "apparel" | "membership"
+      user_role: "admin" | "student" | "professor"
+      user_status: "active" | "inactive" | "suspended"
+      workout_status: "pending" | "active" | "completed" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2339,6 +3324,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      appointment_status: ["scheduled", "completed", "cancelled", "no_show"],
+      difficulty_level: ["beginner", "intermediate", "advanced"],
+      notification_type: ["info", "warning", "success", "error"],
+      payment_status: ["pending", "paid", "overdue", "cancelled"],
+      post_type: ["announcement", "workout", "nutrition", "tips"],
+      product_type: ["supplement", "equipment", "apparel", "membership"],
+      user_role: ["admin", "student", "professor"],
+      user_status: ["active", "inactive", "suspended"],
+      workout_status: ["pending", "active", "completed", "cancelled"],
+    },
   },
 } as const

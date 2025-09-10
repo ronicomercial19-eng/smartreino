@@ -5,13 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Filter, Download, Eye, BarChart3 } from "lucide-react";
+import { Search, Filter, Download, Eye, BarChart3, Dumbbell } from "lucide-react";
 import { workoutModelsService } from '@/services/workoutModelsService';
 import { useToast } from '@/hooks/use-toast';
 import { periodizationNewService, type PeriodizacaoSemanal } from '@/services/periodizationNewService';
 import { trainingStructuresService } from '@/services/trainingStructuresService';
 import { generatedPlansService } from '@/services/generatedPlansService';
 import { simpleModelsService } from '@/services/simpleModelsService';
+import { workoutGenerationService } from '@/services/workoutGenerationService';
+import ModelosTreinoCard, { ModeloTreino } from '@/components/ModelosTreinoCard';
 // Recharts
 import {
   ResponsiveContainer,
@@ -57,6 +59,9 @@ export default function WorkoutModelsDatabase() {
   // NOVO: Associações (planos -> modelos) e "Meus treinos"
   const [myPlans, setMyPlans] = useState<any[] | null>(null);
   const [associatedModel, setAssociatedModel] = useState<any | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedStudent] = useState("123e4567-e89b-12d3-a456-426614174000"); // Mock user ID
+  const [modelosSimples, setModelosSimples] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
@@ -72,16 +77,18 @@ export default function WorkoutModelsDatabase() {
     try {
       setLoading(true);
       console.log('➡️ Carregando modelos, estatísticas e valores distintos...');
-      const [modelsData, statsData, distinct] = await Promise.all([
+      const [modelsData, statsData, distinct, simplesData] = await Promise.all([
         workoutModelsService.getAllWorkoutModels(),
         workoutModelsService.getWorkoutStatistics(),
         workoutModelsService.getDistinctValues(),
+        simpleModelsService.getById("").catch(() => []) // Carregar modelos personalizados
       ]);
 
       setModels(modelsData || []);
       setFilteredModels(modelsData || []);
       setStats(statsData);
       setDistinctValues(distinct);
+      setModelosSimples(Array.isArray(simplesData) ? simplesData : []);
       console.log('✅ Dados carregados com sucesso');
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -93,6 +100,77 @@ export default function WorkoutModelsDatabase() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGerarModelo = async (modelo: ModeloTreino) => {
+    if (!selectedStudent) {
+      toast({
+        title: "Erro",
+        description: "Usuário não autenticado",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      
+      const canGenerate = await workoutGenerationService.validarPermissaoGeracao(selectedStudent);
+      if (!canGenerate) {
+        toast({
+          title: "Erro",
+          description: "Você não tem permissão para gerar modelos",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const result = await workoutGenerationService.gerarModelo({
+        estudante_id: selectedStudent,
+        objetivo: modelo.objetivo || 'hipertrofia',
+        nivel: modelo.nivel || 'intermediario',
+        periodizacao: modelo.periodizacao || {}
+      });
+
+      toast({
+        title: "Sucesso",
+        description: `Modelo gerado com sucesso! ID: ${result.modelo_id}`,
+      });
+
+      // Recarregar dados
+      loadData();
+      
+    } catch (error: any) {
+      console.error('Erro ao gerar modelo:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Falha ao gerar modelo de treino",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleEditarModelo = (modelo: ModeloTreino) => {
+    toast({
+      title: "Em desenvolvimento",
+      description: "Funcionalidade de edição será implementada em breve",
+    });
+  };
+
+  // Converter modelos para interface unificada
+  const convertToModeloTreino = (models: any[]): ModeloTreino[] => {
+    return models.map(model => ({
+      id: model.id,
+      nome: model.name || model.nome || 'Modelo sem nome',
+      descricao: model.description || model.descricao,
+      objetivo: model.goal || model.objetivo,
+      nivel: model.level || model.nivel,
+      duracao_em_semanas: model.duration_weeks || model.duracao_em_semanas,
+      estudante_id: model.estudante_id,
+      tag: model.tag
+    }));
   };
 
   const applyFilters = async () => {
@@ -350,42 +428,35 @@ export default function WorkoutModelsDatabase() {
 
         <TabsContent value="grid" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredModels.map((model) => (
-              <Card key={model.id} className="glass border-border/50 card-hover">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="font-heading text-lg">
-                      {model.name}
-                    </CardTitle>
-                    <div className="flex gap-1">
-                      <Badge variant="secondary" className="text-xs">
-                        {model.level}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {model.periodization_phase}
-                      </Badge>
-                    </div>
-                  </div>
-                  <CardDescription className="line-clamp-2">
-                    {model.general_objective}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="text-sm space-y-1">
-                    <p><strong>Metodologia:</strong> {model.method_description}</p>
-                    <p><strong>Semana:</strong> {model.week_number}</p>
-                    <p><strong>Estímulo:</strong> {model.stimulus_type}</p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1 btn-glow">
-                      <Eye className="mr-2 h-4 w-4" />
-                      Visualizar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+            {convertToModeloTreino(filteredModels).map((modelo) => (
+              <ModelosTreinoCard
+                key={modelo.id}
+                modelo={modelo}
+                onEditar={handleEditarModelo}
+                onGerar={handleGerarModelo}
+                isOwner={!!selectedStudent}
+                isLoading={isGenerating}
+              />
             ))}
+          </div>
+
+          <div className="mt-8">
+            <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <Dumbbell className="h-5 w-5" />
+              Modelos Personalizados
+            </h3>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {convertToModeloTreino(modelosSimples).map((modelo) => (
+                <ModelosTreinoCard
+                  key={modelo.id}
+                  modelo={modelo}
+                  onEditar={handleEditarModelo}
+                  onGerar={handleGerarModelo}
+                  isOwner={!!selectedStudent}
+                  isLoading={isGenerating}
+                />
+              ))}
+            </div>
           </div>
         </TabsContent>
 

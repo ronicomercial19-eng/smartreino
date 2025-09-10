@@ -120,6 +120,17 @@ const AdminStudentManagement = () => {
     }
 
     try {
+      console.log("📝 Criando aluno:", newStudent);
+      
+      // Validações client-side
+      if (!newStudent.email?.includes('@')) {
+        throw new Error("Email inválido");
+      }
+      
+      if (!newStudent.nome?.trim()) {
+        throw new Error("Nome é obrigatório");
+      }
+
       const createdStudent = await StudentsService.createStudent(newStudent);
       
       // Mapear o novo aluno para a interface local
@@ -147,11 +158,24 @@ const AdminStudentManagement = () => {
         title: "Sucesso",
         description: "Aluno adicionado com sucesso!",
       });
-    } catch (error) {
-      console.error('Erro inesperado:', error);
+      
+      console.log("✅ Aluno criado:", createdStudent);
+    } catch (error: any) {
+      console.error('❌ Erro ao criar aluno:', error);
+      
+      let errorMessage = "Erro ao criar aluno. Tente novamente.";
+      
+      if (error?.message?.includes('duplicate key')) {
+        errorMessage = "Email já está em uso por outro aluno.";
+      } else if (error?.message?.includes('invalid')) {
+        errorMessage = "Dados inválidos fornecidos.";
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Erro",
-        description: "Ocorreu um erro inesperado ao adicionar o aluno.",
+        description: errorMessage,
         variant: "destructive"
       });
     }
