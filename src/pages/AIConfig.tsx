@@ -117,7 +117,7 @@ const AIConfig = () => {
             </div>
             <Badge variant="outline" className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
               <Settings className="h-4 w-4 mr-1" />
-              {userProfile?.level}
+              {userProfile?.level || 'intermediario'}
             </Badge>
           </div>
         </div>

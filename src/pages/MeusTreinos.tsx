@@ -8,6 +8,7 @@ import { generatedPlansService, GeneratedPlan } from "@/services/generatedPlansS
 import { simpleModelsService, SimpleModel } from "@/services/simpleModelsService";
 import { periodizationNewService, PeriodizacaoSemanal } from "@/services/periodizationNewService";
 import { useToast } from "@/hooks/use-toast";
+import { authService } from "@/services/authService";
 
 export default function MeusTreinos() {
   const [planos, setPlanos] = useState<GeneratedPlan[]>([]);
@@ -16,14 +17,32 @@ export default function MeusTreinos() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Mock estudante ID - replace with actual user context
-  const estudanteId = "123e4567-e89b-12d3-a456-426614174000";
+  const [estudanteId, setEstudanteId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadData();
+    const initializeUser = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        if (user) {
+          setEstudanteId(user.id);
+        }
+      } catch (error) {
+        console.error('Erro ao obter usuário:', error);
+      }
+    };
+
+    initializeUser();
   }, []);
 
+  useEffect(() => {
+    if (estudanteId) {
+      loadData();
+    }
+  }, [estudanteId]);
+
   const loadData = async () => {
+    if (!estudanteId) return;
+    
     try {
       setLoading(true);
       
