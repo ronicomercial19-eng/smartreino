@@ -8,13 +8,22 @@ export interface WorkoutGenerationParams {
 }
 
 // Legacy exports for compatibility
-export type WorkoutGoal = string;
+export interface WorkoutGoal {
+  type: string;
+  duration: number;
+  intensity: string;
+  muscleGroups: string[];
+}
 export interface GeneratedWorkout {
   id: string;
   name: string;
   exercises: any[];
   duration?: number;
   difficulty?: string;
+  description?: string;
+  targetPSE?: number;
+  estimatedCalories?: number;
+  type?: string;
 }
 
 export const workoutGenerationService = {
@@ -119,7 +128,7 @@ export const workoutGenerationService = {
     };
   },
 
-  async suggestNextWorkout(userId: string): Promise<GeneratedWorkout> {
+  async suggestNextWorkout(userId: string, ..._rest: any[]): Promise<GeneratedWorkout> {
     return this.generatePersonalizedWorkout({
       userId,
       goal: 'progression',

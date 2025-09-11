@@ -55,7 +55,7 @@ const WorkoutModels = () => {
           muscleGroups: getMuscleGroupsForCategory(selectedCategory)
         };
 
-        const workout = workoutGenerationService.generatePersonalizedWorkout(
+        const workout = await workoutGenerationService.generatePersonalizedWorkout(
           userProfile,
           workoutGoal,
           []

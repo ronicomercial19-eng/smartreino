@@ -20,12 +20,12 @@ interface QuickAction {
 class EnhancedContextualAIService {
   
   // Análise avançada do usuário com geração de treinos (integrada com configurações)
-  analyzeUserAndGenerateRecommendations(context: UserContext): {
+  async analyzeUserAndGenerateRecommendations(context: UserContext): Promise<{
     analysis: AIAnalysis;
     suggestedWorkout?: GeneratedWorkout;
     insights: string[];
     quickActions: QuickAction[];
-  } {
+  }> {
     
     // Verificar se as funcionalidades estão habilitadas
     const isAnalysisEnabled = AIConfigService.isFeatureEnabled('contextual-analysis');
@@ -38,7 +38,7 @@ class EnhancedContextualAIService {
     if (isWorkoutGenEnabled) {
       // Gerar sugestão de treino personalizada baseada nas configurações
       const workoutGoal = this.buildConfiguredWorkoutGoal(context);
-      suggestedWorkout = workoutGenerationService.generatePersonalizedWorkout(
+      suggestedWorkout = await workoutGenerationService.generatePersonalizedWorkout(
         context.profile,
         workoutGoal,
         context.recentWorkouts
@@ -60,10 +60,10 @@ class EnhancedContextualAIService {
   }
 
   // Resposta contextual aprimorada com IA (integrada com configurações)
-  generateEnhancedResponse(
+  async generateEnhancedResponse(
     userMessage: string, 
     context: UserContext
-  ): EnhancedAIResponse {
+  ): Promise<EnhancedAIResponse> {
     
     // Verificar se o chatbot está habilitado
     if (!AIConfigService.isFeatureEnabled('chatbot')) {
@@ -77,7 +77,7 @@ class EnhancedContextualAIService {
     const analysis = contextualAI.analyzeUser(context);
     
     // Aplicar configurações de estilo à resposta
-    const baseResponse = this.generateBaseResponse(message, context, analysis);
+    const baseResponse = await this.generateBaseResponse(message, context, analysis);
     const styledResponse = this.applyResponseStyle(baseResponse, context);
     
     return styledResponse;
@@ -181,13 +181,13 @@ class EnhancedContextualAIService {
     return actions;
   }
 
-  private generateBaseResponse(message: string, context: UserContext, analysis: AIAnalysis): EnhancedAIResponse {
+  private async generateBaseResponse(message: string, context: UserContext, analysis: AIAnalysis): Promise<EnhancedAIResponse> {
     // Detectar intenção do usuário
     const intent = this.detectUserIntent(message);
     
     switch (intent) {
       case 'workout_request':
-        return this.handleWorkoutRequest(message, context);
+        return await this.handleWorkoutRequest(message, context);
       case 'progress_analysis':
         return this.handleProgressAnalysis(context);
       case 'motivation_needed':
@@ -284,7 +284,7 @@ class EnhancedContextualAIService {
     return 'general';
   }
 
-  private handleWorkoutRequest(message: string, context: UserContext): EnhancedAIResponse {
+  private async handleWorkoutRequest(message: string, context: UserContext): Promise<EnhancedAIResponse> {
     const settings = AIConfigService.getSettings();
     
     if (!settings.workoutGenerationEnabled) {
@@ -302,7 +302,7 @@ class EnhancedContextualAIService {
     
     // Gerar treino personalizado baseado nas configurações
     const workoutGoal = this.buildConfiguredWorkoutGoal(context);
-    const workout = workoutGenerationService.generatePersonalizedWorkout(
+    const workout = await workoutGenerationService.generatePersonalizedWorkout(
       context.profile,
       workoutGoal,
       context.recentWorkouts

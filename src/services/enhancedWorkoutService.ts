@@ -32,7 +32,7 @@ interface SmartWorkoutSuggestion {
 class EnhancedWorkoutService {
   
   // Gerar treino com IA aprimorada baseada nas configurações do usuário
-  generateSmartWorkout(request: EnhancedWorkoutRequest): SmartWorkoutSuggestion {
+  async generateSmartWorkout(request: EnhancedWorkoutRequest): Promise<SmartWorkoutSuggestion> {
     // Verificar se a geração de treinos está habilitada
     if (!AIConfigService.isFeatureEnabled('workout-generation')) {
       throw new Error('Geração de treinos por IA está desabilitada');
@@ -44,7 +44,7 @@ class EnhancedWorkoutService {
     const enhancedGoal = this.buildEnhancedGoal(request, settings);
     
     // Gerar treino base
-    const baseWorkout = workoutGenerationService.generatePersonalizedWorkout(
+    const baseWorkout = await workoutGenerationService.generatePersonalizedWorkout(
       request.userProfile,
       enhancedGoal,
       request.contextualData?.recentWorkouts || []
@@ -60,7 +60,7 @@ class EnhancedWorkoutService {
     const motivationalMessage = this.generateMotivationalMessage(request, settings);
     
     // Preview do próximo treino
-    const nextWorkoutPreview = this.generateNextWorkoutPreview(request);
+    const nextWorkoutPreview = await this.generateNextWorkoutPreview(request);
 
     return {
       workout: adaptedWorkout,
@@ -197,12 +197,12 @@ class EnhancedWorkoutService {
     return styleMessages[Math.floor(Math.random() * styleMessages.length)];
   }
 
-  private generateNextWorkoutPreview(request: EnhancedWorkoutRequest): string {
+  private async generateNextWorkoutPreview(request: EnhancedWorkoutRequest): Promise<string> {
     const { userProfile, contextualData } = request;
     
     // Sugerir próximo treino baseado no padrão atual
     const lastWorkouts = contextualData?.recentWorkouts?.slice(0, 3) || [];
-    const suggestion = workoutGenerationService.suggestNextWorkout(userProfile, lastWorkouts);
+    const suggestion = await workoutGenerationService.suggestNextWorkout(userProfile.id);
     
     return `Próximo treino sugerido: ${suggestion.type === 'forca' ? 'Treino de Força' : 
       suggestion.type === 'perda-peso' ? 'Treino Queima Calorias' : 

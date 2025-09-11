@@ -41,22 +41,23 @@ const ContextualAIChat = () => {
   const [inputText, setInputText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
-  // Inicializar chat com análise personalizada avançada
   useEffect(() => {
     if (userContext && !loading) {
-      const enhancedAnalysis = enhancedContextualAI.analyzeUserAndGenerateRecommendations(userContext);
+      (async () => {
+        const enhancedAnalysis = await enhancedContextualAI.analyzeUserAndGenerateRecommendations(userContext);
 
-      const welcomeMessage: Message = {
-        id: 1,
-        text: `Olá, ${userContext.profile.name}! 👋\n\n${enhancedAnalysis.analysis.motivationalMessage}\n\n🧠 **Análise Inteligente Completa:**\n• Estado atual: ${getStateEmoji(enhancedAnalysis.analysis.userState)} ${enhancedAnalysis.analysis.userState}\n• Treinos esta semana: ${userContext.performanceMetrics.weeklyFrequency}\n• PSE médio: ${userContext.performanceMetrics.averagePSE.toFixed(1)}\n• Tendência: ${getTrendEmoji(userContext.performanceMetrics.progressTrend)} ${userContext.performanceMetrics.progressTrend}\n\n💡 **Insights Personalizados:**\n${enhancedAnalysis.insights.map(insight => `• ${insight}`).join('\n')}\n\n🎯 **Treino Sugerido Hoje:**\n${enhancedAnalysis.suggestedWorkout?.name} - ${enhancedAnalysis.suggestedWorkout?.duration}min\nPSE Alvo: ${enhancedAnalysis.suggestedWorkout?.targetPSE}/10`,
-        sender: 'ai',
-        timestamp: new Date(),
-        type: 'analysis',
-        workout: enhancedAnalysis.suggestedWorkout,
-        quickActions: enhancedAnalysis.quickActions
-      };
+        const welcomeMessage: Message = {
+          id: 1,
+          text: `Olá, ${userContext.profile.name}! 👋\n\n${enhancedAnalysis.analysis.motivationalMessage}\n\n🧠 **Análise Inteligente Completa:**\n• Estado atual: ${getStateEmoji(enhancedAnalysis.analysis.userState)} ${enhancedAnalysis.analysis.userState}\n• Treinos esta semana: ${userContext.performanceMetrics.weeklyFrequency}\n• PSE médio: ${userContext.performanceMetrics.averagePSE.toFixed(1)}\n• Tendência: ${getTrendEmoji(userContext.performanceMetrics.progressTrend)} ${userContext.performanceMetrics.progressTrend}\n\n💡 **Insights Personalizados:**\n${enhancedAnalysis.insights.map(insight => `• ${insight}`).join('\n')}\n\n🎯 **Treino Sugerido Hoje:**\n${enhancedAnalysis.suggestedWorkout?.name} - ${enhancedAnalysis.suggestedWorkout?.duration}min\nPSE Alvo: ${enhancedAnalysis.suggestedWorkout?.targetPSE}/10`,
+          sender: 'ai',
+          timestamp: new Date(),
+          type: 'analysis',
+          workout: enhancedAnalysis.suggestedWorkout,
+          quickActions: enhancedAnalysis.quickActions
+        };
 
-      setMessages([welcomeMessage]);
+        setMessages([welcomeMessage]);
+      })();
     }
   }, [userContext, loading]);
 
@@ -100,9 +101,8 @@ const ContextualAIChat = () => {
     setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
 
-    // Gerar resposta contextual aprimorada
-    setTimeout(() => {
-      const enhancedResponse = enhancedContextualAI.generateEnhancedResponse(inputText, userContext);
+    setTimeout(async () => {
+      const enhancedResponse = await enhancedContextualAI.generateEnhancedResponse(inputText, userContext);
       
       const aiMessage: Message = {
         id: messages.length + 2,
