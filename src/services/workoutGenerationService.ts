@@ -111,21 +111,77 @@ export const workoutGenerationService = {
   },
 
   // Legacy methods for compatibility
-  async generatePersonalizedWorkout(params: any): Promise<GeneratedWorkout> {
-    const result = await this.gerarModelo({
-      estudante_id: params.userId || params.estudante_id,
-      objetivo: params.goal || params.objetivo || 'hipertrofia',
-      nivel: params.level || params.nivel || 'intermediario',
-      periodizacao: params.periodizacao || {}
-    });
+  async generatePersonalizedWorkout(...args: any[]): Promise<GeneratedWorkout> {
+    let params: any = {};
 
-    return {
-      id: result.modelo_id,
-      name: `Treino ${params.goal || 'personalizado'}`,
-      exercises: [],
-      duration: 60,
-      difficulty: params.level || 'intermediario'
-    };
+    if (args.length === 1) {
+      // Backward compatible: single params object
+      params = args[0] || {};
+    } else if (args.length >= 2) {
+      // New style: (userProfile, workoutGoal, recentWorkouts)
+      const [profile, goal, recentWorkouts] = args;
+      params = {
+        userId: profile?.id || profile?.userId || profile?.estudante_id,
+        goal: goal?.type || profile?.objective || 'hipertrofia',
+        level: profile?.level || 'intermediario',
+        periodizacao: {
+          duration: goal?.duration,
+          intensity: goal?.intensity,
+          muscleGroups: goal?.muscleGroups,
+          recentWorkouts: recentWorkouts || []
+        }
+      };
+    }
+
+    try {
+      if (!params.userId && !params.estudante_id) {
+        // No valid user id, return a local stub so UI can preview
+        return {
+          id: `temp_${Date.now()}`,
+          name: `Treino ${params.goal || 'personalizado'}`,
+          exercises: [],
+          duration: params.periodizacao?.duration || 60,
+          difficulty: params.level || 'intermediario',
+          type: params.goal || 'personalizado',
+          targetPSE: params.periodizacao?.intensity === 'alta' ? 8 : params.periodizacao?.intensity === 'moderada' ? 7 : 6,
+          estimatedCalories: 350,
+          description: 'Pré-visualização local do treino.'
+        };
+      }
+
+      const result = await this.gerarModelo({
+        estudante_id: params.userId || params.estudante_id,
+        objetivo: params.goal || params.objetivo || 'hipertrofia',
+        nivel: params.level || params.nivel || 'intermediario',
+        periodizacao: params.periodizacao || {}
+      });
+
+      return {
+        id: result.modelo_id,
+        name: `Treino ${params.goal || 'personalizado'}`,
+        exercises: [],
+        duration: params.periodizacao?.duration || 60,
+        difficulty: params.level || 'intermediario',
+        type: params.goal || 'personalizado',
+        targetPSE: params.periodizacao?.intensity === 'alta' ? 8 : params.periodizacao?.intensity === 'moderada' ? 7 : 6,
+        estimatedCalories: 350,
+        description: 'Modelo gerado via Supabase RPC.'
+      };
+    } catch (e) {
+      console.error('❌ Erro ao gerar treino personalizado:', e);
+      // Fallback seguro
+      return {
+        id: `temp_${Date.now()}`,
+        name: `Treino ${params.goal || 'personalizado'}`,
+        exercises: [],
+        duration: params.periodizacao?.duration || 60,
+        difficulty: params.level || 'intermediario',
+        type: params.goal || 'personalizado',
+        targetPSE: params.periodizacao?.intensity === 'alta' ? 8 : params.periodizacao?.intensity === 'moderada' ? 7 : 6,
+        estimatedCalories: 320,
+        description: 'Fallback local devido a erro na geração.'
+      };
+    }
   },
 
   async suggestNextWorkout(userId: string, ..._rest: any[]): Promise<GeneratedWorkout> {
