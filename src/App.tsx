@@ -22,6 +22,9 @@ import AdminStudentManagement from "./pages/AdminStudentManagement";
 import StudentInterface from "./pages/StudentInterface";
 import PeriodizationUpload from "./pages/PeriodizationUpload";
 import Profile from "./pages/Profile";
+import MeusTreinos from "./pages/MeusTreinos";
+import UserSettings from "./pages/UserSettings";
+import AdvancedAnalytics from "./components/AdvancedAnalytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -113,6 +116,9 @@ const App = () => {
                     <Route path="/periodizacao/upload" element={<Navigate to="/periodization-upload" replace />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/perfil" element={<Navigate to="/profile" replace />} />
+                    <Route path="/meus-treinos" element={<MeusTreinos />} />
+                    <Route path="/settings" element={<UserSettings />} />
+                    <Route path="/analytics" element={<AdvancedAnalytics />} />
                     <Route path="*" element={<NotFound />} />
                   </>
                 )}

@@ -12,7 +12,9 @@ import {
   Users, 
   GraduationCap,
   ChevronDown,
-  BarChart3
+  BarChart3,
+  Target,
+  TrendingUp
 } from "lucide-react";
 
 import {
@@ -52,6 +54,16 @@ const navigationItems = [
     ],
   },
   {
+    title: "Meus Treinos",
+    url: "/meus-treinos",
+    icon: Target,
+  },
+  {
+    title: "Analytics",
+    url: "/analytics",
+    icon: TrendingUp,
+  },
+  {
     title: "Periodização",
     icon: BarChart3,
     items: [
@@ -89,6 +101,11 @@ const navigationItems = [
         url: "/admin-students",
       },
     ],
+  },
+  {
+    title: "Configurações",
+    url: "/settings",
+    icon: Settings,
   },
   {
     title: "Interface Aluno",
