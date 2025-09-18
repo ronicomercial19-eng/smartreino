@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import Navigation from "@/components/Navigation";
+import { AppLayout } from "@/components/AppLayout";
 import EnhancedExerciseCard from "@/components/EnhancedExerciseCard";
 import { completeExerciseDatabase, getCompleteExerciseStats } from "@/data/exerciseDatabase";
 import { 
@@ -71,17 +71,18 @@ const ExerciseLibrary = () => {
   });
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold font-heading gradient-text">
-            🏋️ Biblioteca Completa de Exercícios
-          </h1>
-          <p className="text-muted-foreground">
-            {stats.total} exercícios categorizados para todos os níveis e objetivos
-          </p>
+    <AppLayout>
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold font-heading gradient-text">
+              🏋️ Biblioteca Completa de Exercícios
+            </h1>
+            <p className="text-muted-foreground">
+              {stats.total} exercícios categorizados para todos os níveis e objetivos
+            </p>
+          </div>
         </div>
-      </div>
 
       {/* Estatísticas Expandidas */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
@@ -264,7 +265,8 @@ const ExerciseLibrary = () => {
             </CardContent>
           </Card>
         )}
-    </div>
+      </div>
+    </AppLayout>
   );
 };
 

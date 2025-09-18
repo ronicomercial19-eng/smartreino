@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Navigation from "@/components/Navigation";
+import { AppLayout } from "@/components/AppLayout";
 import PeriodizationPasteArea from "@/components/PeriodizationPasteArea";
 import PeriodizationAnalysisResults from "@/components/PeriodizationAnalysisResults";
 import ExerciseSelection from "@/components/ExerciseSelection";
@@ -195,38 +195,39 @@ const PeriodizationUpload = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="container mx-auto px-4">
-      {/* Enhanced Header */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold font-heading gradient-text flex items-center gap-3">
-            <Brain className="h-8 w-8 text-primary" />
-            TrainSync Smart Training
-          </h1>
-          <p className="text-muted-foreground">
-            Configure, analise e gere treinos profissionais com IA
-          </p>
+    <AppLayout>
+      <div className="space-y-6 animate-fade-in">
+        {/* Enhanced Header */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold font-heading gradient-text flex items-center gap-3">
+              <Brain className="h-8 w-8 text-primary" />
+              TrainSync Smart Training
+            </h1>
+            <p className="text-muted-foreground">
+              Configure, analise e gere treinos profissionais com IA
+            </p>
+          </div>
         </div>
-      </div>
-      <div className="flex flex-wrap gap-3">
-        <Badge className="bg-primary/20 text-primary border-primary/30 px-3 py-1">
-          <Cpu className="h-4 w-4 mr-2" />
-          IA Powered
-        </Badge>
-        <Badge className="bg-muted/50 text-muted-foreground border-muted">
-          <BarChart3 className="h-4 w-4 mr-2" />
-          Análise Avançada
-        </Badge>
-        <Badge className="bg-muted/50 text-muted-foreground border-muted">
-          <FileText className="h-4 w-4 mr-2" />
-          Relatórios PDF
-        </Badge>
-        <Badge className="bg-muted/50 text-muted-foreground border-muted">
-          <Activity className="h-4 w-4 mr-2" />
-          Analytics Real-time
-        </Badge>
-      </div>
+
+        <div className="flex flex-wrap gap-3">
+          <Badge className="bg-primary/20 text-primary border-primary/30 px-3 py-1">
+            <Cpu className="h-4 w-4 mr-2" />
+            IA Powered
+          </Badge>
+          <Badge className="bg-muted/50 text-muted-foreground border-muted">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Análise Avançada
+          </Badge>
+          <Badge className="bg-muted/50 text-muted-foreground border-muted">
+            <FileText className="h-4 w-4 mr-2" />
+            Relatórios PDF
+          </Badge>
+          <Badge className="bg-muted/50 text-muted-foreground border-muted">
+            <Activity className="h-4 w-4 mr-2" />
+            Analytics Real-time
+          </Badge>
+        </div>
 
         {/* Main Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -313,65 +314,6 @@ const PeriodizationUpload = () => {
                       </div>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-muted-foreground">Grupo Prioritário</Label>
-                        <Input
-                          placeholder="Ex: Pernas, Braços, Core..."
-                          value={formData.grupo_prioritario}
-                          onChange={(e) => handleInputChange("grupo_prioritario", e.target.value)}
-                          className="bg-input border-border text-foreground placeholder:text-muted-foreground"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-muted-foreground">Dias por Semana</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="7"
-                          placeholder="3-6 dias"
-                          value={formData.dias_semana}
-                          onChange={(e) => handleInputChange("dias_semana", e.target.value)}
-                          className="bg-input border-border text-foreground placeholder:text-muted-foreground"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-muted-foreground">Variabilidade de Exercícios</Label>
-                        <Select 
-                          value={formData.variabilidade} 
-                          onValueChange={(value) => handleInputChange("variabilidade", value)}
-                        >
-                          <SelectTrigger className="bg-input border-border text-foreground">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-popover border-border">
-                            <SelectItem value="sim">✅ Sim, quero variar</SelectItem>
-                            <SelectItem value="nao">❌ Não, manter constante</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-muted-foreground">Complexidade</Label>
-                        <Select 
-                          value={formData.complexidade} 
-                          onValueChange={(value) => handleInputChange("complexidade", value)}
-                        >
-                          <SelectTrigger className="bg-input border-border text-foreground">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-popover border-border">
-                            <SelectItem value="basico">🟢 Prefiro simples</SelectItem>
-                            <SelectItem value="avancado">🔴 Quero avançado</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
                     <div className="space-y-2">
                       <Label className="text-muted-foreground">Limitações/Lesões</Label>
                       <Textarea
@@ -422,124 +364,131 @@ const PeriodizationUpload = () => {
             </div>
           </TabsContent>
 
-          {/* Treinos Tab with Exercise Selection */}
+          {/* Meus Treinos Tab */}
           <TabsContent value="treinos" className="space-y-6">
-            {showExerciseSelection && analysisResult ? (
-              <ExerciseSelection
-                analysisData={analysisResult}
-                onExercisesSelected={handleExercisesSelected}
-              />
-            ) : analysisResult ? (
-              <Card className="bg-card border-border">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-card-foreground">
-                    <Dumbbell className="h-6 w-6 text-primary" />
-                    <span>Treino Gerado com Sucesso</span>
-                    {selectedExercises.length > 0 && (
-                      <Badge className="bg-green-500/20 text-green-600">
-                        {selectedExercises.length} exercícios selecionados
-                      </Badge>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <PeriodizationAnalysisResults
-                    analysisData={analysisResult}
-                    onGeneratePDF={handleGeneratePDF}
-                    onGenerateLink={handleGenerateLink}
-                  />
-                  
-                  {selectedExercises.length === 0 && (
-                    <div className="mt-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-orange-600">Selecione os Exercícios</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Complete seu treino selecionando exercícios específicos.
-                          </p>
-                        </div>
-                        <Button 
-                          onClick={() => setShowExerciseSelection(true)}
-                          className="bg-primary hover:bg-primary/90"
-                        >
-                          <Target className="h-4 w-4 mr-2" />
-                          Selecionar Exercícios
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="bg-card border-border">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-card-foreground">
-                    <Dumbbell className="h-6 w-6 text-primary" />
-                    <span>Meus Treinos Gerados</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <Activity className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground text-lg">
-                      Nenhum treino gerado ainda. Configure e gere seu primeiro treino!
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="analytics" className="space-y-6">
-            <Card className="bg-card border-border">
+            <Card className="glass border-border/50">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-card-foreground">
-                  <TrendingUp className="h-6 w-6 text-primary" />
-                  <span>Analytics Semanal</span>
-                </CardTitle>
+                <CardTitle className="font-heading text-foreground">📋 Meus Treinos Gerados</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-12">
-                  <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground text-lg">
-                    Gráficos e estatísticas em desenvolvimento...
-                  </p>
-                </div>
+                {analysisResult ? (
+                  <div className="space-y-6">
+                    <PeriodizationAnalysisResults
+                      result={analysisResult}
+                      onBack={() => setActiveTab("configuracao")}
+                    />
+                    
+                    {showExerciseSelection && (
+                      <ExerciseSelection
+                        selectedExercises={selectedExercises}
+                        onExercisesSelected={handleExercisesSelected}
+                        isOpen={showExerciseSelection}
+                        onClose={() => setShowExerciseSelection(false)}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Dumbbell className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold font-heading mb-2 text-foreground">Nenhum treino gerado ainda</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Configure seus dados na aba "Configuração" para gerar treinos personalizados
+                    </p>
+                    <Button 
+                      onClick={() => setActiveTab("configuracao")}
+                      className="btn-glow"
+                    >
+                      <Target className="h-4 w-4 mr-2" />
+                      Ir para Configuração
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            <div className="grid lg:grid-cols-2 gap-6">
+              <Card className="glass border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 font-heading text-foreground">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    <span>Performance Analytics</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="text-center p-8">
+                      <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold font-heading mb-2 text-foreground">Analytics em Desenvolvimento</h3>
+                      <p className="text-muted-foreground">
+                        Gráficos de performance e insights serão exibidos aqui
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="glass border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 font-heading text-foreground">
+                    <Activity className="h-5 w-5 text-primary" />
+                    <span>Estatísticas Detalhadas</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="text-center p-8">
+                      <Clock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold font-heading mb-2 text-foreground">Relatórios Avançados</h3>
+                      <p className="text-muted-foreground">
+                        Análises detalhadas de progresso e adaptações
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Relatórios Tab */}
           <TabsContent value="relatorios" className="space-y-6">
-            <Card className="bg-card border-border">
+            <Card className="glass border-border/50">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2 text-card-foreground">
-                  <FileText className="h-6 w-6 text-primary" />
-                  <span>Relatório Geral</span>
+                <CardTitle className="flex items-center space-x-2 font-heading text-foreground">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <span>Geração de Relatórios</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-12">
-                  <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground text-lg mb-4">
-                    Relatórios completos e exportação em PDF disponível após gerar treinos.
-                  </p>
-                  <div className="flex justify-center gap-4">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h3 className="font-semibold font-heading text-foreground">📄 Relatório PDF</h3>
+                    <p className="text-muted-foreground">
+                      Gere um relatório completo com seus treinos e análises
+                    </p>
                     <Button 
                       onClick={handleGeneratePDF}
-                      className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                      disabled={!analysisResult}
+                      className="w-full btn-glow"
                     >
                       <FileText className="h-4 w-4 mr-2" />
-                      Exportar PDF
+                      Gerar PDF
                     </Button>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="font-semibold font-heading text-foreground">🔗 Link Compartilhável</h3>
+                    <p className="text-muted-foreground">
+                      Crie um link para compartilhar seus resultados
+                    </p>
                     <Button 
                       onClick={handleGenerateLink}
                       variant="outline"
-                      className="border-primary text-primary hover:bg-primary/10"
-                      disabled={!analysisResult}
+                      className="w-full"
                     >
-                      <Lightbulb className="h-4 w-4 mr-2" />
-                      Compartilhar Link
+                      <Users className="h-4 w-4 mr-2" />
+                      Gerar Link
                     </Button>
                   </div>
                 </div>
@@ -548,7 +497,7 @@ const PeriodizationUpload = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </AppLayout>
   );
 };
 

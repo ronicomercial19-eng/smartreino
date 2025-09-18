@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Filter, Download, Eye, BarChart3, Dumbbell } from "lucide-react";
+import { AppLayout } from "@/components/AppLayout";
 import { workoutModelsService } from '@/services/workoutModelsService';
 import { useToast } from '@/hooks/use-toast';
 import { periodizationNewService, type PeriodizacaoSemanal } from '@/services/periodizationNewService';
@@ -305,21 +306,22 @@ export default function WorkoutModelsDatabase() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold font-heading gradient-text">
-            Base de Dados - Modelos de Treino
-          </h1>
-          <p className="text-muted-foreground">
-            Explore e analise todos os modelos de treino disponíveis.
-          </p>
+    <AppLayout>
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold font-heading gradient-text">
+              Base de Dados - Modelos de Treino
+            </h1>
+            <p className="text-muted-foreground">
+              Explore e analise todos os modelos de treino disponíveis.
+            </p>
+          </div>
+          <Button onClick={handleExport} className="btn-glow">
+            <Download className="mr-2 h-4 w-4" />
+            Exportar Dados
+          </Button>
         </div>
-        <Button onClick={handleExport} className="btn-glow">
-          <Download className="mr-2 h-4 w-4" />
-          Exportar Dados
-        </Button>
-      </div>
 
       {stats && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -684,6 +686,7 @@ export default function WorkoutModelsDatabase() {
           </CardContent>
         </Card>
       )}
-    </div>
+      </div>
+    </AppLayout>
   );
 }
