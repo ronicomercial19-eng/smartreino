@@ -195,42 +195,38 @@ const PeriodizationUpload = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-      <div className="container mx-auto px-4 py-8">
-        {/* Enhanced Header */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="w-2 h-16 bg-gradient-to-b from-primary to-orange-600 rounded-full"></div>
-            <div>
-              <h1 className="text-5xl font-bold gradient-text mb-2 flex items-center space-x-4">
-                <Brain className="h-12 w-12 text-primary" />
-                <span>9Fit Smart Training</span>
-              </h1>
-              <p className="text-muted-foreground text-xl">
-                Painel de Montagem de Treino Inteligente - Configure, analise e gere treinos profissionais com IA
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Badge className="bg-primary/20 text-primary border-primary/30 px-3 py-1">
-              <Cpu className="h-4 w-4 mr-2" />
-              IA Powered
-            </Badge>
-            <Badge className="bg-muted/50 text-muted-foreground border-muted">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Análise Avançada
-            </Badge>
-            <Badge className="bg-muted/50 text-muted-foreground border-muted">
-              <FileText className="h-4 w-4 mr-2" />
-              Relatórios PDF
-            </Badge>
-            <Badge className="bg-muted/50 text-muted-foreground border-muted">
-              <Activity className="h-4 w-4 mr-2" />
-              Analytics Real-time
-            </Badge>
-          </div>
+    <div className="space-y-6 animate-fade-in">
+      <div className="container mx-auto px-4">
+      {/* Enhanced Header */}
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold font-heading gradient-text flex items-center gap-3">
+            <Brain className="h-8 w-8 text-primary" />
+            TrainSync Smart Training
+          </h1>
+          <p className="text-muted-foreground">
+            Configure, analise e gere treinos profissionais com IA
+          </p>
         </div>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        <Badge className="bg-primary/20 text-primary border-primary/30 px-3 py-1">
+          <Cpu className="h-4 w-4 mr-2" />
+          IA Powered
+        </Badge>
+        <Badge className="bg-muted/50 text-muted-foreground border-muted">
+          <BarChart3 className="h-4 w-4 mr-2" />
+          Análise Avançada
+        </Badge>
+        <Badge className="bg-muted/50 text-muted-foreground border-muted">
+          <FileText className="h-4 w-4 mr-2" />
+          Relatórios PDF
+        </Badge>
+        <Badge className="bg-muted/50 text-muted-foreground border-muted">
+          <Activity className="h-4 w-4 mr-2" />
+          Analytics Real-time
+        </Badge>
+      </div>
 
         {/* Main Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

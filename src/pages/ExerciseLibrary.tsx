@@ -71,62 +71,62 @@ const ExerciseLibrary = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navigation />
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold font-heading gradient-text">
             🏋️ Biblioteca Completa de Exercícios
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             {stats.total} exercícios categorizados para todos os níveis e objetivos
           </p>
         </div>
+      </div>
 
-        {/* Estatísticas Expandidas */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
-          {categories.map((category) => (
-            <Card key={category.id} className="text-center hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <category.icon className="h-6 w-6 mx-auto mb-2 text-blue-600" />
-                <p className="text-2xl font-bold text-blue-600">{category.count}</p>
-                <p className="text-xs text-gray-600">{category.name}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      {/* Estatísticas Expandidas */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+        {categories.map((category) => (
+          <Card key={category.id} className="glass border-border/50 card-hover text-center">
+            <CardContent className="p-4">
+              <category.icon className="h-6 w-6 mx-auto mb-2 text-primary" />
+              <p className="text-2xl font-bold font-heading text-primary">{category.count}</p>
+              <p className="text-xs text-muted-foreground">{category.name}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-        {/* Estatísticas por Dificuldade */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Distribuição por Dificuldade</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-green-600">{stats.byDifficulty.Iniciante}</p>
-                <p className="text-sm text-gray-600">Iniciante</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-yellow-600">{stats.byDifficulty.Intermediário}</p>
-                <p className="text-sm text-gray-600">Intermediário</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-red-600">{stats.byDifficulty.Avançado}</p>
-                <p className="text-sm text-gray-600">Avançado</p>
-              </div>
+      {/* Estatísticas por Dificuldade */}
+      <Card className="glass border-border/50">
+        <CardHeader>
+          <CardTitle className="font-heading text-foreground">Distribuição por Dificuldade</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <p className="text-2xl font-bold font-heading text-emerald-600">{stats.byDifficulty.Iniciante}</p>
+              <p className="text-sm text-muted-foreground">Iniciante</p>
             </div>
-          </CardContent>
-        </Card>
+            <div className="text-center">
+              <p className="text-2xl font-bold font-heading text-amber-600">{stats.byDifficulty.Intermediário}</p>
+              <p className="text-sm text-muted-foreground">Intermediário</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold font-heading text-red-600">{stats.byDifficulty.Avançado}</p>
+              <p className="text-sm text-muted-foreground">Avançado</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Filtros Avançados */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Filtros de Busca Avançados</CardTitle>
-            <CardDescription>
-              Use os filtros para encontrar exercícios específicos
-            </CardDescription>
-          </CardHeader>
+      {/* Filtros Avançados */}
+      <Card className="glass border-border/50">
+        <CardHeader>
+          <CardTitle className="font-heading text-foreground">Filtros de Busca Avançados</CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Use os filtros para encontrar exercícios específicos
+          </CardDescription>
+        </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="space-y-2">
@@ -137,7 +137,7 @@ const ExerciseLibrary = () => {
                     placeholder="Nome, músculo ou descrição..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 focus-ring"
                   />
                 </div>
               </div>
@@ -145,7 +145,7 @@ const ExerciseLibrary = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Categoria</label>
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger>
+                  <SelectTrigger className="focus-ring">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -161,7 +161,7 @@ const ExerciseLibrary = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Dificuldade</label>
                 <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="focus-ring">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -176,7 +176,7 @@ const ExerciseLibrary = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Grupo Muscular</label>
                 <Select value={muscleFilter} onValueChange={setMuscleFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="focus-ring">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -193,7 +193,7 @@ const ExerciseLibrary = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Equipamento</label>
                 <Select value={equipmentFilter} onValueChange={setEquipmentFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="focus-ring">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -238,14 +238,14 @@ const ExerciseLibrary = () => {
           ))}
         </div>
 
-        {filteredExercises.length === 0 && (
-          <Card className="text-center py-12">
-            <CardContent>
-              <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Nenhum exercício encontrado</h3>
-              <p className="text-gray-600 mb-4">
-                Tente ajustar os filtros ou termos de busca
-              </p>
+      {filteredExercises.length === 0 && (
+        <Card className="glass border-border/50 text-center py-12">
+          <CardContent>
+            <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold font-heading text-foreground mb-2">Nenhum exercício encontrado</h3>
+            <p className="text-muted-foreground mb-4">
+              Tente ajustar os filtros ou termos de busca
+            </p>
               <div className="flex flex-wrap gap-2 justify-center">
                 <Badge 
                   variant="outline" 
@@ -264,7 +264,6 @@ const ExerciseLibrary = () => {
             </CardContent>
           </Card>
         )}
-      </div>
     </div>
   );
 };

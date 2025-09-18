@@ -14,6 +14,7 @@ import { generatedPlansService } from '@/services/generatedPlansService';
 import { simpleModelsService } from '@/services/simpleModelsService';
 import { workoutGenerationService } from '@/services/workoutGenerationService';
 import ModelosTreinoCard, { ModeloTreino } from '@/components/ModelosTreinoCard';
+import { useUserProfile } from '@/hooks/useUserProfile';
 // Recharts
 import {
   ResponsiveContainer,
@@ -60,12 +61,19 @@ export default function WorkoutModelsDatabase() {
   const [myPlans, setMyPlans] = useState<any[] | null>(null);
   const [associatedModel, setAssociatedModel] = useState<any | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedStudent] = useState("123e4567-e89b-12d3-a456-426614174000"); // Mock user ID
+  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
   const [modelosSimples, setModelosSimples] = useState<any[]>([]);
+  const { userProfile } = useUserProfile();
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (userProfile?.id) {
+      setSelectedStudent(userProfile.id);
+    }
+  }, [userProfile]);
 
   // Reaplicar filtros sempre que os critérios mudarem
   useEffect(() => {
