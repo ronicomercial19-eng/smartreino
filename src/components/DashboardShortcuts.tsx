@@ -179,3 +179,5 @@ export function DashboardShortcuts() {
     </div>
   );
 }
+
+export default DashboardShortcuts;
