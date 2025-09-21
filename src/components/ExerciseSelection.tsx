@@ -87,7 +87,7 @@ const ExerciseSelection = ({ analysisData, onExercisesSelected }: ExerciseSelect
     });
 
     setAutoRecommendedExercises(recommended);
-    console.log(`✅ ${recommended.length} exercícios recomendados automaticamente`);
+    // Exercícios recomendados automaticamente
   };
 
   const filterExercises = () => {

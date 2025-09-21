@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { AppLayout } from "@/components/AppLayout";
+import { PageLayout } from "@/components/shared";
 import EnhancedExerciseCard from "@/components/EnhancedExerciseCard";
 import { completeExerciseDatabase, getCompleteExerciseStats } from "@/data/exerciseDatabase";
 import { 
@@ -71,8 +71,11 @@ const ExerciseLibrary = () => {
   });
 
   return (
-    <AppLayout>
-      <div className="space-y-6 animate-fade-in">
+    <PageLayout
+      title="🏋️ Biblioteca de Exercícios"
+      subtitle={`${stats.total} exercícios categorizados para todos os níveis e objetivos`}
+    >
+        <div className="space-y-6 animate-fade-in">
         <div className="flex items-center justify-between">
           <div className="space-y-2">
             <h1 className="text-3xl font-bold font-heading gradient-text">
@@ -266,7 +269,7 @@ const ExerciseLibrary = () => {
           </Card>
         )}
       </div>
-    </AppLayout>
+    </PageLayout>
   );
 };
 

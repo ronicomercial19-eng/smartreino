@@ -98,7 +98,7 @@ export default function WorkoutModelsDatabase() {
       setStats(statsData);
       setDistinctValues(distinct);
       setModelosSimples(Array.isArray(simplesData) ? simplesData : []);
-      console.log('✅ Dados carregados com sucesso');
+      // Dados carregados com sucesso
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       toast({
@@ -198,7 +198,7 @@ export default function WorkoutModelsDatabase() {
       });
 
       setFilteredModels(filtered || []);
-      console.log(`✅ ${filtered?.length || 0} modelos após filtros`);
+      // Filtros aplicados com sucesso
     } catch (error) {
       console.error('Erro ao aplicar filtros:', error);
       toast({

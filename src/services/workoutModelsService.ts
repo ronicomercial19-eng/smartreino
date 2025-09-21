@@ -35,19 +35,15 @@ export interface WorkoutModelsFilters {
 
 export class WorkoutModelsService {
   static async getAllModels(): Promise<WorkoutModel[]> {
-    console.log('🔍 Buscando todos os modelos de treino...');
-    
     const { data, error } = await supabase
       .from('workout_models')
       .select('*')
       .order('model_order', { ascending: true });
 
     if (error) {
-      console.error('❌ Erro ao buscar modelos:', error);
       throw error;
     }
 
-    console.log(`✅ ${data?.length || 0} modelos encontrados`);
     return (data || []) as WorkoutModel[];
   }
 

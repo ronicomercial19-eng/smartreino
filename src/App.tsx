@@ -42,7 +42,7 @@ const App = () => {
         // Get user type from metadata or set default
         const type = session.user.user_metadata?.user_type || 'admin';
         setUserType(type);
-        console.log('Auth state changed: INITIAL_SESSION', session.user.email);
+        // User authenticated on initial load
       }
       setLoading(false);
     });
@@ -53,10 +53,10 @@ const App = () => {
       if (session?.user) {
         const type = session.user.user_metadata?.user_type || 'admin';
         setUserType(type);
-        console.log('Auth state changed: SIGNED_IN', session.user.email);
+        // User signed in
       } else {
         setUserType(null);
-        console.log('Auth state changed: SIGNED_OUT');
+        // User signed out
       }
     });
 

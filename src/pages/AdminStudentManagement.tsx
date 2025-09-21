@@ -120,7 +120,7 @@ const AdminStudentManagement = () => {
     }
 
     try {
-      console.log("📝 Criando aluno:", newStudent);
+      // Criando novo aluno
       
       // Validações client-side
       if (!newStudent.email?.includes('@')) {
@@ -159,7 +159,7 @@ const AdminStudentManagement = () => {
         description: "Aluno adicionado com sucesso!",
       });
       
-      console.log("✅ Aluno criado:", createdStudent);
+      // Aluno criado com sucesso
     } catch (error: any) {
       console.error('❌ Erro ao criar aluno:', error);
       

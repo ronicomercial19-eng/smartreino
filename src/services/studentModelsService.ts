@@ -30,12 +30,10 @@ export class StudentModelsService {
       throw error;
     }
 
-    console.log(`✅ ${data?.length || 0} modalidades encontradas`);
     return (data || []) as WorkoutModality[];
   }
 
   static async assignModelToStudent(studentId: string, modelId: string, notes?: string): Promise<void> {
-    console.log(`📝 Atribuindo modelo ${modelId} ao aluno ${studentId}`);
     
     const { data: user } = await supabase.auth.getUser();
     
@@ -53,7 +51,7 @@ export class StudentModelsService {
       throw error;
     }
 
-    console.log('✅ Modelo atribuído com sucesso');
+    // Modelo atribuído com sucesso
   }
 
   static async getStudentSelectedModels(studentId: string): Promise<any[]> {
@@ -69,7 +67,6 @@ export class StudentModelsService {
       throw error;
     }
 
-    console.log(`✅ ${data?.length || 0} modelos encontrados para o aluno`);
     return data || [];
   }
 
@@ -87,6 +84,6 @@ export class StudentModelsService {
       throw error;
     }
 
-    console.log('✅ Modelo removido com sucesso');
+    // Modelo removido com sucesso
   }
 }

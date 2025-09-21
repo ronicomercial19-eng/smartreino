@@ -127,7 +127,7 @@ const ContextualAIChat = () => {
   };
 
   const handleQuickAction = (action: string, workout?: GeneratedWorkout) => {
-    console.log('Quick action:', action, workout);
+    // Handle quick action for workout
     
     const actionMessages: Record<string, string> = {
       'start_workout': `Iniciando treino: ${workout?.name}! 🚀`,

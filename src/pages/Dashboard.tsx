@@ -4,23 +4,16 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import DashboardShortcuts from "@/components/DashboardShortcuts";
 import PerformanceHistory from "@/components/PerformanceHistory";
-import { AppLayout } from "@/components/AppLayout";
+import { PageLayout } from "@/components/shared";
 import { Calendar, TrendingUp, Users, Clock } from "lucide-react";
 
 export default function Dashboard() {
   return (
-    <AppLayout>
+    <PageLayout
+      title="📊 Dashboard"
+      subtitle="Acompanhe seu progresso e performance dos treinos"
+    >
       <div className="space-y-6 animate-fade-in">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold font-heading gradient-text">
-              📊 Dashboard
-            </h1>
-            <p className="text-muted-foreground">
-              Acompanhe seu progresso e performance dos treinos
-            </p>
-          </div>
-        </div>
 
         {/* Cards de Estatísticas */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -148,6 +141,6 @@ export default function Dashboard() {
           </Card>
         </div>
       </div>
-    </AppLayout>
+    </PageLayout>
   );
 }

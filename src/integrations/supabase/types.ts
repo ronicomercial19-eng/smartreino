@@ -116,65 +116,286 @@ export type Database = {
         }
         Relationships: []
       }
+      athlete_periodizations: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          athlete_id: string | null
+          created_at: string | null
+          id: string
+          match_factors: Json | null
+          match_percentage: number | null
+          notes: string | null
+          periodization_model_id: string
+          status: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          athlete_id?: string | null
+          created_at?: string | null
+          id?: string
+          match_factors?: Json | null
+          match_percentage?: number | null
+          notes?: string | null
+          periodization_model_id: string
+          status?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          athlete_id?: string | null
+          created_at?: string | null
+          id?: string
+          match_factors?: Json | null
+          match_percentage?: number | null
+          notes?: string | null
+          periodization_model_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_periodizations_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       athletes: {
         Row: {
+          activated: boolean | null
+          age: number | null
           altura_cm: number | null
           birthdate: string | null
           coach_id: string
           created_at: string
+          experience_level: string | null
+          gender: string | null
           goals: string[] | null
           id: string
           injuries: string[] | null
+          injuries_limitations: string | null
+          invitation_sent: boolean | null
+          invitation_token: string | null
           metadata: Json | null
           name: string
           nivel: string | null
           objetivo: string | null
           perfil_classificado: Json | null
           peso_kg: number | null
+          phone: string | null
+          primary_goal: string | null
           respostas_anamnese: Json | null
           restricoes: Json | null
+          session_duration: string | null
           sessions_per_week: number | null
+          training_environment: string | null
           training_level: string | null
           updated_at: string
+          user_id: string | null
+          weekly_frequency: number | null
         }
         Insert: {
+          activated?: boolean | null
+          age?: number | null
           altura_cm?: number | null
           birthdate?: string | null
           coach_id: string
           created_at?: string
+          experience_level?: string | null
+          gender?: string | null
           goals?: string[] | null
           id?: string
           injuries?: string[] | null
+          injuries_limitations?: string | null
+          invitation_sent?: boolean | null
+          invitation_token?: string | null
           metadata?: Json | null
           name: string
           nivel?: string | null
           objetivo?: string | null
           perfil_classificado?: Json | null
           peso_kg?: number | null
+          phone?: string | null
+          primary_goal?: string | null
           respostas_anamnese?: Json | null
           restricoes?: Json | null
+          session_duration?: string | null
           sessions_per_week?: number | null
+          training_environment?: string | null
           training_level?: string | null
           updated_at?: string
+          user_id?: string | null
+          weekly_frequency?: number | null
         }
         Update: {
+          activated?: boolean | null
+          age?: number | null
           altura_cm?: number | null
           birthdate?: string | null
           coach_id?: string
           created_at?: string
+          experience_level?: string | null
+          gender?: string | null
           goals?: string[] | null
           id?: string
           injuries?: string[] | null
+          injuries_limitations?: string | null
+          invitation_sent?: boolean | null
+          invitation_token?: string | null
           metadata?: Json | null
           name?: string
           nivel?: string | null
           objetivo?: string | null
           perfil_classificado?: Json | null
           peso_kg?: number | null
+          phone?: string | null
+          primary_goal?: string | null
           respostas_anamnese?: Json | null
           restricoes?: Json | null
+          session_duration?: string | null
           sessions_per_week?: number | null
+          training_environment?: string | null
           training_level?: string | null
+          updated_at?: string
+          user_id?: string | null
+          weekly_frequency?: number | null
+        }
+        Relationships: []
+      }
+      avaliacoes: {
+        Row: {
+          agua_corporal: number | null
+          altura: number | null
+          avaliacao_exames: string | null
+          avaliador_cref: string | null
+          avaliador_nome: string | null
+          circunferencia_braco: number | null
+          circunferencia_cintura: number | null
+          circunferencia_coxa: number | null
+          circunferencia_panturrilha: number | null
+          circunferencia_peitoral: number | null
+          circunferencia_quadril: number | null
+          created_at: string
+          data_avaliacao: string
+          dobra_abdominal: number | null
+          dobra_axilar_media: number | null
+          dobra_coxa: number | null
+          dobra_panturrilha: number | null
+          dobra_peitoral: number | null
+          dobra_subescapular: number | null
+          dobra_suprailiaca: number | null
+          dobra_triceps: number | null
+          estudante_id: string
+          exames: Json | null
+          gordura_corporal: number | null
+          id: string
+          imc: number | null
+          massa_gorda: number | null
+          massa_magra: number | null
+          massa_muscular: number | null
+          observacoes: string | null
+          peso: number | null
+          rm1_empurrar_perna: number | null
+          rm1_empurrar_superior: number | null
+          rm1_puxar_costas: number | null
+          rm1_puxar_inferior: number | null
+          rml_abs: number | null
+          rml_agachamento: number | null
+          rml_elevacao_p: number | null
+          rml_flexao: number | null
+          rml_pull: number | null
+          taxa_metabolica: number | null
+          updated_at: string
+        }
+        Insert: {
+          agua_corporal?: number | null
+          altura?: number | null
+          avaliacao_exames?: string | null
+          avaliador_cref?: string | null
+          avaliador_nome?: string | null
+          circunferencia_braco?: number | null
+          circunferencia_cintura?: number | null
+          circunferencia_coxa?: number | null
+          circunferencia_panturrilha?: number | null
+          circunferencia_peitoral?: number | null
+          circunferencia_quadril?: number | null
+          created_at?: string
+          data_avaliacao?: string
+          dobra_abdominal?: number | null
+          dobra_axilar_media?: number | null
+          dobra_coxa?: number | null
+          dobra_panturrilha?: number | null
+          dobra_peitoral?: number | null
+          dobra_subescapular?: number | null
+          dobra_suprailiaca?: number | null
+          dobra_triceps?: number | null
+          estudante_id: string
+          exames?: Json | null
+          gordura_corporal?: number | null
+          id?: string
+          imc?: number | null
+          massa_gorda?: number | null
+          massa_magra?: number | null
+          massa_muscular?: number | null
+          observacoes?: string | null
+          peso?: number | null
+          rm1_empurrar_perna?: number | null
+          rm1_empurrar_superior?: number | null
+          rm1_puxar_costas?: number | null
+          rm1_puxar_inferior?: number | null
+          rml_abs?: number | null
+          rml_agachamento?: number | null
+          rml_elevacao_p?: number | null
+          rml_flexao?: number | null
+          rml_pull?: number | null
+          taxa_metabolica?: number | null
+          updated_at?: string
+        }
+        Update: {
+          agua_corporal?: number | null
+          altura?: number | null
+          avaliacao_exames?: string | null
+          avaliador_cref?: string | null
+          avaliador_nome?: string | null
+          circunferencia_braco?: number | null
+          circunferencia_cintura?: number | null
+          circunferencia_coxa?: number | null
+          circunferencia_panturrilha?: number | null
+          circunferencia_peitoral?: number | null
+          circunferencia_quadril?: number | null
+          created_at?: string
+          data_avaliacao?: string
+          dobra_abdominal?: number | null
+          dobra_axilar_media?: number | null
+          dobra_coxa?: number | null
+          dobra_panturrilha?: number | null
+          dobra_peitoral?: number | null
+          dobra_subescapular?: number | null
+          dobra_suprailiaca?: number | null
+          dobra_triceps?: number | null
+          estudante_id?: string
+          exames?: Json | null
+          gordura_corporal?: number | null
+          id?: string
+          imc?: number | null
+          massa_gorda?: number | null
+          massa_magra?: number | null
+          massa_muscular?: number | null
+          observacoes?: string | null
+          peso?: number | null
+          rm1_empurrar_perna?: number | null
+          rm1_empurrar_superior?: number | null
+          rm1_puxar_costas?: number | null
+          rm1_puxar_inferior?: number | null
+          rml_abs?: number | null
+          rml_agachamento?: number | null
+          rml_elevacao_p?: number | null
+          rml_flexao?: number | null
+          rml_pull?: number | null
+          taxa_metabolica?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -551,6 +772,141 @@ export type Database = {
           id?: string
           instructor_name?: string | null
           location?: string
+        }
+        Relationships: []
+      }
+      historico_avaliacoes: {
+        Row: {
+          agua_corporal: number | null
+          altura: number | null
+          avaliacao_exames: string | null
+          avaliador_cref: string | null
+          avaliador_nome: string | null
+          circunferencia_braco: number | null
+          circunferencia_cintura: number | null
+          circunferencia_coxa: number | null
+          circunferencia_panturrilha: number | null
+          circunferencia_peitoral: number | null
+          circunferencia_quadril: number | null
+          created_at: string
+          data_avaliacao: string
+          dobra_abdominal: number | null
+          dobra_axilar_media: number | null
+          dobra_coxa: number | null
+          dobra_panturrilha: number | null
+          dobra_peitoral: number | null
+          dobra_subescapular: number | null
+          dobra_suprailiaca: number | null
+          dobra_triceps: number | null
+          estudante_id: string
+          exames: Json | null
+          gordura_corporal: number | null
+          id: string
+          imc: number | null
+          massa_gorda: number | null
+          massa_magra: number | null
+          massa_muscular: number | null
+          observacoes: string | null
+          peso: number | null
+          rm1_empurrar_perna: number | null
+          rm1_empurrar_superior: number | null
+          rm1_puxar_costas: number | null
+          rm1_puxar_inferior: number | null
+          rml_abs: number | null
+          rml_agachamento: number | null
+          rml_elevacao_p: number | null
+          rml_flexao: number | null
+          rml_pull: number | null
+          taxa_metabolica: number | null
+          updated_at: string
+        }
+        Insert: {
+          agua_corporal?: number | null
+          altura?: number | null
+          avaliacao_exames?: string | null
+          avaliador_cref?: string | null
+          avaliador_nome?: string | null
+          circunferencia_braco?: number | null
+          circunferencia_cintura?: number | null
+          circunferencia_coxa?: number | null
+          circunferencia_panturrilha?: number | null
+          circunferencia_peitoral?: number | null
+          circunferencia_quadril?: number | null
+          created_at?: string
+          data_avaliacao?: string
+          dobra_abdominal?: number | null
+          dobra_axilar_media?: number | null
+          dobra_coxa?: number | null
+          dobra_panturrilha?: number | null
+          dobra_peitoral?: number | null
+          dobra_subescapular?: number | null
+          dobra_suprailiaca?: number | null
+          dobra_triceps?: number | null
+          estudante_id: string
+          exames?: Json | null
+          gordura_corporal?: number | null
+          id?: string
+          imc?: number | null
+          massa_gorda?: number | null
+          massa_magra?: number | null
+          massa_muscular?: number | null
+          observacoes?: string | null
+          peso?: number | null
+          rm1_empurrar_perna?: number | null
+          rm1_empurrar_superior?: number | null
+          rm1_puxar_costas?: number | null
+          rm1_puxar_inferior?: number | null
+          rml_abs?: number | null
+          rml_agachamento?: number | null
+          rml_elevacao_p?: number | null
+          rml_flexao?: number | null
+          rml_pull?: number | null
+          taxa_metabolica?: number | null
+          updated_at?: string
+        }
+        Update: {
+          agua_corporal?: number | null
+          altura?: number | null
+          avaliacao_exames?: string | null
+          avaliador_cref?: string | null
+          avaliador_nome?: string | null
+          circunferencia_braco?: number | null
+          circunferencia_cintura?: number | null
+          circunferencia_coxa?: number | null
+          circunferencia_panturrilha?: number | null
+          circunferencia_peitoral?: number | null
+          circunferencia_quadril?: number | null
+          created_at?: string
+          data_avaliacao?: string
+          dobra_abdominal?: number | null
+          dobra_axilar_media?: number | null
+          dobra_coxa?: number | null
+          dobra_panturrilha?: number | null
+          dobra_peitoral?: number | null
+          dobra_subescapular?: number | null
+          dobra_suprailiaca?: number | null
+          dobra_triceps?: number | null
+          estudante_id?: string
+          exames?: Json | null
+          gordura_corporal?: number | null
+          id?: string
+          imc?: number | null
+          massa_gorda?: number | null
+          massa_magra?: number | null
+          massa_muscular?: number | null
+          observacoes?: string | null
+          peso?: number | null
+          rm1_empurrar_perna?: number | null
+          rm1_empurrar_superior?: number | null
+          rm1_puxar_costas?: number | null
+          rm1_puxar_inferior?: number | null
+          rml_abs?: number | null
+          rml_agachamento?: number | null
+          rml_elevacao_p?: number | null
+          rml_flexao?: number | null
+          rml_pull?: number | null
+          taxa_metabolica?: number | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -3185,6 +3541,13 @@ export type Database = {
           match_percentage: number
           periodization_model_id: string
           title: string
+        }[]
+      }
+      salvar_avaliacao: {
+        Args: { p_dados: Json; p_estudante_id: string }
+        Returns: {
+          message: string
+          success: boolean
         }[]
       }
     }
