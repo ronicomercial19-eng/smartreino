@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import DashboardShortcuts from "@/components/DashboardShortcuts";
+import { DashboardShortcuts } from "@/components/DashboardShortcuts";
 import PerformanceHistory from "@/components/PerformanceHistory";
 import { AppLayout } from "@/components/AppLayout";
 import { Calendar, TrendingUp, Users, Clock } from "lucide-react";

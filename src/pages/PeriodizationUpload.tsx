@@ -374,16 +374,15 @@ const PeriodizationUpload = () => {
                 {analysisResult ? (
                   <div className="space-y-6">
                     <PeriodizationAnalysisResults
-                      result={analysisResult}
-                      onBack={() => setActiveTab("configuracao")}
+                      analysisData={analysisResult}
+                      onGeneratePDF={() => console.log("Generate PDF")}
+                      onGenerateLink={() => console.log("Generate Link")}
                     />
                     
                     {showExerciseSelection && (
                       <ExerciseSelection
-                        selectedExercises={selectedExercises}
+                        analysisData={analysisResult}
                         onExercisesSelected={handleExercisesSelected}
-                        isOpen={showExerciseSelection}
-                        onClose={() => setShowExerciseSelection(false)}
                       />
                     )}
                   </div>
