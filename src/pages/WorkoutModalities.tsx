@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Dumbbell, Users, CheckCircle } from "lucide-react";
+import { PageLayout } from "@/components/shared/PageLayout";
 import { StudentModelsService, WorkoutModality } from '@/services/studentModelsService';
 import { StudentsService, Student } from '@/services/studentsService';
 import { workoutModelsService, WorkoutModel } from '@/services/workoutModelsService';
@@ -114,27 +115,22 @@ export default function WorkoutModalities() {
     );
   }
 
+  const actions = selectedModality ? (
+    <Button variant="outline" onClick={() => setSelectedModality(null)}>
+      <ArrowLeft className="mr-2 h-4 w-4" />
+      Voltar às Modalidades
+    </Button>
+  ) : null;
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        {selectedModality && (
-          <Button variant="outline" onClick={() => setSelectedModality(null)}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar às Modalidades
-          </Button>
-        )}
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold">
-            {selectedModality ? `Modelos de ${selectedModality}` : 'Modalidades de Treino'}
-          </h1>
-          <p className="text-muted-foreground">
-            {selectedModality 
-              ? `Selecione um modelo de ${selectedModality} para atribuir aos alunos`
-              : 'Selecione uma modalidade para ver os modelos disponíveis'
-            }
-          </p>
-        </div>
-      </div>
+    <PageLayout
+      title={selectedModality ? `Modelos de ${selectedModality}` : 'Modalidades de Treino'}
+      subtitle={selectedModality 
+        ? `Selecione um modelo de ${selectedModality} para atribuir aos alunos`
+        : 'Selecione uma modalidade para ver os modelos disponíveis'
+      }
+      actions={actions}
+    >
 
       {!selectedModality ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -265,6 +261,6 @@ export default function WorkoutModalities() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageLayout>
   );
 }

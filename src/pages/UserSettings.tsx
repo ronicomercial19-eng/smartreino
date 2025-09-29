@@ -11,15 +11,22 @@ import {
   Save, Check, AlertCircle, User, Target, Calendar, 
   Activity, Shield, Bell, Palette, Globe
 } from "lucide-react";
+import { PageLayout } from "@/components/shared/PageLayout";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/authService";
+import { userSettingsSchema, UserSettingsData } from "@/schemas/userProfileSchema";
+import { useErrorHandler } from "@/hooks/useErrorHandler";
+import { logger } from "@/utils/logger";
 
 export default function UserSettings() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState('profile');
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
+  const { handleError, asyncHandler } = useErrorHandler();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -49,74 +56,73 @@ export default function UserSettings() {
     }
   });
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        setLoading(true);
-        const userProfile = await authService.getCurrentUserProfile();
-        
-        if (userProfile) {
-          setProfile(userProfile);
-          setFormData(prev => ({
-            ...prev,
-            name: userProfile.name || '',
-            email: userProfile.email || '',
-            age: userProfile.age?.toString() || '',
-            primaryGoal: userProfile.primaryGoal || '',
-            experienceLevel: userProfile.experienceLevel || ''
-          }));
-        }
-      } catch (error) {
-        console.error('Erro ao carregar perfil:', error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar as configurações.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProfile();
-  }, [toast]);
-
-  const handleSave = async (section: string) => {
-    setSaving(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (section === 'profile') {
-        await authService.updateUserProfile({
-          name: formData.name,
-          age: parseInt(formData.age) || undefined,
-          primaryGoal: formData.primaryGoal,
-          experienceLevel: formData.experienceLevel
-        });
-      }
-      
-      toast({
-        title: "Configurações salvas",
-        description: "Suas alterações foram salvas com sucesso.",
-      });
-    } catch (error) {
-      console.error('Erro ao salvar:', error);
-      toast({
-        title: "Erro ao salvar",
-        description: "Não foi possível salvar as configurações.",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
+  const loadProfile = asyncHandler(async () => {
+    logger.info('Carregando configurações do usuário');
+    const userProfile = await authService.getCurrentUserProfile();
+    
+    if (userProfile) {
+      setProfile(userProfile);
+      setFormData(prev => ({
+        ...prev,
+        name: userProfile.name || '',
+        email: userProfile.email || '',
+        age: userProfile.age?.toString() || '',
+        primaryGoal: userProfile.primaryGoal || '',
+        experienceLevel: userProfile.experienceLevel || ''
+      }));
     }
-  };
+  }, 'Carregar configurações');
+
+  useEffect(() => {
+    loadProfile().finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = asyncHandler(async (section: string) => {
+    logger.info(`Salvando seção: ${section}`);
+    
+    if (section === 'profile') {
+      // Validar dados do perfil
+      const result = userSettingsSchema.safeParse(formData);
+      if (!result.success) {
+        const errors: Record<string, string> = {};
+        result.error.errors.forEach(error => {
+          errors[error.path[0] as string] = error.message;
+        });
+        setValidationErrors(errors);
+        throw new Error('Dados inválidos. Verifique os campos destacados.');
+      }
+      
+      setValidationErrors({});
+      setSaving(true);
+      
+      await authService.updateUserProfile({
+        name: formData.name,
+        age: parseInt(formData.age) || undefined,
+        primaryGoal: formData.primaryGoal,
+        experienceLevel: formData.experienceLevel
+      });
+    }
+    
+    toast({
+      title: "Configurações salvas",
+      description: "Suas alterações foram salvas com sucesso.",
+    });
+  }, 'Salvar configurações');
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+    
+    // Limpar erro de validação quando o usuário começar a digitar
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   };
 
   const handleNestedChange = (section: string, field: string, value: any) => {
@@ -132,17 +138,19 @@ export default function UserSettings() {
     });
   };
 
+  const finalHandleSave = async (section: string) => {
+    try {
+      await handleSave(section);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="container mx-auto px-6 py-8">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-muted rounded w-48"></div>
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="h-96 bg-muted rounded-lg"></div>
-            <div className="md:col-span-2 h-96 bg-muted rounded-lg"></div>
-          </div>
-        </div>
-      </div>
+      <PageLayout title="Configurações">
+        <LoadingSpinner />
+      </PageLayout>
     );
   }
 
@@ -156,16 +164,12 @@ export default function UserSettings() {
   ];
 
   return (
-    <div className="container mx-auto px-6 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Configurações</h1>
-        <p className="text-muted-foreground mt-2">
-          Gerencie sua conta e preferências de treinamento
-        </p>
-      </div>
+    <PageLayout 
+      title="Configurações"
+      subtitle="Gerencie sua conta e preferências de treinamento"
+    >
 
       <div className="grid gap-6 md:grid-cols-3">
-        {/* Sidebar */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Seções</CardTitle>
@@ -212,7 +216,11 @@ export default function UserSettings() {
                       value={formData.name}
                       onChange={(e) => handleInputChange('name', e.target.value)}
                       placeholder="Seu nome completo"
+                      className={validationErrors.name ? 'border-destructive' : ''}
                     />
+                    {validationErrors.name && (
+                      <p className="text-xs text-destructive">{validationErrors.name}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
@@ -270,7 +278,7 @@ export default function UserSettings() {
                   />
                 </div>
 
-                <Button onClick={() => handleSave('profile')} disabled={saving}>
+                <Button onClick={() => finalHandleSave('profile')} disabled={saving}>
                   {saving ? (
                     <span className="flex items-center gap-2">
                       <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
@@ -352,7 +360,7 @@ export default function UserSettings() {
                   />
                 </div>
 
-                <Button onClick={() => handleSave('goals')} disabled={saving}>
+                <Button onClick={() => finalHandleSave('goals')} disabled={saving}>
                   <Save className="h-4 w-4 mr-2" />
                   Salvar Objetivos
                 </Button>
@@ -429,7 +437,7 @@ export default function UserSettings() {
                   </div>
                 </div>
 
-                <Button onClick={() => handleSave('notifications')} disabled={saving}>
+                <Button onClick={() => finalHandleSave('notifications')} disabled={saving}>
                   <Save className="h-4 w-4 mr-2" />
                   Salvar Preferências
                 </Button>
@@ -496,7 +504,6 @@ export default function UserSettings() {
             </Card>
           )}
         </div>
-      </div>
-    </div>
+    </PageLayout>
   );
 }

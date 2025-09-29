@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Play, TrendingUp, BookOpen, MessageCircle, Bell } from "lucide-react";
+import { PageLayout } from "@/components/shared/PageLayout";
 import { StudentPeriodizationService } from '@/services/studentPeriodizationService';
 import { StudentModelsService } from '@/services/studentModelsService';
 import { useToast } from '@/hooks/use-toast';
@@ -93,28 +94,25 @@ export default function StudentInterface() {
     );
   }
 
+  const actions = (
+    <div className="flex gap-2">
+      <Button variant="outline" onClick={() => navigate('/chat-ia')}>
+        <MessageCircle className="mr-2 h-4 w-4" />
+        IA Coach
+      </Button>
+      <Button variant="outline" onClick={() => navigate('/lembretes')}>
+        <Bell className="mr-2 h-4 w-4" />
+        Lembretes
+      </Button>
+    </div>
+  );
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold font-heading gradient-text">
-            Meus Treinos
-          </h1>
-          <p className="text-muted-foreground">
-            Acompanhe sua periodização e execute seus treinos.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/chat-ia')}>
-            <MessageCircle className="mr-2 h-4 w-4" />
-            IA Coach
-          </Button>
-          <Button variant="outline" onClick={() => navigate('/lembretes')}>
-            <Bell className="mr-2 h-4 w-4" />
-            Lembretes
-          </Button>
-        </div>
-      </div>
+    <PageLayout
+      title="Meus Treinos"
+      subtitle="Acompanhe sua periodização e execute seus treinos"
+      actions={actions}
+    >
 
       {/* Resumo da Periodização */}
       {periodizations.length > 0 && (
@@ -239,6 +237,6 @@ export default function StudentInterface() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageLayout>
   );
 }
