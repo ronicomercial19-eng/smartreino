@@ -504,6 +504,7 @@ export default function UserSettings() {
             </Card>
           )}
         </div>
+      </div>
     </PageLayout>
   );
 }

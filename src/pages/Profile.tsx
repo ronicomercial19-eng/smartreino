@@ -62,10 +62,10 @@ const Profile = () => {
         age: data.age || undefined,
         height: data.height || undefined,
         weight: data.weight || undefined,
-        gender: data.gender || undefined,
-        experience_level: data.experience_level || 'iniciante',
-        primary_goal: data.primary_goal || undefined,
-        training_environment: data.training_environment || 'academia',
+        gender: (data.gender as any) || undefined,
+        experience_level: (data.experience_level as any) || 'iniciante',
+        primary_goal: (data.primary_goal as any) || undefined,
+        training_environment: (data.training_environment as any) || 'academia',
         injuries_limitations: data.injuries_limitations || ''
       });
     } else {
@@ -100,11 +100,11 @@ const Profile = () => {
       ...profile,
       user_id: user.id,
       updated_at: new Date().toISOString()
-    };
+    } as any;
 
     const { error } = await supabase
       .from('user_profiles_extended')
-      .upsert(profileData, { onConflict: 'user_id' });
+      .upsert([profileData], { onConflict: 'user_id' });
 
     if (error) {
       throw new Error(`Erro ao salvar perfil: ${error.message}`);
