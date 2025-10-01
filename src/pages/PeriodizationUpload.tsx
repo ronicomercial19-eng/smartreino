@@ -14,6 +14,7 @@ import PeriodizationAnalysisResults from "@/components/PeriodizationAnalysisResu
 import ExerciseSelection from "@/components/ExerciseSelection";
 import { grokAIService } from "@/services/grokAIService";
 import { toast } from "@/components/ui/use-toast";
+import { logger } from "@/utils/logger";
 import { 
   Settings, 
   FileText, 
@@ -75,6 +76,8 @@ const PeriodizationUpload = () => {
     setAnalysisProgress(0);
     
     try {
+      logger.info('Iniciando análise de periodização');
+      
       // Simulate progress updates
       const progressInterval = setInterval(() => {
         setAnalysisProgress(prev => {
@@ -85,8 +88,6 @@ const PeriodizationUpload = () => {
           return prev + 10;
         });
       }, 200);
-
-      console.log('Starting AI analysis with data:', { ...formData, pastedData });
       
       const combinedData = {
         ...formData,
@@ -98,7 +99,7 @@ const PeriodizationUpload = () => {
       clearInterval(progressInterval);
       setAnalysisProgress(100);
       
-      console.log('Analysis result:', analysis);
+      logger.info('Análise concluída');
       
       // Enhanced analysis with mock data structure
       const enhancedAnalysis = {
@@ -134,10 +135,10 @@ const PeriodizationUpload = () => {
         description: `Periodização analisada com ${enhancedAnalysis.confidence}% de confiança. Agora selecione os exercícios.`,
       });
     } catch (error) {
-      console.error('Error during analysis:', error);
+      logger.error('Erro durante análise de periodização');
       toast({
         title: "Erro na Análise",
-        description: "Ocorreu um erro durante a análise. Tentando análise local...",
+        description: "Ocorreu um erro durante a análise. Por favor, tente novamente.",
         variant: "destructive"
       });
     } finally {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { workoutGenerationService } from "@/services/workoutGenerationService";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { toast } from "@/components/ui/use-toast";
+import { logger } from "@/utils/logger";
 import { 
   Dumbbell, 
   Clock, 
@@ -15,14 +17,17 @@ import {
   Heart,
   TrendingUp,
   Activity,
-  Play
+  Play,
+  RefreshCw
 } from "lucide-react";
 
 const WorkoutModels = () => {
   const { userProfile } = useUserProfile();
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("forca");
   const [generatedWorkouts, setGeneratedWorkouts] = useState<any[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [hasGeneratedOnce, setHasGeneratedOnce] = useState(false);
 
   const workoutCategories = [
     { id: "forca", name: "Força", icon: Dumbbell },
@@ -33,31 +38,44 @@ const WorkoutModels = () => {
   ];
 
   const generateWorkoutModels = async () => {
-    if (!userProfile) return;
+    if (!userProfile) {
+      toast({
+        title: "Erro",
+        description: "Perfil do usuário não encontrado",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsGenerating(true);
     
     try {
-      const workouts = [{
-        name: `Treino de ${workoutCategories.find(c => c.id === selectedCategory)?.name}`,
-        description: "Treino personalizado gerado com IA",
-        duration: 45,
-        estimatedCalories: 350,
-        exercises: [
-          { exercise: { name: "Exercício 1" }, sets: 3, reps: 12 },
-          { exercise: { name: "Exercício 2" }, sets: 3, reps: 10 },
-        ],
-        targetPSE: 7
-      }];
+      logger.info('Gerando modelo de treino');
       
-      setGeneratedWorkouts(workouts);
-      toast({
-        title: "Modelos Gerados!",
-        description: `${workouts.length} modelo de treino criado`,
+      const result = await workoutGenerationService.gerarModelo({
+        estudante_id: userProfile.id,
+        objetivo: selectedCategory,
+        nivel: userProfile.level || 'intermediario',
+        periodizacao: {}
       });
+
+      setHasGeneratedOnce(true);
+      
+      toast({
+        title: "Treino Gerado com Sucesso!",
+        description: "Redirecionando para visualizar seus treinos...",
+      });
+
+      // Redirecionar para a página de visualização após 1 segundo
+      setTimeout(() => {
+        navigate('/meus-treinos');
+      }, 1000);
+      
     } catch (error) {
+      logger.error('Erro ao gerar modelo de treino');
       toast({
         title: "Erro",
-        description: "Erro ao gerar modelos",
+        description: "Erro ao gerar modelo de treino",
         variant: "destructive"
       });
     } finally {
@@ -100,7 +118,22 @@ const WorkoutModels = () => {
                       disabled={isGenerating}
                       className="btn-glow"
                     >
-                      {isGenerating ? "Gerando..." : "Gerar Modelos"}
+                      {isGenerating ? (
+                        <>
+                          <Clock className="h-4 w-4 mr-2 animate-spin" />
+                          Gerando...
+                        </>
+                      ) : hasGeneratedOnce ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Trocar Treinos
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="h-4 w-4 mr-2" />
+                          Gerar Modelos
+                        </>
+                      )}
                     </Button>
                   </div>
                 </CardHeader>
