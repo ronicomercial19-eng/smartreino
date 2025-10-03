@@ -3,6 +3,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/utils/logger";
 
 export interface PlanoTreino {
   id: string;
@@ -59,11 +60,11 @@ export class PlanosTreinoService {
       .single();
 
     if (error) {
-      console.error('❌ Erro ao criar plano:', error);
+      logger.error('Erro ao criar plano', 'PlanosTreinoService.criarPlano', error);
       throw error;
     }
 
-    console.log('✅ Plano de treino criado com sucesso');
+    logger.info('Plano de treino criado', 'PlanosTreinoService.criarPlano', { planoId: data.id });
     return data as PlanoTreino;
   }
 
@@ -78,7 +79,7 @@ export class PlanosTreinoService {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('❌ Erro ao buscar planos:', error);
+      logger.error('Erro ao buscar planos', 'PlanosTreinoService.buscarPlanosDoAluno', { alunoId, error });
       throw error;
     }
 
@@ -97,7 +98,7 @@ export class PlanosTreinoService {
       .single();
 
     if (error) {
-      console.error('❌ Erro ao atualizar plano:', error);
+      logger.error('Erro ao atualizar plano', 'PlanosTreinoService.atualizarPlano', { id, error });
       throw error;
     }
 
@@ -125,11 +126,11 @@ export class PlanosTreinoService {
       .eq('id', planoId);
 
     if (error) {
-      console.error('❌ Erro ao ativar plano:', error);
+      logger.error('Erro ao ativar plano', 'PlanosTreinoService.ativarPlano', { planoId, error });
       throw error;
     }
 
-    console.log('✅ Plano ativado com sucesso');
+    logger.info('Plano ativado', 'PlanosTreinoService.ativarPlano', { planoId });
   }
 
   /**
@@ -158,10 +159,10 @@ export class PlanosTreinoService {
       .eq('id', planoId);
 
     if (error) {
-      console.error('❌ Erro ao avançar semana:', error);
+      logger.error('Erro ao avançar semana', 'PlanosTreinoService.avancarSemana', { planoId, error });
       throw error;
     }
 
-    console.log('✅ Semana avançada com sucesso');
+    logger.info('Semana avançada', 'PlanosTreinoService.avancarSemana', { planoId, novaSemana });
   }
 }

@@ -6,6 +6,7 @@
 import { PageLayout } from '@/components/shared/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CheckCircle, Shield, Rocket, Network, Zap } from 'lucide-react';
 
 export default function DocumentacaoSistema() {
   return (
@@ -194,6 +195,150 @@ export default function DocumentacaoSistema() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* ETAPA 2 - Performance, Testes e Automação */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>ETAPA 2 - Performance, Testes e Automação</CardTitle>
+          <CardDescription>
+            Otimização, qualidade e deploy contínuo (Planejado)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          
+          {/* 2.1 Performance */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              2.1 Performance e Escalabilidade
+            </h3>
+            <div className="space-y-2 ml-6 text-sm">
+              <div className="flex gap-2">
+                <CheckCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-medium">Bottlenecks</p>
+                  <p className="text-muted-foreground">Queries IA, dashboards real-time, listas grandes</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <CheckCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-medium">Caching</p>
+                  <p className="text-muted-foreground">Redis para planos, CDN para assets, LocalStorage UI</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <CheckCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-medium">Frontend</p>
+                  <p className="text-muted-foreground">Lazy loading, code splitting, virtualização</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <CheckCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-medium">Auto-scaling</p>
+                  <p className="text-muted-foreground">Edge functions Supabase, Kubernetes</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 2.2 Testes */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              2.2 Testes e QA
+            </h3>
+            <div className="space-y-2 ml-6 text-sm">
+              <div className="flex gap-2">
+                <CheckCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-medium">Suítes: Jest + Playwright + RTL</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <CheckCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-medium">Edge cases: Sem alunos, sem exercícios, dados incompletos</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <CheckCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-medium">Coverage &gt;80% em services críticos</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 2.3 Deploy */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Rocket className="h-4 w-4" />
+              2.3 Deploy e Monitoramento
+            </h3>
+            <div className="space-y-2 ml-6 text-sm">
+              <div className="flex gap-2">
+                <CheckCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-medium">Blue-green + Canary deployment</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <CheckCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-medium">Rollback automático + health checks</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <CheckCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-medium">Supabase Analytics + logs estruturados + Sentry</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 2.4 Microservices */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Network className="h-4 w-4" />
+              2.4 Microservices (Futuro)
+            </h3>
+            <div className="space-y-2 ml-6 text-sm">
+              <div className="flex gap-2">
+                <CheckCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-medium">Módulos: IA Analysis, Periodization Engine, Notifications</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <CheckCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-medium">GraphQL Federation + gRPC + Event-driven</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <CheckCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-medium">Circuit breakers + retries + fallbacks</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t pt-6">
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <p className="text-sm font-medium mb-2">📋 Status: Documentado e Planejado</p>
+              <p className="text-xs text-muted-foreground">
+                ETAPA 2 será executada após conclusão da ETAPA 1.
+              </p>
+            </div>
+          </div>
+
+        </CardContent>
+      </Card>
     </PageLayout>
   );
 }

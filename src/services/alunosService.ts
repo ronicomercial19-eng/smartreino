@@ -4,6 +4,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/utils/logger";
 
 export interface Aluno {
   id: string;
@@ -40,7 +41,7 @@ export class AlunosService {
       .order('nome', { ascending: true });
 
     if (error) {
-      console.error('❌ Erro ao listar alunos:', error);
+      logger.error('Erro ao listar alunos', 'AlunosService.listarAlunos', error);
       throw error;
     }
 
@@ -58,7 +59,7 @@ export class AlunosService {
       .single();
 
     if (error) {
-      console.error('❌ Erro ao buscar aluno:', error);
+      logger.error('Erro ao buscar aluno', 'AlunosService.buscarAlunoPorId', { id, error });
       throw error;
     }
 
@@ -86,11 +87,11 @@ export class AlunosService {
       .single();
 
     if (error) {
-      console.error('❌ Erro ao criar aluno:', error);
+      logger.error('Erro ao criar aluno', 'AlunosService.criarAluno', error);
       throw error;
     }
 
-    console.log('✅ Aluno criado com sucesso:', data);
+    logger.info('Aluno criado com sucesso', 'AlunosService.criarAluno', { alunoId: data.id });
     return data as Aluno;
   }
 
@@ -106,11 +107,11 @@ export class AlunosService {
       .single();
 
     if (error) {
-      console.error('❌ Erro ao atualizar aluno:', error);
+      logger.error('Erro ao atualizar aluno', 'AlunosService.atualizarAluno', { id, error });
       throw error;
     }
 
-    console.log('✅ Aluno atualizado com sucesso');
+    logger.info('Aluno atualizado com sucesso', 'AlunosService.atualizarAluno', { id });
     return data as Aluno;
   }
 
@@ -124,11 +125,11 @@ export class AlunosService {
       .eq('id', id);
 
     if (error) {
-      console.error('❌ Erro ao excluir aluno:', error);
+      logger.error('Erro ao excluir aluno', 'AlunosService.excluirAluno', { id, error });
       throw error;
     }
 
-    console.log('✅ Aluno excluído com sucesso');
+    logger.info('Aluno excluído com sucesso', 'AlunosService.excluirAluno', { id });
   }
 
   /**
@@ -141,11 +142,11 @@ export class AlunosService {
       .eq('id', id);
 
     if (error) {
-      console.error('❌ Erro ao reativar aluno:', error);
+      logger.error('Erro ao reativar aluno', 'AlunosService.reativarAluno', { id, error });
       throw error;
     }
 
-    console.log('✅ Aluno reativado com sucesso');
+    logger.info('Aluno reativado com sucesso', 'AlunosService.reativarAluno', { id });
   }
 
   /**
@@ -164,7 +165,7 @@ export class AlunosService {
       .eq('professor_id', userData.user.id);
 
     if (error) {
-      console.error('❌ Erro ao obter estatísticas:', error);
+      logger.error('Erro ao obter estatísticas', 'AlunosService.obterEstatisticas', error);
       throw error;
     }
 
