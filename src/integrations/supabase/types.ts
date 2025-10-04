@@ -387,6 +387,39 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          resource_id: string
+          resource_type: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          resource_id: string
+          resource_type: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          resource_id?: string
+          resource_type?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       avaliacoes: {
         Row: {
           agua_corporal: number | null
@@ -3185,6 +3218,24 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_workout_logs: {
         Row: {
           completed_at: string | null
@@ -3888,9 +3939,24 @@ export type Database = {
           modelo_id: string
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       is_admin: {
         Args: { check_user_id: string }
         Returns: boolean
+      }
+      log_audit: {
+        Args: {
+          p_action: string
+          p_resource_id: string
+          p_resource_type: string
+        }
+        Returns: undefined
       }
       match_periodizations_for_profile: {
         Args: { p_user_profile_id: string }
@@ -3911,6 +3977,7 @@ export type Database = {
     }
     Enums: {
       aluno_status: "ativo" | "inativo" | "suspenso"
+      app_role: "admin" | "professor" | "student" | "demo"
       appointment_status: "scheduled" | "completed" | "cancelled" | "no_show"
       difficulty_level: "beginner" | "intermediate" | "advanced"
       notification_type: "info" | "warning" | "success" | "error"
@@ -4053,6 +4120,7 @@ export const Constants = {
   public: {
     Enums: {
       aluno_status: ["ativo", "inativo", "suspenso"],
+      app_role: ["admin", "professor", "student", "demo"],
       appointment_status: ["scheduled", "completed", "cancelled", "no_show"],
       difficulty_level: ["beginner", "intermediate", "advanced"],
       notification_type: ["info", "warning", "success", "error"],

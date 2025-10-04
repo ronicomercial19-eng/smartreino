@@ -5,6 +5,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/utils/logger";
+import { SecurityService } from "./securityService";
 
 export interface Aluno {
   id: string;
@@ -70,17 +71,34 @@ export class AlunosService {
    * Criar novo aluno
    */
   static async criarAluno(aluno: NovoAlunoInput): Promise<Aluno> {
+    // ETAPA 2: Validações de segurança
+    if (!SecurityService.validateEmail(aluno.email)) {
+      throw new Error('Email inválido');
+    }
+
+    // Verificar compliance LGPD
     const { data: userData, error: userError } = await supabase.auth.getUser();
     
     if (userError || !userData.user) {
       throw new Error('Usuário não autenticado');
     }
 
+    const alunoData = {
+      professor_id: userData.user.id,
+      ...aluno
+    };
+
+    const compliance = SecurityService.checkLGPDCompliance(alunoData);
+    if (!compliance.compliant) {
+      logger.warn('Dados não conformes com LGPD', 'AlunosService.criarAluno', {
+        issues: compliance.issues
+      });
+    }
+
     const { data, error } = await supabase
       .from('alunos')
       .insert({
-        professor_id: userData.user.id,
-        ...aluno,
+        ...alunoData,
         status: 'ativo'
       })
       .select()
@@ -90,6 +108,14 @@ export class AlunosService {
       logger.error('Erro ao criar aluno', 'AlunosService.criarAluno', error);
       throw error;
     }
+
+    // Auditar criação
+    await SecurityService.auditDataAccess(
+      userData.user.id,
+      'write',
+      'alunos',
+      data.id
+    );
 
     logger.info('Aluno criado com sucesso', 'AlunosService.criarAluno', { alunoId: data.id });
     return data as Aluno;
