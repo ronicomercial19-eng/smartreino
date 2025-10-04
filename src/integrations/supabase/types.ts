@@ -64,19 +64,27 @@ export type Database = {
           altura_cm: number | null
           ambiente_treino: string | null
           data_cadastro: string | null
+          data_fim_plano: string | null
+          data_inicio_plano: string | null
           data_nascimento: string | null
           email: string
+          foto_perfil_url: string | null
           frequencia_semanal: number | null
           genero: string | null
+          historico_medico: string | null
           id: string
+          id_plano_ativo: string | null
           nivel_experiencia: string | null
           nome: string
+          nome_completo: string | null
           objetivo: string
           observacoes: string | null
           peso_atual: number | null
           professor_id: string
+          restricoes_alimentares: string | null
           restricoes_medicas: string | null
           status: Database["public"]["Enums"]["aluno_status"] | null
+          status_plano: string | null
           telefone: string | null
           ultima_atualizacao: string | null
         }
@@ -84,19 +92,27 @@ export type Database = {
           altura_cm?: number | null
           ambiente_treino?: string | null
           data_cadastro?: string | null
+          data_fim_plano?: string | null
+          data_inicio_plano?: string | null
           data_nascimento?: string | null
           email: string
+          foto_perfil_url?: string | null
           frequencia_semanal?: number | null
           genero?: string | null
+          historico_medico?: string | null
           id?: string
+          id_plano_ativo?: string | null
           nivel_experiencia?: string | null
           nome: string
+          nome_completo?: string | null
           objetivo: string
           observacoes?: string | null
           peso_atual?: number | null
           professor_id: string
+          restricoes_alimentares?: string | null
           restricoes_medicas?: string | null
           status?: Database["public"]["Enums"]["aluno_status"] | null
+          status_plano?: string | null
           telefone?: string | null
           ultima_atualizacao?: string | null
         }
@@ -104,23 +120,39 @@ export type Database = {
           altura_cm?: number | null
           ambiente_treino?: string | null
           data_cadastro?: string | null
+          data_fim_plano?: string | null
+          data_inicio_plano?: string | null
           data_nascimento?: string | null
           email?: string
+          foto_perfil_url?: string | null
           frequencia_semanal?: number | null
           genero?: string | null
+          historico_medico?: string | null
           id?: string
+          id_plano_ativo?: string | null
           nivel_experiencia?: string | null
           nome?: string
+          nome_completo?: string | null
           objetivo?: string
           observacoes?: string | null
           peso_atual?: number | null
           professor_id?: string
+          restricoes_alimentares?: string | null
           restricoes_medicas?: string | null
           status?: Database["public"]["Enums"]["aluno_status"] | null
+          status_plano?: string | null
           telefone?: string | null
           ultima_atualizacao?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "alunos_id_plano_ativo_fkey"
+            columns: ["id_plano_ativo"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id_plano"]
+          },
+        ]
       }
       ambiente_config: {
         Row: {
@@ -1256,6 +1288,7 @@ export type Database = {
           objetivo: string | null
           periodizacao: Json | null
           tag: string | null
+          tipo_modelo: string | null
         }
         Insert: {
           criado_em?: string | null
@@ -1268,6 +1301,7 @@ export type Database = {
           objetivo?: string | null
           periodizacao?: Json | null
           tag?: string | null
+          tipo_modelo?: string | null
         }
         Update: {
           criado_em?: string | null
@@ -1280,6 +1314,7 @@ export type Database = {
           objetivo?: string | null
           periodizacao?: Json | null
           tag?: string | null
+          tipo_modelo?: string | null
         }
         Relationships: []
       }
@@ -1629,6 +1664,42 @@ export type Database = {
           upper_push_after?: number | null
           upper_push_before?: number | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      planos: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          descricao: string | null
+          duracao_dias: number
+          id_plano: string
+          nome_plano: string
+          preco: number
+          recursos_incluidos: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          duracao_dias: number
+          id_plano?: string
+          nome_plano: string
+          preco: number
+          recursos_incluidos?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          duracao_dias?: number
+          id_plano?: string
+          nome_plano?: string
+          preco?: number
+          recursos_incluidos?: Json | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -2054,6 +2125,50 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      progresso_aluno: {
+        Row: {
+          created_at: string | null
+          data_registro: string
+          desempenho_treino: Json | null
+          id_aluno: string
+          id_progresso: string
+          medidas_corporais: Json | null
+          observacoes: string | null
+          peso_kg: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_registro?: string
+          desempenho_treino?: Json | null
+          id_aluno: string
+          id_progresso?: string
+          medidas_corporais?: Json | null
+          observacoes?: string | null
+          peso_kg?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_registro?: string
+          desempenho_treino?: Json | null
+          id_aluno?: string
+          id_progresso?: string
+          medidas_corporais?: Json | null
+          observacoes?: string | null
+          peso_kg?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "progresso_aluno_id_aluno_fkey"
+            columns: ["id_aluno"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       questionnaire_responses: {
         Row: {
@@ -3757,42 +3872,60 @@ export type Database = {
       workouts: {
         Row: {
           created_at: string | null
+          data_atribuicao: string | null
+          data_conclusao: string | null
           day_number: number
+          detalhes_treino: Json | null
           exercises: Json
           id: string
           method: string | null
+          nome_treino: string | null
           notes: string | null
+          observacoes_treino: string | null
           periodization_id: string | null
           phase: string
           status: string | null
+          status_treino: string | null
           student_id: string | null
           updated_at: string | null
           week_number: number
         }
         Insert: {
           created_at?: string | null
+          data_atribuicao?: string | null
+          data_conclusao?: string | null
           day_number: number
+          detalhes_treino?: Json | null
           exercises?: Json
           id?: string
           method?: string | null
+          nome_treino?: string | null
           notes?: string | null
+          observacoes_treino?: string | null
           periodization_id?: string | null
           phase: string
           status?: string | null
+          status_treino?: string | null
           student_id?: string | null
           updated_at?: string | null
           week_number: number
         }
         Update: {
           created_at?: string | null
+          data_atribuicao?: string | null
+          data_conclusao?: string | null
           day_number?: number
+          detalhes_treino?: Json | null
           exercises?: Json
           id?: string
           method?: string | null
+          nome_treino?: string | null
           notes?: string | null
+          observacoes_treino?: string | null
           periodization_id?: string | null
           phase?: string
           status?: string | null
+          status_treino?: string | null
           student_id?: string | null
           updated_at?: string | null
           week_number?: number
