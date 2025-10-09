@@ -41,6 +41,25 @@ const ContextualAIChat = () => {
   const [inputText, setInputText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
+  const getStateEmoji = (state: string) => {
+    switch (state) {
+      case 'motivated': return '🔥';
+      case 'progressing': return '📈';
+      case 'plateaued': return '⚖️';
+      case 'struggling': return '💪';
+      default: return '🎯';
+    }
+  };
+
+  const getTrendEmoji = (trend: string) => {
+    switch (trend) {
+      case 'improving': return '📈';
+      case 'declining': return '📉';
+      case 'stable': return '⚖️';
+      default: return '📊';
+    }
+  };
+
   useEffect(() => {
     if (userContext && !loading) {
       (async () => {
@@ -60,25 +79,6 @@ const ContextualAIChat = () => {
       })();
     }
   }, [userContext, loading]);
-
-  const getStateEmoji = (state: string) => {
-    switch (state) {
-      case 'motivated': return '🔥';
-      case 'progressing': return '📈';
-      case 'plateaued': return '⚖️';
-      case 'struggling': return '💪';
-      default: return '🎯';
-    }
-  };
-
-  const getTrendEmoji = (trend: string) => {
-    switch (trend) {
-      case 'improving': return '📈';
-      case 'declining': return '📉';
-      case 'stable': return '⚖️';
-      default: return '📊';
-    }
-  };
 
   const quickQuestions = [
     "Gerar treino personalizado",

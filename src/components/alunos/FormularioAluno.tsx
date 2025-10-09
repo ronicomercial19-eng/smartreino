@@ -24,6 +24,7 @@ export function FormularioAluno({ aluno, onSuccess }: FormularioAlunoProps) {
     email: aluno?.email || '',
     telefone: aluno?.telefone || '',
     genero: aluno?.genero || '',
+    data_nascimento: aluno?.data_nascimento || '',
     objetivo: aluno?.objetivo || '',
     nivel_experiencia: aluno?.nivel_experiencia || 'iniciante',
     ambiente_treino: aluno?.ambiente_treino || 'academia',
@@ -37,11 +38,47 @@ export function FormularioAluno({ aluno, onSuccess }: FormularioAlunoProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validação de campos obrigatórios
     if (!formData.nome || !formData.email || !formData.objetivo) {
       toast({
         variant: "destructive",
         title: "Campos obrigatórios",
         description: "Preencha nome, email e objetivo"
+      });
+      return;
+    }
+
+    // Validação de idade
+    if (formData.data_nascimento) {
+      const birthDate = new Date(formData.data_nascimento);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      
+      if (age < 18 || age > 100) {
+        toast({
+          variant: "destructive",
+          title: "Idade inválida",
+          description: "A idade deve estar entre 18 e 100 anos"
+        });
+        return;
+      }
+    }
+
+    // Validação de peso e altura
+    if (formData.peso_atual && formData.peso_atual <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Peso inválido",
+        description: "O peso deve ser maior que zero"
+      });
+      return;
+    }
+
+    if (formData.altura_cm && formData.altura_cm <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Altura inválida",
+        description: "A altura deve ser maior que zero"
       });
       return;
     }
@@ -105,6 +142,18 @@ export function FormularioAluno({ aluno, onSuccess }: FormularioAlunoProps) {
             id="telefone"
             value={formData.telefone}
             onChange={(e) => updateField('telefone', e.target.value)}
+            placeholder="(11) 99999-9999"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="data_nascimento">Data de Nascimento *</Label>
+          <Input
+            id="data_nascimento"
+            type="date"
+            value={formData.data_nascimento}
+            onChange={(e) => updateField('data_nascimento', e.target.value)}
+            required
           />
         </div>
 
@@ -114,7 +163,7 @@ export function FormularioAluno({ aluno, onSuccess }: FormularioAlunoProps) {
             <SelectTrigger>
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-background z-50">
               <SelectItem value="masculino">Masculino</SelectItem>
               <SelectItem value="feminino">Feminino</SelectItem>
               <SelectItem value="outro">Outro</SelectItem>
@@ -134,12 +183,12 @@ export function FormularioAluno({ aluno, onSuccess }: FormularioAlunoProps) {
         </div>
 
         <div>
-          <Label htmlFor="nivel">Nível de Experiência</Label>
+          <Label htmlFor="nivel">Nível de Experiência *</Label>
           <Select value={formData.nivel_experiencia} onValueChange={(v) => updateField('nivel_experiencia', v)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-background z-50">
               <SelectItem value="iniciante">Iniciante</SelectItem>
               <SelectItem value="intermediario">Intermediário</SelectItem>
               <SelectItem value="avancado">Avançado</SelectItem>
@@ -153,7 +202,7 @@ export function FormularioAluno({ aluno, onSuccess }: FormularioAlunoProps) {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-background z-50">
               <SelectItem value="academia">Academia</SelectItem>
               <SelectItem value="casa">Casa</SelectItem>
               <SelectItem value="hibrido">Híbrido</SelectItem>
@@ -174,23 +223,31 @@ export function FormularioAluno({ aluno, onSuccess }: FormularioAlunoProps) {
         </div>
 
         <div>
-          <Label htmlFor="peso">Peso (kg)</Label>
+          <Label htmlFor="peso">Peso (kg) *</Label>
           <Input
             id="peso"
             type="number"
             step="0.1"
+            min="30"
+            max="300"
             value={formData.peso_atual || ''}
             onChange={(e) => updateField('peso_atual', parseFloat(e.target.value))}
+            placeholder="Ex: 70.5"
+            required
           />
         </div>
 
         <div>
-          <Label htmlFor="altura">Altura (cm)</Label>
+          <Label htmlFor="altura">Altura (cm) *</Label>
           <Input
             id="altura"
             type="number"
+            min="100"
+            max="250"
             value={formData.altura_cm || ''}
             onChange={(e) => updateField('altura_cm', parseInt(e.target.value))}
+            placeholder="Ex: 175"
+            required
           />
         </div>
 

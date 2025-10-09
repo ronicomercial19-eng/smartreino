@@ -58,6 +58,8 @@ export function TabelaAlunos({ alunos, onExcluir, onAtualizar }: TabelaAlunosPro
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Idade</TableHead>
+              <TableHead>Peso (kg)</TableHead>
               <TableHead>Objetivo</TableHead>
               <TableHead>Nível</TableHead>
               <TableHead>Status</TableHead>
@@ -65,21 +67,36 @@ export function TabelaAlunos({ alunos, onExcluir, onAtualizar }: TabelaAlunosPro
             </TableRow>
           </TableHeader>
           <TableBody>
-            {alunos.map((aluno) => (
-              <TableRow key={aluno.id}>
-                <TableCell className="font-medium">{aluno.nome}</TableCell>
-                <TableCell>{aluno.email}</TableCell>
-                <TableCell>{aluno.objetivo}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">
-                    {aluno.nivel_experiencia || 'N/A'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={aluno.status === 'ativo' ? 'default' : 'secondary'}>
-                    {aluno.status}
-                  </Badge>
-                </TableCell>
+            {alunos.map((aluno) => {
+              const calcularIdade = (dataNascimento?: string) => {
+                if (!dataNascimento) return 'N/A';
+                const hoje = new Date();
+                const nascimento = new Date(dataNascimento);
+                let idade = hoje.getFullYear() - nascimento.getFullYear();
+                const mes = hoje.getMonth() - nascimento.getMonth();
+                if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+                  idade--;
+                }
+                return idade;
+              };
+
+              return (
+                <TableRow key={aluno.id}>
+                  <TableCell className="font-medium">{aluno.nome}</TableCell>
+                  <TableCell>{aluno.email}</TableCell>
+                  <TableCell>{calcularIdade(aluno.data_nascimento)}</TableCell>
+                  <TableCell>{aluno.peso_atual ? `${aluno.peso_atual} kg` : 'N/A'}</TableCell>
+                  <TableCell>{aluno.objetivo}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {aluno.nivel_experiencia || 'N/A'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={aluno.status === 'ativo' ? 'default' : 'secondary'}>
+                      {aluno.status}
+                    </Badge>
+                  </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -87,7 +104,7 @@ export function TabelaAlunos({ alunos, onExcluir, onAtualizar }: TabelaAlunosPro
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" className="bg-background z-50">
                       <DropdownMenuItem onClick={() => handleVisualizar(aluno)}>
                         <Eye className="h-4 w-4 mr-2" />
                         Visualizar
@@ -111,7 +128,8 @@ export function TabelaAlunos({ alunos, onExcluir, onAtualizar }: TabelaAlunosPro
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </div>

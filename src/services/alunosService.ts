@@ -76,6 +76,18 @@ export class AlunosService {
       throw new Error('Email inválido');
     }
 
+    // Verificar email duplicado
+    const { data: existingAluno } = await supabase
+      .from('alunos')
+      .select('id, email')
+      .eq('email', aluno.email)
+      .eq('status', 'ativo')
+      .maybeSingle();
+
+    if (existingAluno) {
+      throw new Error('Aluno já cadastrado com este email');
+    }
+
     // Verificar compliance LGPD
     const { data: userData, error: userError } = await supabase.auth.getUser();
     

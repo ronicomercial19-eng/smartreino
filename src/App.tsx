@@ -26,6 +26,7 @@ import MeusTreinos from "./pages/MeusTreinos";
 import UserSettings from "./pages/UserSettings";
 import AdvancedAnalytics from "./components/AdvancedAnalytics";
 import NotFound from "./pages/NotFound";
+import AlunoDetalhes from "./pages/AlunoDetalhes";
 
 const queryClient = new QueryClient();
 
@@ -112,6 +113,7 @@ const App = () => {
                     <Route path="/exercise-management" element={<ExerciseManagement />} />
                     <Route path="/ai-config" element={<AIConfig />} />
                     <Route path="/admin-students" element={<AdminStudentManagement />} />
+                    <Route path="/aluno/:id" element={<AlunoDetalhes />} />
                     <Route path="/periodization-upload" element={<PeriodizationUpload />} />
                     <Route path="/periodizacao/upload" element={<Navigate to="/periodization-upload" replace />} />
                     <Route path="/profile" element={<Profile />} />
