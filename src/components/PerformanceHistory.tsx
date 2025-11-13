@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,34 +18,78 @@ import {
   Zap
 } from "lucide-react";
 
-const PerformanceHistory = () => {
+interface PerformanceHistoryProps {
+  studentId?: string;
+}
+
+const PerformanceHistory = ({ studentId }: PerformanceHistoryProps) => {
   const [selectedPeriod, setSelectedPeriod] = useState("month");
+  const [loading, setLoading] = useState(false);
 
-  const performanceData = [
-    { period: "Semana 1", workouts: 4, avgPSE: 7.2, totalTime: 180, calories: 1200 },
-    { period: "Semana 2", workouts: 5, avgPSE: 7.8, totalTime: 225, calories: 1500 },
-    { period: "Semana 3", workouts: 3, avgPSE: 6.5, totalTime: 135, calories: 900 },
-    { period: "Semana 4", workouts: 6, avgPSE: 8.1, totalTime: 270, calories: 1800 }
-  ];
+  const [performanceData, setPerformanceData] = useState([
+    { period: "Semana 1", workouts: 0, avgPSE: 0, totalTime: 0, calories: 0 },
+    { period: "Semana 2", workouts: 0, avgPSE: 0, totalTime: 0, calories: 0 },
+    { period: "Semana 3", workouts: 0, avgPSE: 0, totalTime: 0, calories: 0 },
+    { period: "Semana 4", workouts: 0, avgPSE: 0, totalTime: 0, calories: 0 }
+  ]);
 
-  const monthlyStats = {
-    totalWorkouts: 18,
-    avgPSE: 7.4,
-    totalTime: 810,
-    totalCalories: 5400,
-    streak: 7,
-    improvement: 12
-  };
+  const [monthlyStats, setMonthlyStats] = useState({
+    totalWorkouts: 0,
+    avgPSE: 0,
+    totalTime: 0,
+    totalCalories: 0,
+    streak: 0,
+    improvement: 0
+  });
 
   const achievements = [
-    { name: "Sequência de 7 dias", icon: Flame, color: "text-orange-400", earned: true },
-    { name: "100 treinos completos", icon: Target, color: "text-blue-400", earned: true },
+    { name: "Sequência de 7 dias", icon: Flame, color: "text-orange-400", earned: false },
+    { name: "100 treinos completos", icon: Target, color: "text-blue-400", earned: false },
     { name: "PSE médio ideal", icon: Activity, color: "text-green-400", earned: false },
     { name: "Mestre da consistência", icon: Award, color: "text-purple-400", earned: false }
   ];
 
+  useEffect(() => {
+    if (studentId) {
+      loadStudentPerformance();
+    }
+  }, [studentId]);
+
+  const loadStudentPerformance = async () => {
+    // TODO: Implementar busca real de dados do aluno no banco
+    // Por enquanto, mantém dados zerados até implementar registro de treinos
+    setLoading(true);
+    try {
+      // Aqui virá a query ao Supabase para buscar treinos realizados do aluno
+      // const { data } = await supabase.from('workout_logs').select('*').eq('student_id', studentId);
+    } catch (error) {
+      console.error('Erro ao carregar performance:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!studentId) {
+    return (
+      <Card className="glass border-border/50">
+        <CardContent className="py-12 text-center">
+          <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">Selecione um aluno para visualizar a evolução da performance</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {loading ? (
+        <Card className="glass border-border/50">
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">Carregando dados de performance...</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
       {/* Header Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20 backdrop-blur-sm">
@@ -194,6 +238,8 @@ const PerformanceHistory = () => {
           </div>
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 };

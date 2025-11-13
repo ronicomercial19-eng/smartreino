@@ -27,6 +27,7 @@ import UserSettings from "./pages/UserSettings";
 import AdvancedAnalytics from "./components/AdvancedAnalytics";
 import NotFound from "./pages/NotFound";
 import AlunoDetalhes from "./pages/AlunoDetalhes";
+import RoadmapView from "./pages/RoadmapView";
 
 const queryClient = new QueryClient();
 
@@ -121,6 +122,7 @@ const App = () => {
                     <Route path="/meus-treinos" element={<MeusTreinos />} />
                     <Route path="/settings" element={<UserSettings />} />
                     <Route path="/analytics" element={<AdvancedAnalytics />} />
+                    <Route path="/roadmap" element={<RoadmapView />} />
                     <Route path="*" element={<NotFound />} />
                   </>
                 )}
