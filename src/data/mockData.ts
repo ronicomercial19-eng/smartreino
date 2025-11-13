@@ -42,12 +42,10 @@ export interface UserProfile {
   };
 }
 
+// Todos os dados mock foram removidos - usar apenas dados reais do banco
 export const mockWorkouts: WorkoutRecord[] = [];
-
 export const mockAISuggestions: AISuggestion[] = [];
-
 export const mockUserProfiles: UserProfile[] = [];
-
 export const mockPerformanceData: any[] = [];
 
 export const mockWeeklyStats = {
