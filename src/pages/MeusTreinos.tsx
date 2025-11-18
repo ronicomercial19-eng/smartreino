@@ -15,6 +15,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/utils/logger";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import PerformanceHistory from "@/components/PerformanceHistory";
 
 export default function MeusTreinos() {
   const navigate = useNavigate();
@@ -340,7 +341,13 @@ export default function MeusTreinos() {
                               </div>
                             </div>
                           </div>
-                          <Button variant="outline" size="sm">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => navigate(`/workout-details/${workout.id}`, { 
+                              state: { workout, studentId: selectedStudentId } 
+                            })}
+                          >
                             Ver Detalhes
                           </Button>
                         </div>
@@ -351,6 +358,11 @@ export default function MeusTreinos() {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* Performance History */}
+        {selectedStudentId && (
+          <PerformanceHistory studentId={selectedStudentId} />
         )}
       </div>
     </AppLayout>

@@ -28,6 +28,7 @@ import AdvancedAnalytics from "./components/AdvancedAnalytics";
 import NotFound from "./pages/NotFound";
 import AlunoDetalhes from "./pages/AlunoDetalhes";
 import RoadmapView from "./pages/RoadmapView";
+import WorkoutDetails from "./pages/WorkoutDetails";
 
 const queryClient = new QueryClient();
 
@@ -115,6 +116,7 @@ const App = () => {
                     <Route path="/ai-config" element={<AIConfig />} />
                     <Route path="/admin-students" element={<AdminStudentManagement />} />
                     <Route path="/aluno/:id" element={<AlunoDetalhes />} />
+                    <Route path="/workout-details/:id" element={<WorkoutDetails />} />
                     <Route path="/periodization-upload" element={<PeriodizationUpload />} />
                     <Route path="/periodizacao/upload" element={<Navigate to="/periodization-upload" replace />} />
                     <Route path="/profile" element={<Profile />} />
