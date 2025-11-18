@@ -111,15 +111,20 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-blue-600">
-            TrainSync
-          </CardTitle>
-          <CardDescription>
-            Entre com suas credenciais para acessar o sistema
-          </CardDescription>
+    <div className="min-h-screen bg-gradient-to-br from-black to-zinc-900 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md border-border/50 glass">
+        <CardHeader className="text-center space-y-4">
+          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-xl shadow-orange-500/20">
+            <span className="text-white text-3xl font-bold font-heading">9</span>
+          </div>
+          <div>
+            <CardTitle className="text-3xl font-bold font-heading gradient-text">
+              9FIT
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-2">
+              Sistema de Gestão de Treinos Personalizado
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleLogin} className="space-y-4">

@@ -93,19 +93,19 @@ const navigationItems = [
     ],
   },
   {
-    title: "Administração",
+    title: "Gestão de Alunos",
+    url: "/gerenciamento-alunos",
     icon: Users,
-    items: [
-      {
-        title: "Gestão de Alunos",
-        url: "/admin-students",
-      },
-    ],
   },
   {
     title: "Configurações",
     url: "/settings",
     icon: Settings,
+  },
+  {
+    title: "Roadmap",
+    url: "/roadmap",
+    icon: Target,
   },
   {
     title: "Interface Aluno",
@@ -143,8 +143,19 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className={isCollapsed ? "w-14" : "w-64"}>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-primary font-heading font-semibold text-sm">
-            {!isCollapsed && "TrainSync"}
+          <SidebarGroupLabel className="text-sidebar-primary font-heading font-bold text-base py-4">
+            {!isCollapsed ? (
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white text-lg font-bold">9</span>
+                </div>
+                <span className="gradient-text text-xl">9FIT</span>
+              </div>
+            ) : (
+              <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center mx-auto">
+                <span className="text-white text-lg font-bold">9</span>
+              </div>
+            )}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
