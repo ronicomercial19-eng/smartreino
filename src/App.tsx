@@ -19,6 +19,7 @@ import WorkoutRegister from "./pages/WorkoutRegister";
 import ExerciseManagement from "./pages/ExerciseManagement";
 import AIConfig from "./pages/AIConfig";
 import AdminStudentManagement from "./pages/AdminStudentManagement";
+import GerenciamentoAlunos from "./pages/GerenciamentoAlunos";
 import StudentInterface from "./pages/StudentInterface";
 import PeriodizationUpload from "./pages/PeriodizationUpload";
 import Profile from "./pages/Profile";
@@ -87,8 +88,8 @@ const App = () => {
             ) : (
               // Protected routes
               <>
-                <Route path="/login" element={<Navigate to={userType === 'student' ? "/student-interface" : "/admin-students"} replace />} />
-                <Route path="/register" element={<Navigate to={userType === 'student' ? "/student-interface" : "/admin-students"} replace />} />
+                <Route path="/login" element={<Navigate to={userType === 'student' ? "/student-interface" : "/gerenciamento-alunos"} replace />} />
+                <Route path="/register" element={<Navigate to={userType === 'student' ? "/student-interface" : "/gerenciamento-alunos"} replace />} />
                 
                 {userType === 'student' ? (
                   // Student routes
@@ -100,7 +101,7 @@ const App = () => {
                 ) : (
                   // Admin/trainer routes
                   <>
-                    <Route path="/" element={<Navigate to="/admin-students" replace />} />
+                    <Route path="/" element={<Navigate to="/gerenciamento-alunos" replace />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/exercise-library" element={<ExerciseLibrary />} />
                     <Route path="/exercises" element={<Navigate to="/exercise-library" replace />} />
@@ -115,6 +116,7 @@ const App = () => {
                     <Route path="/exercise-management" element={<ExerciseManagement />} />
                     <Route path="/ai-config" element={<AIConfig />} />
                     <Route path="/admin-students" element={<AdminStudentManagement />} />
+                    <Route path="/gerenciamento-alunos" element={<GerenciamentoAlunos />} />
                     <Route path="/aluno/:id" element={<AlunoDetalhes />} />
                     <Route path="/workout-details/:id" element={<WorkoutDetails />} />
                     <Route path="/periodization-upload" element={<PeriodizationUpload />} />
