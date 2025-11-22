@@ -1928,25 +1928,49 @@ export type Database = {
       }
       planos_de_treino_gerados: {
         Row: {
-          criado_em: string | null
+          created_at: string | null
+          duracao_semanas: number | null
           estudante_id: string | null
           estudante_id_ref: string | null
           id: string
           modelo_id: string | null
+          nivel: string | null
+          nome_plano: string | null
+          objetivo: string | null
+          plano_completo: Json | null
+          professor_id: string | null
+          status: string | null
+          updated_at: string | null
         }
         Insert: {
-          criado_em?: string | null
+          created_at?: string | null
+          duracao_semanas?: number | null
           estudante_id?: string | null
           estudante_id_ref?: string | null
           id?: string
           modelo_id?: string | null
+          nivel?: string | null
+          nome_plano?: string | null
+          objetivo?: string | null
+          plano_completo?: Json | null
+          professor_id?: string | null
+          status?: string | null
+          updated_at?: string | null
         }
         Update: {
-          criado_em?: string | null
+          created_at?: string | null
+          duracao_semanas?: number | null
           estudante_id?: string | null
           estudante_id_ref?: string | null
           id?: string
           modelo_id?: string | null
+          nivel?: string | null
+          nome_plano?: string | null
+          objetivo?: string | null
+          plano_completo?: Json | null
+          professor_id?: string | null
+          status?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {

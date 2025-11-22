@@ -30,6 +30,9 @@ import NotFound from "./pages/NotFound";
 import AlunoDetalhes from "./pages/AlunoDetalhes";
 import RoadmapView from "./pages/RoadmapView";
 import WorkoutDetails from "./pages/WorkoutDetails";
+import GenerateWorkout from "./pages/GenerateWorkout";
+import WorkoutPlan from "./pages/WorkoutPlan";
+import StudentAnalytics from "./pages/StudentAnalytics";
 
 const queryClient = new QueryClient();
 
@@ -127,6 +130,9 @@ const App = () => {
                     <Route path="/settings" element={<UserSettings />} />
                     <Route path="/analytics" element={<AdvancedAnalytics />} />
                     <Route path="/roadmap" element={<RoadmapView />} />
+                    <Route path="/generate-workout" element={<GenerateWorkout />} />
+                    <Route path="/workout-plan/:id" element={<WorkoutPlan />} />
+                    <Route path="/student-analytics/:id" element={<StudentAnalytics />} />
                     <Route path="*" element={<NotFound />} />
                   </>
                 )}
