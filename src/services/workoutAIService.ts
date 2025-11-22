@@ -52,7 +52,7 @@ export class WorkoutAIService {
       throw new Error('Erro ao buscar treinos');
     }
 
-    return data || [];
+    return (data as any) || [];
   }
 
   static async getWorkoutById(planId: string): Promise<GeneratedWorkoutPlan> {
@@ -67,13 +67,13 @@ export class WorkoutAIService {
       throw new Error('Erro ao buscar treino');
     }
 
-    return data;
+    return data as any;
   }
 
   static async updateWorkout(planId: string, updates: Partial<GeneratedWorkoutPlan>): Promise<GeneratedWorkoutPlan> {
     const { data, error } = await supabase
       .from('planos_de_treino_gerados')
-      .update(updates)
+      .update(updates as any)
       .eq('id', planId)
       .select()
       .single();
@@ -83,7 +83,7 @@ export class WorkoutAIService {
       throw new Error('Erro ao atualizar treino');
     }
 
-    return data;
+    return data as any;
   }
 
   static async deleteWorkout(planId: string): Promise<void> {
