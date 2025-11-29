@@ -33,6 +33,7 @@ import WorkoutDetails from "./pages/WorkoutDetails";
 import GenerateWorkout from "./pages/GenerateWorkout";
 import WorkoutPlan from "./pages/WorkoutPlan";
 import StudentAnalytics from "./pages/StudentAnalytics";
+import AdvancedStatistics from "./pages/AdvancedStatistics";
 
 const queryClient = new QueryClient();
 
@@ -132,7 +133,8 @@ const App = () => {
                     <Route path="/roadmap" element={<RoadmapView />} />
                     <Route path="/generate-workout" element={<GenerateWorkout />} />
                     <Route path="/workout-plan/:id" element={<WorkoutPlan />} />
-                    <Route path="/student-analytics/:id" element={<StudentAnalytics />} />
+                    <Route path="/student-analytics/:id?" element={<StudentAnalytics />} />
+                    <Route path="/advanced-statistics/:id?" element={<AdvancedStatistics />} />
                     <Route path="*" element={<NotFound />} />
                   </>
                 )}
