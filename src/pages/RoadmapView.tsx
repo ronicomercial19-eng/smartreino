@@ -47,30 +47,30 @@ export default function RoadmapView() {
     },
     {
       id: "fase3",
-      title: "🚀 Fase 3: Sistema de Geração de Treinos com IA",
-      status: "in-progress",
+      title: "✅ Fase 3: Sistema de Treinos com IA",
+      status: "completed",
       priority: "ALTA",
       items: [
-        "Ativar Lovable AI Gateway",
-        "Configurar edge function para geração de treinos",
-        "Criar prompts estruturados para geração personalizada",
-        "Implementar seleção de aluno na página de Modelos",
-        "Integrar dados do aluno no contexto da IA",
-        "Gerar treinos baseados em perfil completo do aluno"
+        "Edge function generate-workout implementada",
+        "Seleção de aluno em Modelos corrigida",
+        "Template visual 9FIT criado",
+        "Chat IA para modificação de treinos",
+        "WorkoutDisplayTemplate com design preto/laranja",
+        "Integração completa com Lovable AI"
       ]
     },
     {
       id: "fase4",
-      title: "📊 Fase 4: Analytics e Acompanhamento",
-      status: "pending",
-      priority: "MÉDIA",
+      title: "✅ Fase 4: Analytics e Estatísticas",
+      status: "completed",
+      priority: "ALTA",
       items: [
-        "Gráficos de progresso do aluno",
-        "Evolução de peso e carga por exercício",
-        "Métricas semanais/mensais",
-        "Interface para aluno registrar treinos",
-        "Registro de cargas utilizadas",
-        "Fotos de progresso"
+        "StudentAnalytics com dados reais implementado",
+        "AdvancedStatistics com tabs criado",
+        "AIRecommendationPanel com sugestões de treino",
+        "StudentSelector reutilizável",
+        "Métricas reais de treinos e avaliações",
+        "Edge function generate-recommendations"
       ]
     },
     {

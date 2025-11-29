@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { WorkoutDisplayTemplate } from '@/components/workout/WorkoutDisplayTemplate';
+import { WorkoutAIChat } from '@/components/workout/WorkoutAIChat';
 import { useToast } from '@/hooks/use-toast';
 import { WorkoutAIService } from '@/services/workoutAIService';
 import { ArrowLeft, Calendar, Target, TrendingUp, Download, Dumbbell } from 'lucide-react';
@@ -64,7 +66,34 @@ export default function WorkoutPlan() {
     );
   }
 
+  const handlePlanUpdate = async (updatedPlan: any) => {
+    try {
+      await WorkoutAIService.updateWorkout(plan.id, {
+        plano_completo: updatedPlan
+      });
+      setPlan({ ...plan, plano_completo: updatedPlan });
+      toast({
+        title: "Treino Atualizado!",
+        description: "As modificações foram salvas com sucesso."
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao atualizar",
+        description: error instanceof Error ? error.message : "Erro desconhecido"
+      });
+    }
+  };
+
   const workoutData = plan.plano_completo;
+
+  // Tentar converter para o formato do template
+  const templateData = {
+    nome: plan.nome_plano,
+    objetivo: plan.objetivo,
+    nivel: plan.nivel,
+    estrutura_semanal: workoutData.weekly_structure || workoutData.estrutura_semanal || []
+  };
 
   return (
     <PageLayout title={plan.nome_plano}>
@@ -86,102 +115,116 @@ export default function WorkoutPlan() {
           </div>
         </div>
 
-        {/* Overview Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Visão Geral do Plano</CardTitle>
-            <CardDescription>{workoutData.overview}</CardDescription>
-          </CardHeader>
-          <CardContent className="grid md:grid-cols-3 gap-4">
-            <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground">Objetivo</p>
-                <p className="font-medium capitalize">{plan.objetivo}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground">Nível</p>
-                <p className="font-medium capitalize">{plan.nivel}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground">Duração</p>
-                <p className="font-medium">{plan.duracao_semanas} semanas</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Weekly Structure */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Estrutura Semanal</h2>
-          {workoutData.weekly_structure?.map((day: any, index: number) => (
-            <Card key={index}>
+        {/* Template Visual 9FIT */}
+        {templateData.estrutura_semanal.length > 0 ? (
+          <WorkoutDisplayTemplate plan={templateData} />
+        ) : (
+          <>
+            {/* Fallback: Overview Card */}
+            <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Dumbbell className="h-5 w-5 text-primary" />
-                    Dia {day.day} - {day.name}
-                  </CardTitle>
-                  <Badge variant="outline">{day.focus}</Badge>
-                </div>
+                <CardTitle>Visão Geral do Plano</CardTitle>
+                <CardDescription>{workoutData.overview || 'Plano de treino personalizado'}</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {day.exercises?.map((exercise: any, exIndex: number) => (
-                  <div key={exIndex} className="border-l-2 border-primary pl-4 py-2">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-semibold">{exercise.name}</h4>
-                      <div className="flex gap-2 text-sm text-muted-foreground">
-                        <span>{exercise.sets}x{exercise.reps}</span>
-                        <span>•</span>
-                        <span>{exercise.rest_seconds}s</span>
-                      </div>
-                    </div>
-                    {exercise.notes && (
-                      <p className="text-sm text-muted-foreground">{exercise.notes}</p>
-                    )}
+              <CardContent className="grid md:grid-cols-3 gap-4">
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-primary" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Objetivo</p>
+                    <p className="font-medium capitalize">{plan.objetivo}</p>
                   </div>
-                ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Nível</p>
+                    <p className="font-medium capitalize">{plan.nivel}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Duração</p>
+                    <p className="font-medium">{plan.duracao_semanas} semanas</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
 
-        {/* Guidelines */}
-        {workoutData.general_guidelines && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Orientações Gerais</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {workoutData.general_guidelines.warmup && (
-                <div>
-                  <h4 className="font-semibold mb-2">Aquecimento</h4>
-                  <p className="text-sm text-muted-foreground">{workoutData.general_guidelines.warmup}</p>
-                </div>
-              )}
-              <Separator />
-              {workoutData.general_guidelines.progression && (
-                <div>
-                  <h4 className="font-semibold mb-2">Progressão</h4>
-                  <p className="text-sm text-muted-foreground">{workoutData.general_guidelines.progression}</p>
-                </div>
-              )}
-              <Separator />
-              {workoutData.general_guidelines.warnings && (
-                <div>
-                  <h4 className="font-semibold mb-2">Sinais de Alerta</h4>
-                  <p className="text-sm text-muted-foreground">{workoutData.general_guidelines.warnings}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            {/* Weekly Structure */}
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold">Estrutura Semanal</h2>
+              {workoutData.weekly_structure?.map((day: any, index: number) => (
+                <Card key={index}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <Dumbbell className="h-5 w-5 text-primary" />
+                        Dia {day.day} - {day.name}
+                      </CardTitle>
+                      <Badge variant="outline">{day.focus}</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {day.exercises?.map((exercise: any, exIndex: number) => (
+                      <div key={exIndex} className="border-l-2 border-primary pl-4 py-2">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-semibold">{exercise.name}</h4>
+                          <div className="flex gap-2 text-sm text-muted-foreground">
+                            <span>{exercise.sets}x{exercise.reps}</span>
+                            <span>•</span>
+                            <span>{exercise.rest_seconds}s</span>
+                          </div>
+                        </div>
+                        {exercise.notes && (
+                          <p className="text-sm text-muted-foreground">{exercise.notes}</p>
+                        )}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Guidelines */}
+            {workoutData.general_guidelines && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Orientações Gerais</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {workoutData.general_guidelines.warmup && (
+                    <div>
+                      <h4 className="font-semibold mb-2">Aquecimento</h4>
+                      <p className="text-sm text-muted-foreground">{workoutData.general_guidelines.warmup}</p>
+                    </div>
+                  )}
+                  <Separator />
+                  {workoutData.general_guidelines.progression && (
+                    <div>
+                      <h4 className="font-semibold mb-2">Progressão</h4>
+                      <p className="text-sm text-muted-foreground">{workoutData.general_guidelines.progression}</p>
+                    </div>
+                  )}
+                  <Separator />
+                  {workoutData.general_guidelines.warnings && (
+                    <div>
+                      <h4 className="font-semibold mb-2">Sinais de Alerta</h4>
+                      <p className="text-sm text-muted-foreground">{workoutData.general_guidelines.warnings}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </>
         )}
+
+        {/* Chat IA para Modificações */}
+        <WorkoutAIChat
+          workoutPlanId={plan.id}
+          currentPlan={workoutData}
+          onPlanUpdated={handlePlanUpdate}
+        />
       </div>
     </PageLayout>
   );

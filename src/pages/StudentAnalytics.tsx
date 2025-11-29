@@ -4,10 +4,12 @@ import { PageLayout } from '@/components/shared/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { StudentSelector } from '@/components/analytics/StudentSelector';
+import { AIRecommendationPanel } from '@/components/analytics/AIRecommendationPanel';
 import { useToast } from '@/hooks/use-toast';
 import { AlunosService, type Aluno } from '@/services/alunosService';
+import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, TrendingUp, Calendar, Activity, Target } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -16,31 +18,86 @@ export default function StudentAnalytics() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [aluno, setAluno] = useState<Aluno | null>(null);
+  const [students, setStudents] = useState<Aluno[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState(id || '');
   const [loading, setLoading] = useState(true);
+  const [loadingData, setLoadingData] = useState(false);
   const [period, setPeriod] = useState('30');
+  const [realData, setRealData] = useState<any>({
+    workouts: [],
+    evaluations: [],
+    metrics: null
+  });
 
   useEffect(() => {
-    const loadStudent = async () => {
-      if (!id) return;
+    loadStudents();
+  }, []);
 
-      try {
-        setLoading(true);
-        const data = await AlunosService.buscarAlunoPorId(id);
-        setAluno(data);
-      } catch (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Erro ao carregar aluno',
-          description: error instanceof Error ? error.message : 'Erro desconhecido'
-        });
-        navigate(-1);
-      } finally {
-        setLoading(false);
+  useEffect(() => {
+    if (selectedStudentId) {
+      loadStudentData(selectedStudentId);
+    }
+  }, [selectedStudentId]);
+
+  const loadStudents = async () => {
+    try {
+      setLoading(true);
+      const data = await AlunosService.listarAlunos();
+      setStudents(data);
+      if (id) {
+        setSelectedStudentId(id);
       }
-    };
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao carregar alunos',
+        description: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadStudent();
-  }, [id, navigate, toast]);
+  const loadStudentData = async (studentId: string) => {
+    try {
+      setLoadingData(true);
+      
+      const studentData = await AlunosService.buscarAlunoPorId(studentId);
+      setAluno(studentData);
+
+      // Buscar treinos realizados
+      const { data: workouts } = await supabase
+        .from('historico_treinos_realizados')
+        .select('*')
+        .eq('aluno_id', studentId)
+        .order('data_treino', { ascending: false });
+
+      // Buscar avaliações físicas
+      const { data: evaluations } = await supabase
+        .from('avaliacoes_unificadas')
+        .select('*')
+        .eq('aluno_id', studentId)
+        .order('data_avaliacao', { ascending: false });
+
+      setRealData({
+        workouts: workouts || [],
+        evaluations: evaluations || [],
+        metrics: {
+          totalWorkouts: workouts?.length || 0,
+          averagePSE: workouts?.reduce((acc: number, w: any) => acc + (w.pse_sessao || 0), 0) / (workouts?.length || 1),
+          adherence: 80 // Calcular baseado em treinos planejados vs realizados
+        }
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao carregar dados',
+        description: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -82,113 +139,146 @@ export default function StudentAnalytics() {
   ];
 
   return (
-    <PageLayout title={`Analytics - ${aluno.nome}`}>
+    <PageLayout title={aluno ? `Analytics - ${aluno.nome}` : "Analytics"}>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <Button variant="outline" onClick={() => navigate(-1)}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
-          </Button>
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Últimos 7 dias</SelectItem>
-              <SelectItem value="30">Últimos 30 dias</SelectItem>
-              <SelectItem value="90">Últimos 90 dias</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Seletor de Aluno (se não vier ID na URL) */}
+        {!id && (
+          <StudentSelector
+            students={students}
+            selectedStudent={selectedStudentId}
+            onSelectStudent={setSelectedStudentId}
+            loading={loading}
+          />
+        )}
 
-        {/* Metrics Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
+        {!selectedStudentId && !id && (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Treinos Realizados</CardTitle>
-              <Activity className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">4</div>
-              <p className="text-xs text-muted-foreground">neste período</p>
+            <CardContent className="pt-6 text-center">
+              <p className="text-muted-foreground">Selecione um aluno para visualizar analytics</p>
             </CardContent>
           </Card>
+        )}
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Aderência</CardTitle>
-              <Target className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">80%</div>
-              <p className="text-xs text-muted-foreground">Meta: 75%</p>
-            </CardContent>
-          </Card>
+        {selectedStudentId && aluno && (
+          <>
+            {/* Header */}
+            <div className="flex justify-between items-center">
+              <Button variant="outline" onClick={() => navigate(-1)}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar
+              </Button>
+            </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">PSE Média</CardTitle>
-              <TrendingUp className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">7.1</div>
-              <p className="text-xs text-muted-foreground">+0.3 vs anterior</p>
-            </CardContent>
-          </Card>
+            {/* Metrics Cards */}
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Treinos Realizados</CardTitle>
+                  <Activity className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{realData.metrics?.totalWorkouts || 0}</div>
+                  <p className="text-xs text-muted-foreground">total registrado</p>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Sequência Atual</CardTitle>
-              <Calendar className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">3</div>
-              <p className="text-xs text-muted-foreground">semanas consecutivas</p>
-            </CardContent>
-          </Card>
-        </div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Aderência</CardTitle>
+                  <Target className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{realData.metrics?.adherence || 0}%</div>
+                  <p className="text-xs text-muted-foreground">dos treinos planejados</p>
+                </CardContent>
+              </Card>
 
-        {/* Progress Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Evolução de Peso e PSE</CardTitle>
-            <CardDescription>Acompanhamento semanal do progresso</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={progressData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="week" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip />
-                <Legend />
-                <Line yAxisId="left" type="monotone" dataKey="peso" stroke="hsl(var(--primary))" name="Peso (kg)" />
-                <Line yAxisId="right" type="monotone" dataKey="pse" stroke="hsl(var(--secondary))" name="PSE" />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">PSE Média</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{realData.metrics?.averagePSE?.toFixed(1) || 0}</div>
+                  <p className="text-xs text-muted-foreground">percepção de esforço</p>
+                </CardContent>
+              </Card>
 
-        {/* Frequency Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Frequência Semanal</CardTitle>
-            <CardDescription>Treinos realizados por dia da semana</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={workoutFrequency}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="dia" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="treinos" fill="hsl(var(--primary))" name="Treinos" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Avaliações</CardTitle>
+                  <Calendar className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{realData.evaluations?.length || 0}</div>
+                  <p className="text-xs text-muted-foreground">registradas</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recomendações IA */}
+            <AIRecommendationPanel
+              studentId={selectedStudentId}
+              studentData={aluno}
+              onApplyRecommendations={() => {
+                toast({
+                  title: "Implementação Futura",
+                  description: "Funcionalidade de aplicação automática será implementada"
+                });
+              }}
+            />
+
+            {/* Progress Chart */}
+            {realData.evaluations && realData.evaluations.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Evolução de Peso</CardTitle>
+                  <CardDescription>Histórico de avaliações físicas</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={realData.evaluations.slice(0, 10).reverse().map((ev: any) => ({
+                      data: new Date(ev.data_avaliacao).toLocaleDateString(),
+                      peso: ev.peso
+                    }))}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="data" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="peso" stroke="hsl(var(--primary))" name="Peso (kg)" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Frequency Chart */}
+            {realData.workouts && realData.workouts.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Histórico de Treinos</CardTitle>
+                  <CardDescription>Últimos treinos realizados</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {realData.workouts.slice(0, 5).map((workout: any) => (
+                      <div key={workout.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <div>
+                          <p className="font-medium">{new Date(workout.data_treino).toLocaleDateString()}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {workout.duracao_minutos}min • PSE: {workout.pse_sessao || 'N/A'}
+                          </p>
+                        </div>
+                        <Badge variant="outline">{workout.volume_total_kg || 0}kg</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
       </div>
     </PageLayout>
   );

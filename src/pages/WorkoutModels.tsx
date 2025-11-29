@@ -37,14 +37,14 @@ const WorkoutModels = () => {
 
   useEffect(() => {
     loadStudents();
-  }, [userProfile]);
+  }, []);
 
   const loadStudents = async () => {
-    if (!userProfile?.id) return;
-    
     try {
       setLoadingStudents(true);
+      logger.info('Carregando lista de alunos');
       const data = await AlunosService.listarAlunos();
+      logger.info(`${data.length} alunos carregados`);
       setStudents(data);
     } catch (error) {
       logger.error('Erro ao carregar alunos', error);
