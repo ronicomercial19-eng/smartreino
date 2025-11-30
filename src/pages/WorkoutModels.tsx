@@ -42,17 +42,27 @@ const WorkoutModels = () => {
   const loadStudents = async () => {
     try {
       setLoadingStudents(true);
-      logger.info('Carregando lista de alunos');
+      logger.info('[WorkoutModels] Carregando lista de alunos (RLS automático)');
+      
       const data = await AlunosService.listarAlunos();
-      logger.info(`${data.length} alunos carregados`);
+      
+      logger.info(`[WorkoutModels] ${data.length} alunos carregados com sucesso`);
       setStudents(data);
+      
+      if (data.length === 0) {
+        toast({
+          title: "Nenhum aluno encontrado",
+          description: "Cadastre alunos primeiro antes de gerar treinos",
+        });
+      }
     } catch (error) {
-      logger.error('Erro ao carregar alunos', error);
+      logger.error('[WorkoutModels] Erro ao carregar alunos:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível carregar a lista de alunos",
+        title: "Erro ao Carregar Alunos",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
         variant: "destructive"
       });
+      setStudents([]);
     } finally {
       setLoadingStudents(false);
     }

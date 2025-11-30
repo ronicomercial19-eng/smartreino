@@ -53,37 +53,48 @@ export function WorkoutAIChat({ workoutPlanId, currentPlan, onPlanUpdated }: Wor
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const userCommand = input;
     setInput("");
     setIsLoading(true);
 
     try {
+      console.log('[WorkoutAIChat] Enviando comando para IA:', userCommand);
+      
       const { data, error } = await supabase.functions.invoke("modify-workout", {
         body: {
           workoutPlanId,
           currentPlan,
-          userCommand: input
+          userCommand
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[WorkoutAIChat] Erro na edge function:', error);
+        throw error;
+      }
+
+      console.log('[WorkoutAIChat] Resposta da IA recebida:', data);
 
       const assistantMessage: Message = {
         role: "assistant",
-        content: data.response,
+        content: data.response || "Modificação processada com sucesso!",
         timestamp: new Date()
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
 
       if (data.updatedPlan) {
+        console.log('[WorkoutAIChat] Plano atualizado recebido, armazenando temporariamente');
         setHasChanges(true);
-        // Store temporarily - user must click "Aplicar" to save
         sessionStorage.setItem(`workout_changes_${workoutPlanId}`, JSON.stringify(data.updatedPlan));
+      } else {
+        console.warn('[WorkoutAIChat] Nenhum plano atualizado retornado pela IA');
       }
     } catch (error) {
+      console.error('[WorkoutAIChat] Erro ao processar comando:', error);
       const errorMessage: Message = {
         role: "assistant",
-        content: `❌ Erro ao processar: ${error instanceof Error ? error.message : "Erro desconhecido"}`,
+        content: `❌ Erro ao processar comando: ${error instanceof Error ? error.message : "Erro desconhecido"}. Tente novamente com um comando mais específico.`,
         timestamp: new Date()
       };
       setMessages((prev) => [...prev, errorMessage]);
