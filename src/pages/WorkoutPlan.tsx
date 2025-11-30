@@ -8,9 +8,10 @@ import { Separator } from '@/components/ui/separator';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { WorkoutDisplayTemplate } from '@/components/workout/WorkoutDisplayTemplate';
 import { WorkoutAIChat } from '@/components/workout/WorkoutAIChat';
+import { WorkoutPDFExport } from '@/components/workout/WorkoutPDFExport';
 import { useToast } from '@/hooks/use-toast';
 import { WorkoutAIService } from '@/services/workoutAIService';
-import { ArrowLeft, Calendar, Target, TrendingUp, Download, Dumbbell } from 'lucide-react';
+import { ArrowLeft, Calendar, Target, TrendingUp, Dumbbell } from 'lucide-react';
 import type { GeneratedWorkoutPlan } from '@/services/workoutAIService';
 
 export default function WorkoutPlan() {
@@ -108,10 +109,10 @@ export default function WorkoutPlan() {
             <Badge variant={plan.status === 'ativo' ? 'default' : 'secondary'}>
               {plan.status}
             </Badge>
-            <Button variant="outline" size="sm">
-              <Download className="mr-2 h-4 w-4" />
-              Exportar PDF
-            </Button>
+            <WorkoutPDFExport 
+              plan={templateData}
+              fileName={`treino-${plan.nome_plano.toLowerCase().replace(/\s+/g, '-')}.html`}
+            />
           </div>
         </div>
 

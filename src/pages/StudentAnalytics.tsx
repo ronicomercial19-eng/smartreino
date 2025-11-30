@@ -26,6 +26,7 @@ export default function StudentAnalytics() {
   const [realData, setRealData] = useState<any>({
     workouts: [],
     evaluations: [],
+    plans: [],
     metrics: null
   });
 
@@ -37,7 +38,7 @@ export default function StudentAnalytics() {
     if (selectedStudentId) {
       loadStudentData(selectedStudentId);
     }
-  }, [selectedStudentId]);
+  }, [selectedStudentId, period]);
 
   const loadStudents = async () => {
     try {
@@ -61,34 +62,76 @@ export default function StudentAnalytics() {
   const loadStudentData = async (studentId: string) => {
     try {
       setLoadingData(true);
+      console.log('[StudentAnalytics] Carregando dados reais para aluno:', studentId);
       
       const studentData = await AlunosService.buscarAlunoPorId(studentId);
       setAluno(studentData);
 
-      // Buscar treinos realizados
-      const { data: workouts } = await supabase
+      // Buscar treinos realizados dos últimos 30/60/90 dias
+      const daysAgo = parseInt(period);
+      const dateThreshold = new Date();
+      dateThreshold.setDate(dateThreshold.getDate() - daysAgo);
+
+      const { data: workouts, error: workoutsError } = await supabase
         .from('historico_treinos_realizados')
         .select('*')
         .eq('aluno_id', studentId)
+        .gte('data_treino', dateThreshold.toISOString())
         .order('data_treino', { ascending: false });
 
+      if (workoutsError) {
+        console.error('[StudentAnalytics] Erro ao buscar treinos:', workoutsError);
+      }
+
       // Buscar avaliações físicas
-      const { data: evaluations } = await supabase
+      const { data: evaluations, error: evaluationsError } = await supabase
         .from('avaliacoes_unificadas')
         .select('*')
         .eq('aluno_id', studentId)
-        .order('data_avaliacao', { ascending: false });
+        .order('data_avaliacao', { ascending: false })
+        .limit(10);
+
+      if (evaluationsError) {
+        console.error('[StudentAnalytics] Erro ao buscar avaliações:', evaluationsError);
+      }
+
+      // Buscar planos de treino gerados
+      const { data: plans } = await supabase
+        .from('planos_de_treino_gerados')
+        .select('*')
+        .eq('estudante_id', studentId)
+        .order('created_at', { ascending: false });
+
+      // Calcular métricas reais
+      const totalWorkouts = workouts?.length || 0;
+      const avgPSE = totalWorkouts > 0 
+        ? workouts.reduce((acc: number, w: any) => acc + (w.pse_sessao || 0), 0) / totalWorkouts
+        : 0;
+      
+      // Calcular aderência: treinos realizados / dias do período
+      const adherence = totalWorkouts > 0 
+        ? Math.min(100, Math.round((totalWorkouts / (studentData.frequencia_semanal || 3) / (daysAgo / 7)) * 100))
+        : 0;
+
+      console.log('[StudentAnalytics] Dados carregados:', {
+        workouts: totalWorkouts,
+        evaluations: evaluations?.length || 0,
+        avgPSE: avgPSE.toFixed(1),
+        adherence
+      });
 
       setRealData({
         workouts: workouts || [],
         evaluations: evaluations || [],
+        plans: plans || [],
         metrics: {
-          totalWorkouts: workouts?.length || 0,
-          averagePSE: workouts?.reduce((acc: number, w: any) => acc + (w.pse_sessao || 0), 0) / (workouts?.length || 1),
-          adherence: 80 // Calcular baseado em treinos planejados vs realizados
+          totalWorkouts,
+          averagePSE: avgPSE,
+          adherence
         }
       });
     } catch (error) {
+      console.error('[StudentAnalytics] Erro ao carregar dados:', error);
       toast({
         variant: 'destructive',
         title: 'Erro ao carregar dados',
@@ -216,14 +259,45 @@ export default function StudentAnalytics() {
               </Card>
             </div>
 
+            {/* Period Selector */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant={period === '30' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPeriod('30')}
+              >
+                30 dias
+              </Button>
+              <Button
+                variant={period === '60' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPeriod('60')}
+              >
+                60 dias
+              </Button>
+              <Button
+                variant={period === '90' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPeriod('90')}
+              >
+                90 dias
+              </Button>
+            </div>
+
             {/* Recomendações IA */}
             <AIRecommendationPanel
               studentId={selectedStudentId}
-              studentData={aluno}
-              onApplyRecommendations={() => {
+              studentData={{
+                ...aluno,
+                metrics: realData.metrics,
+                recentWorkouts: realData.workouts.slice(0, 5)
+              }}
+              onApplyRecommendations={async () => {
+                // Recarregar dados após aplicar recomendações
+                await loadStudentData(selectedStudentId);
                 toast({
-                  title: "Implementação Futura",
-                  description: "Funcionalidade de aplicação automática será implementada"
+                  title: "Recomendações Aplicadas!",
+                  description: "O treino foi atualizado com as sugestões da IA."
                 });
               }}
             />

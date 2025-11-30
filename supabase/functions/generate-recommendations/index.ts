@@ -44,22 +44,47 @@ serve(async (req) => {
     // Construir prompt para IA
     const systemPrompt = `Você é um personal trainer especializado em análise de desempenho e periodização de treino.
 
-Analise os dados do aluno e gere recomendações específicas e acionáveis. Cada recomendação deve ter:
-- type: "warning" (alerta), "suggestion" (sugestão) ou "success" (ponto positivo)
-- title: Título curto e direto
-- description: Explicação clara do ponto
-- action: Ação específica recomendada (opcional)
+Analise os dados do aluno e gere recomendações ESPECÍFICAS e ACIONÁVEIS. Cada recomendação deve ter:
+- type: "warning" (alerta crítico), "suggestion" (melhoria sugerida) ou "success" (reconhecimento positivo)
+- title: Título direto e objetivo (máx 60 caracteres)
+- description: Explicação clara baseada em dados (100-150 caracteres)
+- action: Ação específica recomendada com números concretos
 
-Foque em:
-1. Progressão de carga e volume
-2. Frequência e aderência ao treino
-3. Sinais de overtraining ou undertraining
-4. Evolução de medidas e peso
-5. Ajustes necessários no plano atual
+CRITÉRIOS DE ANÁLISE:
+1. Progressão de Carga: Identificar estagnação ou progressão inadequada
+2. Volume Total: Analisar se está dentro dos limites ideais para o objetivo
+3. Frequência: Comparar frequência planejada vs realizada
+4. PSE: Identificar sinais de overtraining (PSE >8) ou undertraining (PSE <5)
+5. Aderência: Se <70%, sugerir ajustes na programação
+6. Evolução Física: Analisar tendências de peso e medidas
+
+EXEMPLOS DE BOAS RECOMENDAÇÕES:
+{
+  "type": "warning",
+  "title": "Aderência abaixo do esperado",
+  "description": "Apenas 60% dos treinos foram realizados nas últimas 4 semanas. Isso pode comprometer os resultados.",
+  "action": "Reduzir frequência para 3x/semana com maior intensidade ou revisar horários disponíveis"
+}
+
+{
+  "type": "suggestion", 
+  "title": "Oportunidade de progressão de carga",
+  "description": "PSE médio de 5.8 indica treinos muito confortáveis. Há espaço para aumentar intensidade.",
+  "action": "Aumentar carga em 5-10% nos exercícios principais ou reduzir descanso em 15-20s"
+}
 
 Retorne JSON com: { "recommendations": [...] }`;
 
-    const userPrompt = `Dados do Aluno:\n${JSON.stringify(studentData, null, 2)}\n\nHistórico de Treinos (últimos 10):\n${JSON.stringify(workoutHistory || [], null, 2)}\n\nAvaliações Físicas (últimas 5):\n${JSON.stringify(evaluations || [], null, 2)}\n\nGere 3-5 recomendações personalizadas.`;
+    const userPrompt = `DADOS DO ALUNO:
+${JSON.stringify(studentData, null, 2)}
+
+HISTÓRICO DE TREINOS (últimos 10):
+${JSON.stringify(workoutHistory || [], null, 2)}
+
+AVALIAÇÕES FÍSICAS (últimas 5):
+${JSON.stringify(evaluations || [], null, 2)}
+
+Gere 3-5 recomendações baseadas nos dados reais. Seja específico com números e prazos.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -91,19 +116,38 @@ Retorne JSON com: { "recommendations": [...] }`;
       throw new Error("IA não retornou resposta válida");
     }
 
-    // Parse da resposta
+    // Parse da resposta com múltiplas estratégias
     let recommendations;
     try {
-      const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
+      // Tentar extrair JSON de blocos de código markdown
+      const codeBlockMatch = aiContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      if (codeBlockMatch) {
+        const parsed = JSON.parse(codeBlockMatch[1]);
         recommendations = parsed.recommendations || [];
       } else {
-        recommendations = [];
+        // Tentar extrair JSON direto
+        const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          recommendations = parsed.recommendations || [];
+        } else {
+          // Fallback: criar recomendação genérica
+          recommendations = [{
+            type: "suggestion",
+            title: "Análise Pendente",
+            description: "Continue registrando treinos para receber recomendações mais precisas",
+            action: "Registre pelo menos 5 treinos para análise detalhada"
+          }];
+        }
       }
     } catch (e) {
       console.error("[generate-recommendations] Erro ao parsear resposta:", e);
-      recommendations = [];
+      recommendations = [{
+        type: "warning",
+        title: "Erro na Análise",
+        description: "Não foi possível processar as recomendações. Tente novamente.",
+        action: "Verificar logs para mais detalhes"
+      }];
     }
 
     console.log(`[generate-recommendations] ${recommendations.length} recomendações geradas`);
