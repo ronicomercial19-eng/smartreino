@@ -69,22 +69,36 @@ Formato de resposta esperado:
       throw new Error("IA não retornou resposta válida");
     }
 
-    // Parse da resposta da IA
+    // Parse da resposta da IA com múltiplas estratégias
     let result;
     try {
-      // Tentar extrair JSON da resposta
-      const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        result = JSON.parse(jsonMatch[0]);
+      // Estratégia 1: Tentar extrair JSON do código markdown
+      const codeBlockMatch = aiContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      if (codeBlockMatch) {
+        result = JSON.parse(codeBlockMatch[1]);
       } else {
-        result = {
-          response: aiContent,
-          updatedPlan: null
-        };
+        // Estratégia 2: Tentar extrair JSON direto
+        const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          result = JSON.parse(jsonMatch[0]);
+        } else {
+          // Estratégia 3: Se não tem JSON, retornar só a resposta
+          result = {
+            response: aiContent,
+            updatedPlan: null
+          };
+        }
       }
+      
+      // Validar estrutura do resultado
+      if (result && !result.response) {
+        result.response = "Treino modificado com sucesso!";
+      }
+      
     } catch (e) {
+      console.error("[modify-workout] Erro ao fazer parse da resposta:", e);
       result = {
-        response: aiContent,
+        response: aiContent.substring(0, 500), // Limitar tamanho
         updatedPlan: null
       };
     }
