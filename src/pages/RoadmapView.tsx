@@ -75,16 +75,16 @@ export default function RoadmapView() {
     },
     {
       id: "fase5",
-      title: "🎓 Fase 5: Análise de Periodização com IA",
-      status: "pending",
+      title: "✅ Fase 5: Análise de Periodização com IA",
+      status: "completed",
       priority: "MÉDIA",
       items: [
-        "Melhorar interface de upload de periodização",
-        "Parser inteligente de texto (IA)",
-        "Extrair estrutura de treino",
-        "Identificar fases e progressões",
-        "Sugerir otimizações baseadas em ciência",
-        "Associar periodização a alunos"
+        "Interface de upload com seletor de alunos",
+        "Parser inteligente de texto com Lovable AI",
+        "Extração de estrutura de treino",
+        "Identificação de fases e progressões",
+        "Sugestões científicas de otimização",
+        "Associação de periodização a alunos"
       ]
     },
     {

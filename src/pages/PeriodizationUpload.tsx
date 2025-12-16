@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import ExerciseSelection from "@/components/ExerciseSelection";
 import { grokAIService } from "@/services/grokAIService";
 import { toast } from "@/components/ui/use-toast";
 import { logger } from "@/utils/logger";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Settings, 
   FileText, 
@@ -31,8 +32,18 @@ import {
   Activity,
   Clock,
   Users,
-  Dumbbell
+  Dumbbell,
+  UserCheck,
+  Link as LinkIcon
 } from "lucide-react";
+
+interface Aluno {
+  id: string;
+  nome: string;
+  email: string;
+  objetivo: string;
+  nivel_experiencia: string;
+}
 
 const PeriodizationUpload = () => {
   const [analysisResult, setAnalysisResult] = useState<any>(null);
@@ -42,6 +53,9 @@ const PeriodizationUpload = () => {
   const [activeTab, setActiveTab] = useState("configuracao");
   const [showExerciseSelection, setShowExerciseSelection] = useState(false);
   const [selectedExercises, setSelectedExercises] = useState<any[]>([]);
+  const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [selectedAlunoId, setSelectedAlunoId] = useState<string>("");
+  const [loadingAlunos, setLoadingAlunos] = useState(true);
   const [formData, setFormData] = useState({
     objetivo: "",
     nivel: "",
@@ -55,6 +69,47 @@ const PeriodizationUpload = () => {
     equipamentos: "",
     lesoes: ""
   });
+
+  useEffect(() => {
+    loadAlunos();
+  }, []);
+
+  const loadAlunos = async () => {
+    try {
+      setLoadingAlunos(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('alunos')
+        .select('id, nome, email, objetivo, nivel_experiencia')
+        .eq('professor_id', user.id)
+        .order('nome');
+
+      if (error) throw error;
+      setAlunos(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar alunos:', error);
+    } finally {
+      setLoadingAlunos(false);
+    }
+  };
+
+  const handleAlunoSelect = (alunoId: string) => {
+    setSelectedAlunoId(alunoId);
+    const aluno = alunos.find(a => a.id === alunoId);
+    if (aluno) {
+      setFormData(prev => ({
+        ...prev,
+        objetivo: aluno.objetivo || prev.objetivo,
+        nivel: aluno.nivel_experiencia || prev.nivel
+      }));
+      toast({
+        title: "Aluno selecionado",
+        description: `Dados de ${aluno.nome} carregados automaticamente.`,
+      });
+    }
+  };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -265,6 +320,52 @@ const PeriodizationUpload = () => {
 
           {/* Configuration Tab */}
           <TabsContent value="configuracao" className="space-y-6">
+            {/* Student Selector */}
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center space-x-3 text-card-foreground">
+                  <div className="w-1 h-8 bg-primary rounded-full"></div>
+                  <UserCheck className="h-6 w-6 text-primary" />
+                  <span>Associar a Aluno (Opcional)</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4">
+                  <Select value={selectedAlunoId} onValueChange={handleAlunoSelect}>
+                    <SelectTrigger className="flex-1 bg-input border-border text-foreground">
+                      <SelectValue placeholder={loadingAlunos ? "Carregando..." : "Selecione um aluno para associar"} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border">
+                      {alunos.map((aluno) => (
+                        <SelectItem key={aluno.id} value={aluno.id}>
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span>{aluno.nome}</span>
+                            {aluno.objetivo && (
+                              <Badge variant="outline" className="text-xs ml-2">
+                                {aluno.objetivo}
+                              </Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedAlunoId && (
+                    <Badge className="bg-green-500/20 text-green-500 border-green-500/30">
+                      <LinkIcon className="h-3 w-3 mr-1" />
+                      Vinculado
+                    </Badge>
+                  )}
+                </div>
+                {alunos.length === 0 && !loadingAlunos && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Nenhum aluno cadastrado. A análise será salva sem associação.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
             <div className="grid lg:grid-cols-2 gap-8">
               {/* Enhanced Configuration Form */}
               <Card className="bg-card border-border card-hover">

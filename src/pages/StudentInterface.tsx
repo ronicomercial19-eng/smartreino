@@ -32,11 +32,11 @@ export default function StudentInterface() {
         throw new Error('Usuário não autenticado');
       }
 
-      // Buscar dados do aluno na tabela students pelo email
+      // Buscar dados do aluno na tabela athletes pelo user_id
       const { data: student } = await (await import('@/integrations/supabase/client')).supabase
-        .from('students')
+        .from('athletes')
         .select('id')
-        .eq('email', user.email)
+        .eq('user_id', user.id)
         .single();
 
       if (!student) {
