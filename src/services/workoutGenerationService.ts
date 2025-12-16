@@ -32,7 +32,7 @@ export const workoutGenerationService = {
     
     // Validar se usuário está autenticado e tem permissão
     const { data: estudante, error: estudanteError } = await supabaseUntyped
-      .from("estudantes")
+      .from("alunos")
       .select("id")
       .eq("id", params.estudante_id)
       .single();
@@ -83,7 +83,7 @@ export const workoutGenerationService = {
   async validarPermissaoGeracao(estudanteId: string): Promise<boolean> {
     try {
       const { data, error } = await supabaseUntyped
-        .from("estudantes")
+        .from("alunos")
         .select("id")
         .eq("id", estudanteId)
         .single();

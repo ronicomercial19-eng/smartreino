@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 
 interface GrokAnalysisRequest {
   objetivo: string;
@@ -5,6 +6,10 @@ interface GrokAnalysisRequest {
   tempo_disponivel: string;
   restricoes: string;
   periodizacao: string;
+  periodizacao_texto?: string;
+  lesoes?: string;
+  grupo_prioritario?: string;
+  dias_semana?: string;
 }
 
 interface WorkoutModel {
@@ -42,23 +47,17 @@ class GrokAIService {
 
   async analyzePeriodization(data: GrokAnalysisRequest): Promise<AnalysisResult> {
     try {
-      const response = await fetch('/functions/v1/analyze-periodization', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+      const { data: result, error } = await supabase.functions.invoke('analyze-periodization', {
+        body: data,
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (error) {
+        throw error;
       }
 
-      const result = await response.json();
-      
       // Generate unique workout models based on analysis
       const recommendedModels = this.generateUniqueWorkoutModels(data, result);
-      
+
       return {
         currentPhase: this.determineCurrentPhase(data),
         recommendedModels,
