@@ -1,20 +1,66 @@
+/**
+ * StudentInterface - Dashboard completo do aluno SmartReino
+ * Abas: Meu Treino | Chat IA | Histórico | Meu Progresso
+ */
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Play, TrendingUp, BookOpen, MessageCircle, Bell } from "lucide-react";
-import { PageLayout } from "@/components/shared/PageLayout";
-import { StudentPeriodizationService } from '@/services/studentPeriodizationService';
-import { StudentModelsService } from '@/services/studentModelsService';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { 
+  Dumbbell, MessageCircle, Calendar, TrendingUp, 
+  User, LogOut, Target, Activity 
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { StudentWorkoutView } from '@/components/student/StudentWorkoutView';
+import { StudentTrainingLog } from '@/components/student/StudentTrainingLog';
+import { StudentProgressChart } from '@/components/student/StudentProgressChart';
+import { StudentAICoach } from '@/components/student/StudentAICoach';
+
+interface AlunoData {
+  id: string;
+  nome: string;
+  email: string;
+  objetivo: string;
+  nivel_experiencia: string | null;
+  peso_atual: number | null;
+  altura_cm: number | null;
+  frequencia_semanal: number | null;
+  status: string | null;
+}
+
+interface PlanoAtivo {
+  id: string;
+  nome_plano: string;
+  objetivo: string;
+  estrutura_treino: any;
+  status: string;
+  semana_atual: number | null;
+  duracao_semanas: number | null;
+}
+
+interface HistoricoEntry {
+  id: string;
+  data_treino: string;
+  pse_sessao: number | null;
+  duracao_minutos: number | null;
+  notas_aluno: string | null;
+  dia_treino: number | null;
+  semana_treino: number | null;
+  volume_total_kg: number | null;
+}
 
 export default function StudentInterface() {
-  const [periodizations, setPeriodizations] = useState<any[]>([]);
-  const [selectedModels, setSelectedModels] = useState<any[]>([]);
-  const [currentWeek, setCurrentWeek] = useState(1);
+  const [aluno, setAluno] = useState<AlunoData | null>(null);
+  const [planoAtivo, setPlanoAtivo] = useState<PlanoAtivo | null>(null);
+  const [historico, setHistorico] = useState<HistoricoEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('treino');
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -25,36 +71,55 @@ export default function StudentInterface() {
   const loadStudentData = async () => {
     try {
       setLoading(true);
-      
-      // Obter o ID do aluno atual baseado no email do usuário logado
-      const { data: { user } } = await (await import('@/integrations/supabase/client')).supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user?.email) {
-        throw new Error('Usuário não autenticado');
+        toast({ title: "Sessão expirada", description: "Faça login novamente.", variant: "destructive" });
+        navigate('/login');
+        return;
       }
 
-      // Buscar dados do aluno na tabela athletes pelo user_id
-      const { data: student } = await (await import('@/integrations/supabase/client')).supabase
-        .from('athletes')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
+      // Buscar aluno pela tabela correta (alunos pelo email)
+      const { data: alunoData, error: alunoError } = await supabase
+        .from('alunos')
+        .select('id, nome, email, objetivo, nivel_experiencia, peso_atual, altura_cm, frequencia_semanal, status')
+        .eq('email', user.email)
+        .maybeSingle();
 
-      if (!student) {
-        throw new Error('Aluno não encontrado');
+      if (alunoError) throw alunoError;
+
+      if (!alunoData) {
+        setLoading(false);
+        return; // Mostrar estado vazio
       }
 
-      const [periodizationsData, modelsData] = await Promise.all([
-        StudentPeriodizationService.getStudentPeriodizations(student.id),
-        StudentModelsService.getStudentSelectedModels(student.id)
+      setAluno(alunoData);
+
+      // Buscar plano ativo e histórico em paralelo
+      const [planoRes, historicoRes] = await Promise.all([
+        supabase
+          .from('planos_treino_aluno')
+          .select('id, nome_plano, objetivo, estrutura_treino, status, semana_atual, duracao_semanas')
+          .eq('aluno_id', alunoData.id)
+          .eq('status', 'ativo')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('historico_treinos_realizados')
+          .select('id, data_treino, pse_sessao, duracao_minutos, notas_aluno, dia_treino, semana_treino, volume_total_kg')
+          .eq('aluno_id', alunoData.id)
+          .order('data_treino', { ascending: false })
+          .limit(50),
       ]);
 
-      setPeriodizations(periodizationsData);
-      setSelectedModels(modelsData);
+      if (planoRes.data) setPlanoAtivo(planoRes.data);
+      if (historicoRes.data) setHistorico(historicoRes.data);
+
     } catch (error) {
-      console.error('Erro ao carregar dados do aluno:', error);
+      console.error('Erro ao carregar dados:', error);
       toast({
-        title: "Erro",
-        description: "Falha ao carregar seus dados",
+        title: "Erro ao carregar dados",
+        description: "Verifique sua conexão e tente novamente.",
         variant: "destructive"
       });
     } finally {
@@ -62,181 +127,210 @@ export default function StudentInterface() {
     }
   };
 
-  const handleStartWorkout = (week: number, day: number) => {
-    navigate('/treino/recomendado', { 
-      state: { 
-        week, 
-        day,
-        periodizations,
-        selectedModels 
-      } 
-    });
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
   };
 
-  const generateWeeks = () => {
-    const maxWeeks = periodizations.length > 0 
-      ? Math.max(...periodizations.map(p => p.macrocycle_duration_weeks || 12))
-      : 12;
-    
-    return Array.from({ length: maxWeeks }, (_, i) => i + 1);
+  const handleStartWorkout = (dayIndex: number) => {
+    toast({ title: "Treino iniciado! 💪", description: "Marque os exercícios conforme for completando." });
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center space-y-4">
-          <div className="animate-pulse-orange">
-            <Calendar className="h-12 w-12 mx-auto text-primary" />
-          </div>
-          <p className="text-muted-foreground">Carregando seus treinos...</p>
-        </div>
-      </div>
-    );
-  }
+  // Preparar dados do plano para o componente de treino
+  const workoutPlanData = planoAtivo?.estrutura_treino 
+    ? {
+        nome: planoAtivo.nome_plano || 'Meu Treino',
+        objetivo: planoAtivo.objetivo || aluno?.objetivo || '',
+        nivel: aluno?.nivel_experiencia || 'Intermediário',
+        estrutura_semanal: Array.isArray(planoAtivo.estrutura_treino) 
+          ? planoAtivo.estrutura_treino 
+          : planoAtivo.estrutura_treino?.estrutura_semanal || [],
+      }
+    : null;
 
-  const actions = (
-    <div className="flex gap-2">
-      <Button variant="outline" onClick={() => navigate('/chat-ia')}>
-        <MessageCircle className="mr-2 h-4 w-4" />
-        IA Coach
-      </Button>
-      <Button variant="outline" onClick={() => navigate('/lembretes')}>
-        <Bell className="mr-2 h-4 w-4" />
-        Lembretes
-      </Button>
-    </div>
-  );
+  // Saudação baseada na hora
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Bom dia';
+    if (hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+  };
 
   return (
-    <PageLayout
-      title="Meus Treinos"
-      subtitle="Acompanhe sua periodização e execute seus treinos"
-      actions={actions}
-    >
-
-      {/* Resumo da Periodização */}
-      {periodizations.length > 0 && (
-        <Card className="glass border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-heading">
-              <TrendingUp className="h-5 w-5" />
-              Sua Periodização Atual
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
-              {periodizations.map((p) => (
-                <div key={p.id} className="text-center p-4 bg-muted rounded-lg">
-                  <h3 className="font-semibold">{p.plan_name}</h3>
-                  <p className="text-sm text-muted-foreground">{p.periodization_type}</p>
-                  <div className="mt-2">
-                    <Badge variant="outline">
-                      Fase {p.current_phase} de {p.total_phases}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between px-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground text-lg font-bold">9</span>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Modelos Atribuídos */}
-      {selectedModels.length > 0 && (
-        <Card className="glass border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-heading">
-              <BookOpen className="h-5 w-5" />
-              Seus Modelos de Treino
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 md:grid-cols-2">
-              {selectedModels.map((model) => (
-                <div key={model.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div>
-                    <h4 className="font-medium">{model.model_name}</h4>
-                    <p className="text-sm text-muted-foreground">{model.general_objective}</p>
-                  </div>
-                  <div className="flex gap-1">
-                    <Badge variant="secondary" className="text-xs">
-                      {model.level}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      {model.stimulus_type}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+            <div>
+              <h1 className="text-lg font-bold font-heading">SmartReino</h1>
+              <p className="text-xs text-muted-foreground">Área do Aluno</p>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Semanas de Treino */}
-      <Card className="glass border-border/50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 font-heading">
-            <Calendar className="h-5 w-5" />
-            Cronograma de Treinos
-          </CardTitle>
-          <CardDescription>
-            Selecione a semana e o dia para iniciar seu treino
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            {generateWeeks().map((week) => (
-              <Card key={week} className="border-border/30">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">
-                    Semana {week}
-                    {week === currentWeek && (
-                      <Badge className="ml-2" variant="default">Atual</Badge>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-2 md:grid-cols-7">
-                    {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'].map((day, index) => (
-                      <Button
-                        key={day}
-                        variant={index < 5 ? "outline" : "ghost"}
-                        size="sm"
-                        onClick={() => handleStartWorkout(week, index + 1)}
-                        className="flex flex-col h-auto p-3"
-                        disabled={index >= 5} // Sábado e domingo desabilitados por padrão
-                      >
-                        <span className="text-xs font-medium">{day}</span>
-                        <Play className="h-3 w-3 mt-1" />
-                      </Button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-center gap-2">
+            {aluno && (
+              <Badge variant="outline" className="hidden sm:flex">
+                <User className="h-3 w-3 mr-1" />
+                {aluno.nome}
+              </Badge>
+            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Sair</TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
+      </header>
 
-      {/* Estado vazio */}
-      {periodizations.length === 0 && selectedModels.length === 0 && (
-        <Card className="glass border-border/50">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold font-heading mb-2">
-              Nenhuma periodização encontrada
-            </h3>
-            <p className="text-muted-foreground text-center mb-4">
-              Entre em contato com seu treinador para que ele configure sua periodização e modelos de treino.
-            </p>
-            <Button onClick={() => navigate('/chat-ia')} className="btn-glow">
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Falar com IA Coach
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-    </PageLayout>
+      <main className="container px-4 py-6 max-w-4xl mx-auto space-y-6">
+        {/* Saudação */}
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-5 w-48" />
+          </div>
+        ) : aluno ? (
+          <div className="animate-fade-in">
+            <h2 className="text-2xl font-bold font-heading">
+              {getGreeting()}, <span className="text-primary">{aluno.nome.split(' ')[0]}</span>! 👋
+            </h2>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <Badge className="bg-primary/20 text-primary border-primary/50">
+                <Target className="h-3 w-3 mr-1" />
+                {aluno.objetivo}
+              </Badge>
+              {aluno.nivel_experiencia && (
+                <Badge variant="outline">{aluno.nivel_experiencia}</Badge>
+              )}
+              {planoAtivo && (
+                <Badge className="bg-green-500/20 text-green-500 border-green-500/50">
+                  Plano Ativo
+                </Badge>
+              )}
+            </div>
+          </div>
+        ) : (
+          <Card className="glass border-border/50 animate-fade-in">
+            <CardContent className="py-12 text-center">
+              <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Perfil não encontrado</h3>
+              <p className="text-muted-foreground">
+                Seu email ainda não foi cadastrado como aluno. Entre em contato com seu professor para configurar seu acesso.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tabs principais */}
+        {(aluno || loading) && (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-4 bg-card">
+              <TabsTrigger value="treino" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Dumbbell className="h-4 w-4 mr-1 hidden sm:inline" />
+                <span className="text-xs sm:text-sm">Meu Treino</span>
+              </TabsTrigger>
+              <TabsTrigger value="chat" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <MessageCircle className="h-4 w-4 mr-1 hidden sm:inline" />
+                <span className="text-xs sm:text-sm">Chat IA</span>
+              </TabsTrigger>
+              <TabsTrigger value="historico" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Calendar className="h-4 w-4 mr-1 hidden sm:inline" />
+                <span className="text-xs sm:text-sm">Histórico</span>
+              </TabsTrigger>
+              <TabsTrigger value="progresso" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <TrendingUp className="h-4 w-4 mr-1 hidden sm:inline" />
+                <span className="text-xs sm:text-sm">Progresso</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="treino" className="mt-4">
+              <StudentWorkoutView
+                plan={workoutPlanData}
+                loading={loading}
+                onStartWorkout={handleStartWorkout}
+              />
+            </TabsContent>
+
+            <TabsContent value="chat" className="mt-4">
+              {aluno && (
+                <StudentAICoach
+                  alunoNome={aluno.nome}
+                  alunoObjetivo={aluno.objetivo}
+                  planoAtivo={planoAtivo?.estrutura_treino}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="historico" className="mt-4">
+              {aluno && (
+                <StudentTrainingLog
+                  alunoId={aluno.id}
+                  planoId={planoAtivo?.id}
+                  historico={historico}
+                  loading={loading}
+                  onLogSaved={loadStudentData}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="progresso" className="mt-4">
+              <StudentProgressChart
+                historico={historico}
+                loading={loading}
+              />
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {/* Perfil resumido */}
+        {aluno && !loading && (
+          <Card className="glass border-border/50 animate-fade-in">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />
+                Meu Perfil
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {aluno.peso_atual && (
+                  <div className="text-center p-3 bg-muted/50 rounded-lg">
+                    <p className="text-lg font-bold text-primary">{aluno.peso_atual} kg</p>
+                    <p className="text-xs text-muted-foreground">Peso</p>
+                  </div>
+                )}
+                {aluno.altura_cm && (
+                  <div className="text-center p-3 bg-muted/50 rounded-lg">
+                    <p className="text-lg font-bold text-primary">{aluno.altura_cm} cm</p>
+                    <p className="text-xs text-muted-foreground">Altura</p>
+                  </div>
+                )}
+                {aluno.frequencia_semanal && (
+                  <div className="text-center p-3 bg-muted/50 rounded-lg">
+                    <p className="text-lg font-bold text-primary">{aluno.frequencia_semanal}x</p>
+                    <p className="text-xs text-muted-foreground">Freq. Semanal</p>
+                  </div>
+                )}
+                {aluno.peso_atual && aluno.altura_cm && (
+                  <div className="text-center p-3 bg-muted/50 rounded-lg">
+                    <p className="text-lg font-bold text-primary">
+                      {(aluno.peso_atual / ((aluno.altura_cm / 100) ** 2)).toFixed(1)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">IMC</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </main>
+    </div>
   );
 }

@@ -1,11 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/AppLayout";
 import { CheckCircle2, Circle, Clock, Target, TrendingUp, FileText } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 
 interface Phase {
   id: string;
@@ -16,7 +13,7 @@ interface Phase {
 }
 
 export default function RoadmapView() {
-  const [phases, setPhases] = useState<Phase[]>([
+  const [phases] = useState<Phase[]>([
     {
       id: "fase1",
       title: "✅ Fase 1: Fundação",
@@ -89,50 +86,56 @@ export default function RoadmapView() {
     },
     {
       id: "fase6",
-      title: "🔧 Fase 6: Refinamentos e Otimizações",
-      status: "pending",
+      title: "✅ Fase 6: Refinamentos e Otimizações",
+      status: "completed",
       priority: "BAIXA",
       items: [
-        "Animações e transições suaves",
-        "Loading states em todas as ações",
-        "Mensagens de erro amigáveis",
-        "Tooltips e ajudas contextuais",
-        "Testes de responsividade em mobile",
-        "Dark mode otimizado"
+        "Animações fade-in em transições de página",
+        "Loading states com skeletons em ações assíncronas",
+        "Mensagens de erro amigáveis com toasts",
+        "Tooltips contextuais nos botões e métricas",
+        "Responsividade mobile otimizada",
+        "Dark mode com tema 9FIT preto/laranja"
+      ]
+    },
+    {
+      id: "fase7",
+      title: "✅ Fase 7: Interface Completa do Aluno",
+      status: "completed",
+      priority: "ALTA",
+      items: [
+        "Dashboard pessoal com saudação e resumo",
+        "Visualização de treino ativo com template 9FIT",
+        "Timer de descanso e modo de execução com checkboxes",
+        "Chat IA Coach integrado com perguntas rápidas",
+        "Registro de treino (PSE, duração, notas)",
+        "Gráficos de progresso (PSE, frequência, volume)",
+        "Rota acessível para admin e aluno"
       ]
     }
   ]);
 
   const getStatusIcon = (status: Phase['status']) => {
     switch (status) {
-      case 'completed':
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
-      case 'in-progress':
-        return <Clock className="h-5 w-5 text-yellow-500 animate-pulse" />;
-      case 'pending':
-        return <Circle className="h-5 w-5 text-muted-foreground" />;
+      case 'completed': return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+      case 'in-progress': return <Clock className="h-5 w-5 text-yellow-500 animate-pulse" />;
+      case 'pending': return <Circle className="h-5 w-5 text-muted-foreground" />;
     }
   };
 
   const getStatusBadge = (status: Phase['status']) => {
     switch (status) {
-      case 'completed':
-        return <Badge className="bg-green-500/20 text-green-500 border-green-500/50">Concluída</Badge>;
-      case 'in-progress':
-        return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/50">Em Progresso</Badge>;
-      case 'pending':
-        return <Badge variant="outline">Pendente</Badge>;
+      case 'completed': return <Badge className="bg-green-500/20 text-green-500 border-green-500/50">Concluída</Badge>;
+      case 'in-progress': return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/50">Em Progresso</Badge>;
+      case 'pending': return <Badge variant="outline">Pendente</Badge>;
     }
   };
 
   const getPriorityBadge = (priority: Phase['priority']) => {
     switch (priority) {
-      case 'ALTA':
-        return <Badge variant="destructive">Alta Prioridade</Badge>;
-      case 'MÉDIA':
-        return <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/50">Média Prioridade</Badge>;
-      case 'BAIXA':
-        return <Badge variant="outline">Baixa Prioridade</Badge>;
+      case 'ALTA': return <Badge variant="destructive">Alta Prioridade</Badge>;
+      case 'MÉDIA': return <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/50">Média Prioridade</Badge>;
+      case 'BAIXA': return <Badge variant="outline">Baixa Prioridade</Badge>;
     }
   };
 
@@ -144,51 +147,30 @@ export default function RoadmapView() {
     <AppLayout>
       <div className="space-y-6 animate-fade-in">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold font-heading gradient-text">
-            🗺️ Roadmap do Sistema
-          </h1>
-          <p className="text-muted-foreground">
-            Acompanhe o progresso de desenvolvimento e as próximas funcionalidades
-          </p>
+          <h1 className="text-3xl font-bold font-heading gradient-text">🗺️ Roadmap do Sistema</h1>
+          <p className="text-muted-foreground">Acompanhe o progresso de desenvolvimento e as próximas funcionalidades</p>
         </div>
 
-        {/* Progresso Geral */}
         <Card className="glass border-border/50">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Progresso Geral
-                </CardTitle>
-                <CardDescription>
-                  {completedPhases} de {totalPhases} fases concluídas
-                </CardDescription>
+                <CardTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5" /> Progresso Geral</CardTitle>
+                <CardDescription>{completedPhases} de {totalPhases} fases concluídas</CardDescription>
               </div>
-              <div className="text-3xl font-bold text-primary">
-                {progressPercentage.toFixed(0)}%
-              </div>
+              <div className="text-3xl font-bold text-primary">{progressPercentage.toFixed(0)}%</div>
             </div>
           </CardHeader>
           <CardContent>
             <div className="h-4 bg-muted rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500"
-                style={{ width: `${progressPercentage}%` }}
-              />
+              <div className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500" style={{ width: `${progressPercentage}%` }} />
             </div>
           </CardContent>
         </Card>
 
-        {/* Fases */}
         <div className="space-y-4">
-          {phases.map((phase, index) => (
-            <Card 
-              key={phase.id} 
-              className={`glass border-border/50 transition-all duration-300 ${
-                phase.status === 'in-progress' ? 'ring-2 ring-primary/50' : ''
-              }`}
-            >
+          {phases.map((phase) => (
+            <Card key={phase.id} className={`glass border-border/50 transition-all duration-300 ${phase.status === 'in-progress' ? 'ring-2 ring-primary/50' : ''}`}>
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3 flex-1">
@@ -207,12 +189,8 @@ export default function RoadmapView() {
                 <ul className="space-y-2">
                   {phase.items.map((item, idx) => (
                     <li key={idx} className="flex items-start gap-2 text-sm">
-                      <div className={`mt-1 h-1.5 w-1.5 rounded-full flex-shrink-0 ${
-                        phase.status === 'completed' ? 'bg-green-500' : 'bg-muted-foreground'
-                      }`} />
-                      <span className={phase.status === 'completed' ? 'text-muted-foreground' : ''}>
-                        {item}
-                      </span>
+                      <div className={`mt-1 h-1.5 w-1.5 rounded-full flex-shrink-0 ${phase.status === 'completed' ? 'bg-green-500' : 'bg-muted-foreground'}`} />
+                      <span className={phase.status === 'completed' ? 'text-muted-foreground' : ''}>{item}</span>
                     </li>
                   ))}
                 </ul>
@@ -221,66 +199,45 @@ export default function RoadmapView() {
           ))}
         </div>
 
-        {/* Próximos Passos */}
         <Card className="glass border-primary/50 bg-primary/5">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              🎯 Próximos Passos Imediatos
-            </CardTitle>
+            <CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" /> 🎯 Próximos Passos</CardTitle>
           </CardHeader>
           <CardContent>
             <ol className="space-y-3">
-              <li className="flex items-start gap-3">
-                <span className="flex-shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
-                <span>Ativar Lovable AI Gateway - Para geração de treinos</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="flex-shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
-                <span>Implementar seleção de aluno em Modelos de Treino</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="flex-shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
-                <span>Transformar "Meus Treinos" em área de gestão de treinos dos alunos</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="flex-shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">4</span>
-                <span>Criar edge function de geração de treinos</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="flex-shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">5</span>
-                <span>Implementar visualização de treinos gerados</span>
-              </li>
+              {[
+                'Testes end-to-end com alunos reais',
+                'Notificações push para alunos',
+                'Exportação de relatórios em PDF',
+                'Integração com wearables (futuro)',
+                'App mobile nativo (futuro)',
+              ].map((step, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="flex-shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">{i + 1}</span>
+                  <span>{step}</span>
+                </li>
+              ))}
             </ol>
           </CardContent>
         </Card>
 
-        {/* Métricas de Sucesso */}
         <Card className="glass border-border/50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              📊 Métricas de Sucesso
-            </CardTitle>
+            <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> 📊 Métricas de Sucesso</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm">Tempo de cadastro de aluno</span>
-                <Badge className="bg-green-500/20 text-green-500 border-green-500/50">{'< 2min ✓'}</Badge>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm">Tempo de geração de treino</span>
-                <Badge variant="outline">{'< 10s'}</Badge>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm">Taxa de sucesso na geração</span>
-                <Badge variant="outline">{"> 95%"}</Badge>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm">Uptime do sistema</span>
-                <Badge variant="outline">{"> 99%"}</Badge>
-              </div>
+              {[
+                { label: 'Tempo de cadastro de aluno', value: '< 2min ✓', done: true },
+                { label: 'Tempo de geração de treino', value: '< 10s', done: false },
+                { label: 'Taxa de sucesso na geração', value: '> 95%', done: false },
+                { label: 'Uptime do sistema', value: '> 99%', done: false },
+              ].map((m, i) => (
+                <div key={i} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <span className="text-sm">{m.label}</span>
+                  <Badge className={m.done ? 'bg-green-500/20 text-green-500 border-green-500/50' : ''} variant={m.done ? 'default' : 'outline'}>{m.value}</Badge>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>

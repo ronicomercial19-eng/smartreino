@@ -60,8 +60,21 @@ const navigationItems = [
   },
   {
     title: "Analytics",
-    url: "/analytics",
     icon: TrendingUp,
+    items: [
+      {
+        title: "Visão Geral",
+        url: "/analytics",
+      },
+      {
+        title: "Analytics por Aluno",
+        url: "/student-analytics",
+      },
+      {
+        title: "Estatísticas Avançadas",
+        url: "/advanced-statistics",
+      },
+    ],
   },
   {
     title: "Periodização",
