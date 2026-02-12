@@ -21,6 +21,7 @@ import { StudentWorkoutView } from '@/components/student/StudentWorkoutView';
 import { StudentTrainingLog } from '@/components/student/StudentTrainingLog';
 import { StudentProgressChart } from '@/components/student/StudentProgressChart';
 import { StudentAICoach } from '@/components/student/StudentAICoach';
+import { SmartReinoQuiz } from '@/components/student/SmartReinoQuiz';
 
 interface AlunoData {
   id: string;
@@ -251,11 +252,19 @@ export default function StudentInterface() {
             </TabsList>
 
             <TabsContent value="treino" className="mt-4">
-              <StudentWorkoutView
-                plan={workoutPlanData}
-                loading={loading}
-                onStartWorkout={handleStartWorkout}
-              />
+              {!loading && aluno && !planoAtivo ? (
+                <SmartReinoQuiz
+                  alunoId={aluno.id}
+                  alunoNome={aluno.nome}
+                  onWorkoutGenerated={loadStudentData}
+                />
+              ) : (
+                <StudentWorkoutView
+                  plan={workoutPlanData}
+                  loading={loading}
+                  onStartWorkout={handleStartWorkout}
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="chat" className="mt-4">

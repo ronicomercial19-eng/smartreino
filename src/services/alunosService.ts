@@ -26,6 +26,18 @@ export interface Aluno {
   status: 'ativo' | 'inativo' | 'suspenso';
   data_cadastro: string;
   ultima_atualizacao: string;
+  // Novos campos de treino
+  tempo_disponivel_min?: number;
+  historico_lesoes?: string;
+  foco_muscular?: string;
+  condicionamento_cardio?: string;
+  experiencia_pesos_livres?: string;
+  preferencia_intensidade?: string;
+  preferencia_cardio?: string;
+  preferencia_equipamento?: string;
+  treina_sozinho?: boolean;
+  horario_preferido?: string;
+  meta_tempo_meses?: number;
 }
 
 export type NovoAlunoInput = Omit<Aluno, 'id' | 'professor_id' | 'data_cadastro' | 'ultima_atualizacao' | 'status'>;
@@ -71,24 +83,25 @@ export class AlunosService {
    * Criar novo aluno
    */
   static async criarAluno(aluno: NovoAlunoInput): Promise<Aluno> {
-    // ETAPA 2: Validações de segurança
-    if (!SecurityService.validateEmail(aluno.email)) {
+    // Validação básica - email opcional agora
+    if (aluno.email && !SecurityService.validateEmail(aluno.email)) {
       throw new Error('Email inválido');
     }
 
-    // Verificar email duplicado
-    const { data: existingAluno } = await supabase
-      .from('alunos')
-      .select('id, email')
-      .eq('email', aluno.email)
-      .eq('status', 'ativo')
-      .maybeSingle();
+    // Se email fornecido, verificar duplicado
+    if (aluno.email) {
+      const { data: existingAluno } = await supabase
+        .from('alunos')
+        .select('id, email')
+        .eq('email', aluno.email)
+        .eq('status', 'ativo')
+        .maybeSingle();
 
-    if (existingAluno) {
-      throw new Error('Aluno já cadastrado com este email');
+      if (existingAluno) {
+        throw new Error('Aluno já cadastrado com este email');
+      }
     }
 
-    // Verificar compliance LGPD
     const { data: userData, error: userError } = await supabase.auth.getUser();
     
     if (userError || !userData.user) {
@@ -97,7 +110,9 @@ export class AlunosService {
 
     const alunoData = {
       professor_id: userData.user.id,
-      ...aluno
+      ...aluno,
+      // Garantir email não vazio para o banco
+      email: aluno.email || `${aluno.nome.toLowerCase().replace(/\s+/g, '.')}@smartreino.app`,
     };
 
     const compliance = SecurityService.checkLGPDCompliance(alunoData);
@@ -121,7 +136,6 @@ export class AlunosService {
       throw error;
     }
 
-    // Auditar criação
     await SecurityService.auditDataAccess(
       userData.user.id,
       'write',
