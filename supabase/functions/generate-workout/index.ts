@@ -4,7 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 serve(async (req) => {
@@ -13,14 +13,35 @@ serve(async (req) => {
   }
 
   try {
-    const { studentId, objetivo, nivel, frequenciaSemanal, restricoes, ambiente } = await req.json();
+    // Validate JWT manually
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ success: false, error: 'Não autorizado' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    // Get student data
+    // Verify user
+    const authSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await authSupabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ success: false, error: 'Token inválido' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { studentId, objetivo, nivel, frequenciaSemanal, restricoes, ambiente, quizAnswers } = await req.json();
+
+    // Use service role to fetch student data
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     const { data: student, error: studentError } = await supabase
       .from('alunos')
       .select('*')
@@ -31,18 +52,36 @@ serve(async (req) => {
       throw new Error('Aluno não encontrado');
     }
 
-    // Build AI prompt
+    // Build comprehensive prompt with ALL student data
     const prompt = `Você é um personal trainer experiente. Crie um plano de treino COMPLETO e DETALHADO para o seguinte perfil:
 
 PERFIL DO ALUNO:
 - Nome: ${student.nome}
 - Objetivo: ${objetivo || student.objetivo}
-- Nível: ${nivel || student.nivel_experiencia}
-- Frequência Semanal: ${frequenciaSemanal || student.frequencia_semanal} dias/semana
-- Ambiente: ${ambiente || student.ambiente_treino}
+- Nível: ${nivel || student.nivel_experiencia || 'iniciante'}
+- Frequência Semanal: ${frequenciaSemanal || student.frequencia_semanal || 3} dias/semana
+- Ambiente: ${ambiente || student.ambiente_treino || 'academia'}
 - Peso: ${student.peso_atual || 'N/A'} kg
 - Altura: ${student.altura_cm || 'N/A'} cm
 - Restrições Médicas: ${restricoes || student.restricoes_medicas || 'Nenhuma'}
+
+INFORMAÇÕES DETALHADAS DE TREINO:
+- Tempo disponível por sessão: ${student.tempo_disponivel_min || 60} minutos
+- Histórico de lesões: ${student.historico_lesoes || 'Nenhuma'}
+- Foco muscular prioritário: ${student.foco_muscular || 'corpo_todo'}
+- Condicionamento cardiovascular: ${student.condicionamento_cardio || 'medio'}
+- Experiência com pesos livres: ${student.experiencia_pesos_livres || 'basico'}
+
+PREFERÊNCIAS DO ALUNO:
+- Intensidade: ${student.preferencia_intensidade || 'moderado'}
+- Cardio: ${student.preferencia_cardio || 'integrado'}
+- Equipamento preferido: ${student.preferencia_equipamento || 'ambos'}
+- Treina sozinho: ${student.treina_sozinho ? 'Sim' : 'Com parceiro'}
+- Horário preferido: ${student.horario_preferido || 'manha'}
+- Meta de tempo: ${student.meta_tempo_meses || 3} meses
+
+${quizAnswers ? `RESPOSTAS DO QUIZ SMARTREINO:
+${JSON.stringify(quizAnswers, null, 2)}` : ''}
 
 INSTRUÇÕES:
 1. Crie um plano estruturado por DIA DA SEMANA
@@ -60,8 +99,10 @@ INSTRUÇÕES:
    - Progressão adequada ao nível
    - Equilíbrio muscular
    - Variação de intensidade
-   - Restrições médicas mencionadas
-   - Ambiente de treino disponível
+   - Restrições médicas e lesões
+   - Ambiente e equipamento disponível
+   - Tempo disponível por sessão (${student.tempo_disponivel_min || 60} min)
+   - Preferência de intensidade do aluno
 
 4. Adicione orientações gerais sobre:
    - Aquecimento
@@ -97,7 +138,6 @@ FORMATO DE RESPOSTA JSON:
   }
 }`;
 
-    // Call Lovable AI Gateway
     const aiApiKey = Deno.env.get('LOVABLE_API_KEY');
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -109,12 +149,9 @@ FORMATO DE RESPOSTA JSON:
         messages: [
           {
             role: 'system',
-            content: 'Você é um personal trainer certificado com expertise em periodização e prescrição de treinos. Responda sempre em português brasileiro com planos detalhados e cientificamente embasados.'
+            content: 'Você é um personal trainer certificado com expertise em periodização e prescrição de treinos. Responda SEMPRE em JSON válido, em português brasileiro, com planos detalhados e cientificamente embasados.'
           },
-          {
-            role: 'user',
-            content: prompt
-          }
+          { role: 'user', content: prompt }
         ],
         model: 'google/gemini-2.0-flash-exp',
         temperature: 0.7,
@@ -122,13 +159,14 @@ FORMATO DE RESPOSTA JSON:
     });
 
     if (!aiResponse.ok) {
-      throw new Error(`AI API error: ${aiResponse.status}`);
+      const errText = await aiResponse.text();
+      console.error('AI API error:', aiResponse.status, errText);
+      throw new Error(`Erro na API de IA: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
     const content = aiData.choices[0].message.content;
 
-    // Parse JSON response
     let workoutPlan;
     try {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -139,16 +177,12 @@ FORMATO DE RESPOSTA JSON:
       }
     } catch (parseError) {
       console.error('Failed to parse AI response:', parseError);
+      console.error('Raw content:', content);
       throw new Error('Falha ao processar resposta da IA');
     }
 
-    // Save to database
-    const authHeader = req.headers.get('Authorization');
-    const userSupabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader! } }
-    });
-
-    const { data: savedPlan, error: saveError } = await userSupabase
+    // Save using service role
+    const { data: savedPlan, error: saveError } = await supabase
       .from('planos_de_treino_gerados')
       .insert({
         estudante_id: studentId,

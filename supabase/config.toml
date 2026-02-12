@@ -1,10 +1,13 @@
 project_id = "mfrydtrzjxscbkaiwfnw"
 
 [functions.generate-workout]
-verify_jwt = true
+verify_jwt = false
 
 [functions.modify-workout]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-recommendations]
-verify_jwt = true
+verify_jwt = false
+
+[functions.analyze-periodization]
+verify_jwt = false
