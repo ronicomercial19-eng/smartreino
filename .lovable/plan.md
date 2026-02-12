@@ -1,148 +1,128 @@
 
 
-# Plano: Interface do Aluno Completa + Fase 6 (Refinamentos)
+# Plano: Cadastro Focado em Treino + SmartReino Quiz + Correcao de Geracao
 
-## Contexto do Problema
+## Problema Atual
 
-1. **Rota `/student-interface` inacessivel**: O usuario admin esta tentando acessar `/student-interface`, mas essa rota so esta disponivel quando `userType === 'student'`. O usuario admin cai no 404.
-2. **Interface do aluno basica**: A tela atual consulta tabelas (`athletes`, views inexistentes) que nao correspondem ao fluxo de dados principal (`alunos`, `planos_de_treino_gerados`).
-3. **Falta experiencia completa do aluno**: O aluno precisa de uma interface pratica e intuitiva que aproveite todo o poder do SmartReino (visualizar treinos, chat IA, historico, progresso).
-
----
-
-## O que sera implementado
-
-### 1. Nova Interface do Aluno - Redesign Completo
-
-Transformar `StudentInterface.tsx` em uma experiencia completa e intuitiva:
-
-- **Dashboard pessoal** com saudacao e resumo do dia
-- **Treino do dia** em destaque com o template visual 9FIT
-- **Chat IA Coach** integrado para o aluno pedir ajustes, tirar duvidas sobre exercicios, pedir motivacao
-- **Historico de treinos** com registro de execucao (PSE, notas, duracao)
-- **Progresso pessoal** com graficos simples de evolucao
-- **Perfil resumido** com dados fisicos e objetivos
-
-A interface buscara dados das tabelas corretas:
-- `alunos` (vinculado por email do usuario logado)
-- `planos_de_treino_gerados` (treinos atribuidos ao aluno)
-- `historico_treinos_realizados` (treinos executados)
-
-### 2. Correcao de Rota e Acesso
-
-- Tornar `/student-interface` acessivel tanto para alunos quanto para admins (preview)
-- Para admin: mostrar como preview da experiencia do aluno selecionado
-- Para aluno: mostrar seus proprios dados automaticamente
-
-### 3. Fase 6: Refinamentos e Otimizacoes
-
-- Animacoes suaves em transicoes de pagina e cards
-- Loading states com skeletons em todas as acoes assincronas
-- Mensagens de erro amigaveis com sugestoes de acao
-- Tooltips contextuais nos botoes e metricas principais
-- Responsividade mobile otimizada na interface do aluno
-- Dark mode ja esta implementado (tema 9FIT preto/laranja)
-
-### 4. Atualizacao do Roadmap
-
-- Adicionar nova Fase 7 para a Interface do Aluno
-- Atualizar Fase 6 como em progresso
-- Atualizar proximos passos imediatos
+1. **Cadastro pede dados genericos** (email, data nascimento, genero) mas falta informacao de treino para a IA
+2. **Erro ao gerar treino**: a edge function `generate-workout` tem `verify_jwt = true` mas precisa de `verify_jwt = false` para funcionar corretamente; alem disso falta `analyze-periodization` no config.toml
+3. **Nao existe SmartReino Quiz**: o aluno nao tem como responder perguntas rapidas para gerar treino automaticamente
 
 ---
 
-## Detalhes Tecnicos
+## O que sera feito
 
-### Arquivos a criar:
+### 1. Reformular Cadastro do Aluno
 
-1. **`src/pages/StudentInterface.tsx`** (reescrever completamente)
-   - Dashboard com abas: Meu Treino | Chat IA | Historico | Meu Progresso
-   - Busca dados via email do usuario logado na tabela `alunos`
-   - Exibe treino ativo usando `WorkoutDisplayTemplate`
-   - Chat IA integrado para comandos do aluno
-   - Registro de treino realizado (PSE, duracao, notas)
+Simplificar para pedir apenas **nome + telefone** como dados pessoais, e adicionar **9 perguntas de treino** + **6 perguntas de preferencia** clicaveis (Select/Radio), para maximizar informacoes para a IA.
 
-2. **`src/components/student/StudentWorkoutView.tsx`** (novo)
-   - Exibe o treino do dia usando o template 9FIT
-   - Botao "Iniciar Treino" que abre modo de registro
-   - Timer de descanso entre series
-   - Checkbox por exercicio concluido
+**Dados pessoais (2 campos):**
+- Nome completo
+- Telefone/WhatsApp
 
-3. **`src/components/student/StudentTrainingLog.tsx`** (novo)
-   - Formulario para registrar treino realizado
-   - Campos: PSE (1-10), duracao, notas pessoais
-   - Salva em `historico_treinos_realizados`
+**9 Perguntas de Treino (clicaveis):**
+1. Objetivo principal (hipertrofia / emagrecimento / forca / condicionamento / saude / reabilitacao)
+2. Nivel de experiencia (iniciante / intermediario / avancado)
+3. Frequencia semanal (2x / 3x / 4x / 5x / 6x)
+4. Ambiente de treino (academia / casa / ar livre / hibrido)
+5. Tempo disponivel por sessao (30min / 45min / 60min / 90min)
+6. Historico de lesoes (nenhuma / ombro / joelho / lombar / outro)
+7. Foco muscular prioritario (superior / inferior / core / corpo todo)
+8. Nivel de condicionamento cardiovascular (baixo / medio / alto)
+9. Experiencia com pesos livres (nunca / basico / confortavel / avancado)
 
-4. **`src/components/student/StudentProgressChart.tsx`** (novo)
-   - Graficos simples com Recharts
-   - Evolucao de PSE ao longo do tempo
-   - Frequencia semanal
-   - Volume total
+**6 Perguntas de Preferencia de Treino:**
+1. Prefere treinos curtos e intensos OU longos e moderados
+2. Gosta de cardio integrado ao treino OU separado
+3. Prefere maquinas OU pesos livres OU ambos
+4. Treina sozinho OU com parceiro
+5. Horario preferido (manha / tarde / noite)
+6. Meta de tempo (1 mes / 3 meses / 6 meses / 12 meses)
 
-5. **`src/components/student/StudentAICoach.tsx`** (novo)
-   - Chat IA usando edge function existente `modify-workout`
-   - Perguntas rapidas pre-definidas
-   - Streaming de respostas
-   - Comandos como: "Qual exercicio substitui supino?", "Estou com dor no ombro", "Aumentar carga"
+### 2. Migrar Banco de Dados
 
-### Arquivos a modificar:
+Adicionar colunas na tabela `alunos` para armazenar as novas informacoes:
+- `tempo_disponivel_min` (integer)
+- `historico_lesoes` (text)
+- `foco_muscular` (varchar)
+- `condicionamento_cardio` (varchar)
+- `experiencia_pesos_livres` (varchar)
+- `preferencia_intensidade` (varchar)
+- `preferencia_cardio` (varchar)
+- `preferencia_equipamento` (varchar)
+- `treina_sozinho` (boolean)
+- `horario_preferido` (varchar)
+- `meta_tempo_meses` (integer)
 
-1. **`src/App.tsx`**
-   - Tornar `/student-interface` acessivel para admin tambem (para preview)
-   - Manter rota para alunos como pagina principal
+### 3. Corrigir Edge Function de Geracao
 
-2. **`src/pages/RoadmapView.tsx`**
-   - Adicionar Fase 7: Interface do Aluno
-   - Marcar Fase 6 como em progresso
-   - Atualizar proximos passos
+- Mudar `verify_jwt = false` no config.toml para `generate-workout`
+- Validar JWT manualmente dentro da funcao
+- Adicionar CORS headers completos
+- Incluir TODOS os novos campos do aluno no prompt da IA
+- Adicionar `analyze-periodization` ao config.toml
 
-3. **`src/components/AppSidebar.tsx`**
-   - Adicionar links para StudentAnalytics e AdvancedStatistics no menu
+### 4. Criar SmartReino Quiz (Interface do Aluno)
 
-### Fluxo do Aluno:
+Nova funcionalidade na interface do aluno: quando o aluno nao tem treino ativo, aparece um quiz de **9 perguntas clicaveis** (cards/botoes). Ao finalizar, chama a edge function `generate-workout` com todas as respostas e gera o treino do dia automaticamente.
+
+**Fluxo:**
 
 ```text
-Login (tipo student)
+Aluno abre SmartReino
     |
     v
-Dashboard Pessoal
+Tem treino ativo? --SIM--> Mostra treino (como esta hoje)
     |
-    +-- [Meu Treino] --> Visualiza treino do dia (template 9FIT)
-    |                      |
-    |                      +-- Iniciar Treino --> Registrar execucao
-    |                      +-- Ver proximo dia
+    NAO
     |
-    +-- [Chat IA] ------> Conversa com IA Coach
-    |                      |
-    |                      +-- Perguntas rapidas
-    |                      +-- Pedir substituicao
-    |                      +-- Relatar dor/desconforto
+    v
+Quiz SmartReino (9 perguntas, uma por vez)
     |
-    +-- [Historico] -----> Lista de treinos realizados
-    |                      |
-    |                      +-- PSE medio
-    |                      +-- Frequencia
+    Pergunta 1: Qual seu objetivo? [cards clicaveis]
+    Pergunta 2: Nivel? [cards clicaveis]
+    ...
+    Pergunta 9: Experiencia com pesos? [cards clicaveis]
     |
-    +-- [Progresso] -----> Graficos de evolucao
-                           |
-                           +-- PSE ao longo do tempo
-                           +-- Volume total
-                           +-- Aderencia ao plano
+    v
+Resumo das respostas + botao "Gerar Meu Treino"
+    |
+    v
+IA gera treino --> Salva no banco --> Exibe na interface
 ```
 
-### Dados buscados:
+### 5. Atualizar Formulario Admin
 
-- **Perfil do aluno**: `alunos` WHERE email = usuario_logado.email
-- **Treino ativo**: `planos_de_treino_gerados` WHERE estudante_id = aluno.id AND status = 'ativo'
-- **Historico**: `historico_treinos_realizados` WHERE aluno_id = aluno.id
-- **Avaliacoes**: `avaliacoes_unificadas` WHERE aluno_id = aluno.id
+O formulario de cadastro do admin (`FormularioAluno`) tambem sera atualizado para usar as mesmas perguntas, mas em formato compacto (selects lado a lado), removendo email como obrigatorio e adicionando as 15 perguntas de treino.
 
-### Refinamentos (Fase 6) aplicados em todas as telas:
+---
 
-- `animate-fade-in` em transicoes de pagina
-- Skeleton loaders nos cards enquanto carrega
-- Toast com mensagens claras em portugues
-- Tooltips em icones e metricas
-- Layout responsivo com `grid-cols-1 md:grid-cols-2 lg:grid-cols-3`
-- Hover effects suaves nos cards interativos
+## Arquivos a Criar
+
+1. **`src/components/student/SmartReinoQuiz.tsx`** - Quiz de 9 perguntas com cards clicaveis, animacoes de transicao, barra de progresso, e chamada a edge function ao final
+
+## Arquivos a Modificar
+
+1. **`src/components/alunos/FormularioAluno.tsx`** - Reformular: nome + telefone + 15 perguntas de treino clicaveis
+2. **`src/services/alunosService.ts`** - Atualizar interface `Aluno` e `NovoAlunoInput` com novos campos
+3. **`supabase/config.toml`** - Adicionar `analyze-periodization`, mudar `verify_jwt = false`
+4. **`supabase/functions/generate-workout/index.ts`** - Incluir novos campos no prompt, validar JWT manual, melhorar CORS
+5. **`src/pages/StudentInterface.tsx`** - Integrar SmartReinoQuiz quando nao ha treino ativo
+
+## Migracao SQL
+
+```sql
+ALTER TABLE public.alunos
+  ADD COLUMN IF NOT EXISTS tempo_disponivel_min integer DEFAULT 60,
+  ADD COLUMN IF NOT EXISTS historico_lesoes text,
+  ADD COLUMN IF NOT EXISTS foco_muscular varchar DEFAULT 'corpo_todo',
+  ADD COLUMN IF NOT EXISTS condicionamento_cardio varchar DEFAULT 'medio',
+  ADD COLUMN IF NOT EXISTS experiencia_pesos_livres varchar DEFAULT 'basico',
+  ADD COLUMN IF NOT EXISTS preferencia_intensidade varchar DEFAULT 'moderado',
+  ADD COLUMN IF NOT EXISTS preferencia_cardio varchar DEFAULT 'integrado',
+  ADD COLUMN IF NOT EXISTS preferencia_equipamento varchar DEFAULT 'ambos',
+  ADD COLUMN IF NOT EXISTS treina_sozinho boolean DEFAULT true,
+  ADD COLUMN IF NOT EXISTS horario_preferido varchar DEFAULT 'manha',
+  ADD COLUMN IF NOT EXISTS meta_tempo_meses integer DEFAULT 3;
+```
 
