@@ -1,128 +1,132 @@
 
 
-# Plano: Cadastro Focado em Treino + SmartReino Quiz + Correcao de Geracao
+# Plano: Geracao Completa de Treinos baseada em Periodizacao (Macro/Meso/Micro)
 
 ## Problema Atual
 
-1. **Cadastro pede dados genericos** (email, data nascimento, genero) mas falta informacao de treino para a IA
-2. **Erro ao gerar treino**: a edge function `generate-workout` tem `verify_jwt = true` mas precisa de `verify_jwt = false` para funcionar corretamente; alem disso falta `analyze-periodization` no config.toml
-3. **Nao existe SmartReino Quiz**: o aluno nao tem como responder perguntas rapidas para gerar treino automaticamente
+1. A pagina `PeriodizationUpload` analisa periodizacao com IA mas **nao gera treinos completos** - apenas mostra blocos genericos com dados mock (random)
+2. A edge function `analyze-periodization` retorna sugestoes e estrutura, mas **nao produz um plano dia-a-dia com exercicios**
+3. Existem **44 modelos de periodizacao** em `periodization_models` com macro/meso/microciclos estruturados, mas nao sao usados para gerar treinos reais
+4. O resultado da analise nao e salvo no banco - fica apenas em estado local
 
----
-
-## O que sera feito
-
-### 1. Reformular Cadastro do Aluno
-
-Simplificar para pedir apenas **nome + telefone** como dados pessoais, e adicionar **9 perguntas de treino** + **6 perguntas de preferencia** clicaveis (Select/Radio), para maximizar informacoes para a IA.
-
-**Dados pessoais (2 campos):**
-- Nome completo
-- Telefone/WhatsApp
-
-**9 Perguntas de Treino (clicaveis):**
-1. Objetivo principal (hipertrofia / emagrecimento / forca / condicionamento / saude / reabilitacao)
-2. Nivel de experiencia (iniciante / intermediario / avancado)
-3. Frequencia semanal (2x / 3x / 4x / 5x / 6x)
-4. Ambiente de treino (academia / casa / ar livre / hibrido)
-5. Tempo disponivel por sessao (30min / 45min / 60min / 90min)
-6. Historico de lesoes (nenhuma / ombro / joelho / lombar / outro)
-7. Foco muscular prioritario (superior / inferior / core / corpo todo)
-8. Nivel de condicionamento cardiovascular (baixo / medio / alto)
-9. Experiencia com pesos livres (nunca / basico / confortavel / avancado)
-
-**6 Perguntas de Preferencia de Treino:**
-1. Prefere treinos curtos e intensos OU longos e moderados
-2. Gosta de cardio integrado ao treino OU separado
-3. Prefere maquinas OU pesos livres OU ambos
-4. Treina sozinho OU com parceiro
-5. Horario preferido (manha / tarde / noite)
-6. Meta de tempo (1 mes / 3 meses / 6 meses / 12 meses)
-
-### 2. Migrar Banco de Dados
-
-Adicionar colunas na tabela `alunos` para armazenar as novas informacoes:
-- `tempo_disponivel_min` (integer)
-- `historico_lesoes` (text)
-- `foco_muscular` (varchar)
-- `condicionamento_cardio` (varchar)
-- `experiencia_pesos_livres` (varchar)
-- `preferencia_intensidade` (varchar)
-- `preferencia_cardio` (varchar)
-- `preferencia_equipamento` (varchar)
-- `treina_sozinho` (boolean)
-- `horario_preferido` (varchar)
-- `meta_tempo_meses` (integer)
-
-### 3. Corrigir Edge Function de Geracao
-
-- Mudar `verify_jwt = false` no config.toml para `generate-workout`
-- Validar JWT manualmente dentro da funcao
-- Adicionar CORS headers completos
-- Incluir TODOS os novos campos do aluno no prompt da IA
-- Adicionar `analyze-periodization` ao config.toml
-
-### 4. Criar SmartReino Quiz (Interface do Aluno)
-
-Nova funcionalidade na interface do aluno: quando o aluno nao tem treino ativo, aparece um quiz de **9 perguntas clicaveis** (cards/botoes). Ao finalizar, chama a edge function `generate-workout` com todas as respostas e gera o treino do dia automaticamente.
-
-**Fluxo:**
+## Fluxo Proposto
 
 ```text
-Aluno abre SmartReino
+Upload/Paste Periodizacao (ou selecionar modelo existente)
     |
     v
-Tem treino ativo? --SIM--> Mostra treino (como esta hoje)
-    |
-    NAO
+IA analisa: identifica macro/meso/microciclos
     |
     v
-Quiz SmartReino (9 perguntas, uma por vez)
-    |
-    Pergunta 1: Qual seu objetivo? [cards clicaveis]
-    Pergunta 2: Nivel? [cards clicaveis]
-    ...
-    Pergunta 9: Experiencia com pesos? [cards clicaveis]
+Sistema cruza com periodization_models (44 modelos)
     |
     v
-Resumo das respostas + botao "Gerar Meu Treino"
+Nova edge function: generate-full-plan
+    - Recebe: estrutura de periodizacao + dados do aluno
+    - IA gera plano COMPLETO: ano > mes > semana > dia
+    - Cada dia tem exercicios com series/reps/descanso/obs
     |
     v
-IA gera treino --> Salva no banco --> Exibe na interface
+Salva em planos_treino_aluno (estrutura_treino JSONB)
+    |
+    v
+Exibe plano organizado na UI com navegacao por fase/semana/dia
 ```
 
-### 5. Atualizar Formulario Admin
+## O que sera implementado
 
-O formulario de cadastro do admin (`FormularioAluno`) tambem sera atualizado para usar as mesmas perguntas, mas em formato compacto (selects lado a lado), removendo email como obrigatorio e adicionando as 15 perguntas de treino.
+### 1. Nova Edge Function: `generate-full-plan`
 
----
+Recebe a periodizacao analisada + perfil do aluno e gera o plano completo com IA:
+
+- Input: `{ studentId, periodizationModelId?, periodizationText?, formData }`
+- Busca dados do aluno em `alunos` (todos os 15 campos de treino)
+- Se `periodizationModelId`, busca macro/meso/micro de `periodization_models`
+- Prompt IA estruturado pedindo JSON com:
+  - `macrociclo` (nome, duracao total)
+  - `mesociclos[]` (fase, semanas, foco, volume, intensidade)
+  - `semanas[]` (numero, fase, foco)
+  - `dias[]` (dia da semana, tipo treino, exercicios com series/reps/descanso/observacao)
+- Salva resultado em `planos_treino_aluno` com `tipo_periodizacao`, `fase_atual`
+- Tambem salva em `planos_de_treino_gerados` para compatibilidade
+
+### 2. Componente `FullPlanView.tsx`
+
+Novo componente para exibir o plano completo gerado, com navegacao:
+
+- Vista hierarquica: Macrociclo > Mesociclo > Semana > Dia
+- Tabs ou accordion para navegar entre fases
+- Cards por dia mostrando exercicios no template 9FIT
+- Barra de progresso mostrando semana atual
+- Botoes: exportar PDF, enviar ao aluno, editar
+
+### 3. Atualizar `PeriodizationUpload.tsx`
+
+- Adicionar selector de modelos de periodizacao existentes (44 modelos do banco)
+- Ao analisar, mostrar opcao "Gerar Plano Completo" que chama `generate-full-plan`
+- Tab "Meus Treinos" mostra planos gerados do banco (nao mais dados mock)
+- Vincular ao aluno selecionado
+
+### 4. Atualizar `analyze-periodization` edge function
+
+- Melhorar o prompt para extrair estrutura macro/meso/micro mais precisa do texto colado
+- Retornar formato padronizado que alimenta `generate-full-plan`
+
+## Estrutura JSONB do Plano Completo (em `estrutura_treino`)
+
+```json
+{
+  "macrociclo": {
+    "nome": "Hipertrofia Linear 24 semanas",
+    "duracao_semanas": 24
+  },
+  "mesociclos": [
+    {
+      "nome": "Adaptacao Anatomica",
+      "semana_inicio": 1,
+      "semana_fim": 4,
+      "foco": "Tecnica e resistencia muscular",
+      "volume": "Alto",
+      "intensidade": "Baixa"
+    }
+  ],
+  "semanas": [
+    {
+      "numero": 1,
+      "mesociclo": "Adaptacao Anatomica",
+      "dias": [
+        {
+          "dia": "Segunda",
+          "nome": "Treino A - Peito e Triceps",
+          "tipo": "Peito e Triceps",
+          "exercicios": [
+            {
+              "nome": "Supino Reto",
+              "series": "3",
+              "repeticoes": "12-15",
+              "descanso": "60s",
+              "observacao": "Foco em tecnica"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
 
 ## Arquivos a Criar
 
-1. **`src/components/student/SmartReinoQuiz.tsx`** - Quiz de 9 perguntas com cards clicaveis, animacoes de transicao, barra de progresso, e chamada a edge function ao final
+1. **`supabase/functions/generate-full-plan/index.ts`** - Edge function que recebe periodizacao + aluno e gera plano completo dia-a-dia via IA
+2. **`src/components/workout/FullPlanView.tsx`** - Componente de visualizacao hierarquica do plano (macro > meso > semana > dia)
 
 ## Arquivos a Modificar
 
-1. **`src/components/alunos/FormularioAluno.tsx`** - Reformular: nome + telefone + 15 perguntas de treino clicaveis
-2. **`src/services/alunosService.ts`** - Atualizar interface `Aluno` e `NovoAlunoInput` com novos campos
-3. **`supabase/config.toml`** - Adicionar `analyze-periodization`, mudar `verify_jwt = false`
-4. **`supabase/functions/generate-workout/index.ts`** - Incluir novos campos no prompt, validar JWT manual, melhorar CORS
-5. **`src/pages/StudentInterface.tsx`** - Integrar SmartReinoQuiz quando nao ha treino ativo
+1. **`supabase/config.toml`** - Adicionar `generate-full-plan` com `verify_jwt = false`
+2. **`src/pages/PeriodizationUpload.tsx`** - Adicionar selector de modelos, botao "Gerar Plano Completo", e exibicao via `FullPlanView`
+3. **`supabase/functions/analyze-periodization/index.ts`** - Melhorar prompt para extrair macro/meso/micro com mais precisao
 
 ## Migracao SQL
 
-```sql
-ALTER TABLE public.alunos
-  ADD COLUMN IF NOT EXISTS tempo_disponivel_min integer DEFAULT 60,
-  ADD COLUMN IF NOT EXISTS historico_lesoes text,
-  ADD COLUMN IF NOT EXISTS foco_muscular varchar DEFAULT 'corpo_todo',
-  ADD COLUMN IF NOT EXISTS condicionamento_cardio varchar DEFAULT 'medio',
-  ADD COLUMN IF NOT EXISTS experiencia_pesos_livres varchar DEFAULT 'basico',
-  ADD COLUMN IF NOT EXISTS preferencia_intensidade varchar DEFAULT 'moderado',
-  ADD COLUMN IF NOT EXISTS preferencia_cardio varchar DEFAULT 'integrado',
-  ADD COLUMN IF NOT EXISTS preferencia_equipamento varchar DEFAULT 'ambos',
-  ADD COLUMN IF NOT EXISTS treina_sozinho boolean DEFAULT true,
-  ADD COLUMN IF NOT EXISTS horario_preferido varchar DEFAULT 'manha',
-  ADD COLUMN IF NOT EXISTS meta_tempo_meses integer DEFAULT 3;
-```
+Nenhuma necessaria - `planos_treino_aluno.estrutura_treino` ja e JSONB e comporta a estrutura completa. Campos `tipo_periodizacao` e `fase_atual` ja existem.
 
