@@ -19,7 +19,7 @@ import RecommendedWorkout from "./pages/RecommendedWorkout";
 import WorkoutRegister from "./pages/WorkoutRegister";
 import ExerciseManagement from "./pages/ExerciseManagement";
 import AIConfig from "./pages/AIConfig";
-import AdminStudentManagement from "./pages/AdminStudentManagement";
+// AdminStudentManagement removed - use GerenciamentoAlunos instead
 import GerenciamentoAlunos from "./pages/GerenciamentoAlunos";
 import StudentInterface from "./pages/StudentInterface";
 import PeriodizationUpload from "./pages/PeriodizationUpload";
@@ -140,7 +140,7 @@ function AppRoutes() {
       <Route path="/workout-register" element={<WorkoutRegister />} />
       <Route path="/exercise-management" element={<ExerciseManagement />} />
       <Route path="/ai-config" element={<AIConfig />} />
-      <Route path="/admin-students" element={<AdminStudentManagement />} />
+      <Route path="/admin-students" element={<Navigate to="/gerenciamento-alunos" replace />} />
       <Route path="/gerenciamento-alunos" element={<GerenciamentoAlunos />} />
       <Route path="/aluno/:id" element={<AlunoDetalhes />} />
       <Route path="/workout-details/:id" element={<WorkoutDetails />} />
