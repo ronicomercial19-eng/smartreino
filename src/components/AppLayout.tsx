@@ -35,9 +35,9 @@ export function AppLayout({ children }: AppLayoutProps) {
               </Button>
             )}
             <div className="flex items-center gap-2 font-heading">
-              <h1 className="text-lg font-semibold text-foreground">TrainSync</h1>
+              <h1 className="text-lg font-semibold text-foreground">9FIT</h1>
               <div className="h-4 w-px bg-border" />
-              <span className="text-sm text-muted-foreground">Sistema de Periodização</span>
+              <span className="text-sm text-muted-foreground">Sistema de Gestão de Treinos</span>
             </div>
           </header>
           

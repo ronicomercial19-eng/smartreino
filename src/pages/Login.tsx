@@ -43,66 +43,13 @@ const Login = () => {
           title: "Login realizado com sucesso!",
           description: `Bem-vindo!`,
         });
-        
-        // O redirecionamento será feito automaticamente pelo App.tsx
-        // através do useEffect que monitora o estado de autenticação
+        // Redirecionamento é feito automaticamente pelo App.tsx
       }
     } catch (error: any) {
       console.error('Erro no login:', error);
       toast({
         title: "Erro no login",
         description: error.message || "Erro ao fazer login. Verifique suas credenciais.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDemoLogin = async () => {
-    setLoading(true);
-    
-    try {
-      // Criar um usuário demo ou fazer login com credenciais demo
-      const demoEmail = "demo@trainsync.com";
-      const demoPassword = "demo123456";
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: demoEmail,
-        password: demoPassword,
-      });
-
-      if (error) {
-        // Se o usuário demo não existe, vamos criá-lo
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: demoEmail,
-          password: demoPassword,
-          options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`
-          }
-        });
-
-        if (signUpError) {
-          throw signUpError;
-        }
-
-        if (signUpData.user) {
-          toast({
-            title: "Usuário demo criado!",
-            description: "Fazendo login automaticamente...",
-          });
-        }
-      }
-
-      toast({
-        title: "Modo demonstração ativado!",
-        description: "Explore todas as funcionalidades com dados de exemplo",
-      });
-    } catch (error: any) {
-      console.error('Erro no login demo:', error);
-      toast({
-        title: "Erro no modo demo",
-        description: error.message || "Erro ao ativar modo demonstração",
         variant: "destructive",
       });
     } finally {
@@ -154,37 +101,17 @@ const Login = () => {
             </div>
             <Button 
               type="submit" 
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-primary hover:bg-primary/90"
               disabled={loading}
             >
               {loading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
           
-          {/* Botão de Demonstração */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Ou</span>
-            </div>
-          </div>
-          
-          <Button 
-            type="button" 
-            variant="outline" 
-            className="w-full"
-            onClick={handleDemoLogin}
-            disabled={loading}
-          >
-            {loading ? "Ativando..." : "🚀 Entrar no Modo Demonstração"}
-          </Button>
-          
           <div className="text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Não tem uma conta?{" "}
-              <Link to="/register" className="text-blue-600 hover:underline">
+              <Link to="/register" className="text-primary hover:underline">
                 Cadastre-se aqui
               </Link>
             </p>
