@@ -1,11 +1,9 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
   Dumbbell, 
-  Database, 
-  Upload, 
   BookOpen, 
   MessageSquare, 
   Settings, 
@@ -32,8 +30,19 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
 
-const navigationItems = [
+type NavItem = {
+  title: string;
+  url?: string;
+  icon: any;
+  /** Roles that can see this item. undefined = all non-student roles */
+  roles?: string[];
+  items?: { title: string; url: string; roles?: string[] }[];
+};
+
+const allNavigationItems: NavItem[] = [
   {
     title: "Dashboard",
     url: "/dashboard",
@@ -43,14 +52,8 @@ const navigationItems = [
     title: "Modelos de Treino",
     icon: Dumbbell,
     items: [
-      {
-        title: "Visualizar Modelos",
-        url: "/workout-models",
-      },
-      {
-        title: "Base de Dados",
-        url: "/workout-models-database",
-      },
+      { title: "Visualizar Modelos", url: "/workout-models" },
+      { title: "Base de Dados", url: "/workout-models-database" },
     ],
   },
   {
@@ -62,28 +65,16 @@ const navigationItems = [
     title: "Analytics",
     icon: TrendingUp,
     items: [
-      {
-        title: "Visão Geral",
-        url: "/analytics",
-      },
-      {
-        title: "Analytics por Aluno",
-        url: "/student-analytics",
-      },
-      {
-        title: "Estatísticas Avançadas",
-        url: "/advanced-statistics",
-      },
+      { title: "Visão Geral", url: "/analytics", roles: ["admin"] },
+      { title: "Analytics por Aluno", url: "/student-analytics" },
+      { title: "Estatísticas Avançadas", url: "/advanced-statistics", roles: ["admin"] },
     ],
   },
   {
     title: "Periodização",
     icon: BarChart3,
     items: [
-      {
-        title: "Upload de Periodização",
-        url: "/periodization-upload",
-      },
+      { title: "Upload de Periodização", url: "/periodization-upload" },
     ],
   },
   {
@@ -95,14 +86,8 @@ const navigationItems = [
     title: "IA & Chat",
     icon: MessageSquare,
     items: [
-      {
-        title: "Chat IA",
-        url: "/ai-chat",
-      },
-      {
-        title: "Configurações IA",
-        url: "/ai-config",
-      },
+      { title: "Chat IA", url: "/ai-chat" },
+      { title: "Configurações IA", url: "/ai-config", roles: ["admin"] },
     ],
   },
   {
@@ -119,6 +104,7 @@ const navigationItems = [
     title: "Roadmap",
     url: "/roadmap",
     icon: Target,
+    roles: ["admin"],
   },
   {
     title: "Interface Aluno",
@@ -127,17 +113,51 @@ const navigationItems = [
   },
 ];
 
+function filterNavForRole(items: NavItem[], role: string | null): NavItem[] {
+  if (!role) return [];
+  
+  return items.reduce<NavItem[]>((acc, item) => {
+    // Check top-level role restriction
+    if (item.roles && !item.roles.includes(role)) return acc;
+
+    if (item.items) {
+      const filteredSubs = item.items.filter(
+        sub => !sub.roles || sub.roles.includes(role)
+      );
+      if (filteredSubs.length > 0) {
+        acc.push({ ...item, items: filteredSubs });
+      }
+    } else {
+      acc.push(item);
+    }
+    return acc;
+  }, []);
+}
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const [openGroups, setOpenGroups] = useState<string[]>(["Modelos de Treino", "IA & Chat"]);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id ?? null);
+    });
+  }, []);
+
+  const { role, isAdmin } = useUserRole(userId);
+
+  // Admin sees everything, professor sees filtered, student doesn't use sidebar
+  const effectiveRole = isAdmin ? 'admin' : (role === 'professor' || role === 'trainer' as any ? 'professor' : role);
+  const navigationItems = filterNavForRole(allNavigationItems, effectiveRole || 'professor');
 
   const isCollapsed = state === "collapsed";
   
   const isActive = (path: string) => location.pathname === path;
   
   const isGroupActive = (items: any[]) => 
-    items?.some(item => isActive(item.url));
+    items?.some((item: any) => isActive(item.url));
 
   const toggleGroup = (title: string) => {
     setOpenGroups(prev => 
@@ -185,7 +205,7 @@ export function AppSidebar() {
                     >
                       <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
-                          <SidebarMenuButton className={getNavClassName(isGroupActive(item.items))}>
+                          <SidebarMenuButton className={getNavClassName(isGroupActive(item.items!))}>
                             <item.icon className="h-4 w-4" />
                             {!isCollapsed && (
                               <>
@@ -198,7 +218,7 @@ export function AppSidebar() {
                         {!isCollapsed && (
                           <CollapsibleContent>
                             <SidebarMenuSub>
-                              {item.items.map((subItem) => (
+                              {item.items!.map((subItem) => (
                                 <SidebarMenuSubItem key={subItem.title}>
                                   <SidebarMenuSubButton asChild isActive={isActive(subItem.url)}>
                                     <NavLink to={subItem.url} className={getNavClassName(isActive(subItem.url))}>
