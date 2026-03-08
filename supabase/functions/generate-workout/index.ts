@@ -1,6 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,7 +13,6 @@ serve(async (req) => {
   }
 
   try {
-    // Validate JWT manually
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ success: false, error: 'Não autorizado' }), {
@@ -25,21 +24,20 @@ serve(async (req) => {
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    // Verify user
+    // Verify user with getUser (reliable across all versions)
     const authSupabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await authSupabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user: authUser }, error: authError } = await authSupabase.auth.getUser();
+    if (authError || !authUser) {
       return new Response(JSON.stringify({ success: false, error: 'Token inválido' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { studentId, objetivo, nivel, frequenciaSemanal, restricoes, ambiente, quizAnswers } = await req.json();
+    const { studentId, objetivo, nivel, frequenciaSemanal, ambiente, restricoes, quizAnswers } = await req.json();
 
-    // Use service role to fetch student data
+    // Use service role for data operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data: student, error: studentError } = await supabase
@@ -52,7 +50,7 @@ serve(async (req) => {
       throw new Error('Aluno não encontrado');
     }
 
-    // Build comprehensive prompt with ALL student data
+    // Build prompt with ALL student data
     const prompt = `Você é um personal trainer experiente. Crie um plano de treino COMPLETO e DETALHADO para o seguinte perfil:
 
 PERFIL DO ALUNO:
@@ -84,49 +82,41 @@ ${quizAnswers ? `RESPOSTAS DO QUIZ SMARTREINO:
 ${JSON.stringify(quizAnswers, null, 2)}` : ''}
 
 INSTRUÇÕES:
-1. Crie um plano estruturado por DIA DA SEMANA
+1. Crie um plano estruturado por DIA DA SEMANA (${frequenciaSemanal || student.frequencia_semanal || 3} dias)
 2. Para cada dia, inclua:
    - Nome/Foco do treino (ex: "Treino A - Peito e Tríceps")
+   - Tipo do treino (ex: "Peito e Tríceps")
    - Lista de 6-8 exercícios apropriados
-   - Para cada exercício especifique:
+   - Para cada exercício:
      * Nome do exercício
-     * Séries (número)
-     * Repetições (range ou número fixo)
-     * Tempo de descanso (segundos)
-     * Observações técnicas importantes
+     * Séries (número como string, ex: "3")
+     * Repetições (range, ex: "8-12")
+     * Tempo de descanso (ex: "60s")
+     * Observações técnicas
 
 3. Considere:
    - Progressão adequada ao nível
    - Equilíbrio muscular
-   - Variação de intensidade
    - Restrições médicas e lesões
    - Ambiente e equipamento disponível
-   - Tempo disponível por sessão (${student.tempo_disponivel_min || 60} min)
-   - Preferência de intensidade do aluno
+   - Tempo por sessão (${student.tempo_disponivel_min || 60} min)
 
-4. Adicione orientações gerais sobre:
-   - Aquecimento
-   - Execução técnica
-   - Progressão de carga
-   - Sinais de alerta
-
-FORMATO DE RESPOSTA JSON:
+FORMATO DE RESPOSTA JSON (OBRIGATÓRIO):
 {
   "plan_name": "Nome do Plano",
-  "duration_weeks": 4-8,
-  "overview": "Breve descrição do plano e objetivos",
-  "weekly_structure": [
+  "duration_weeks": 4,
+  "overview": "Breve descrição",
+  "estrutura_semanal": [
     {
-      "day": 1,
-      "name": "Nome do Treino",
-      "focus": "Grupos musculares trabalhados",
-      "exercises": [
+      "dia": "Treino A",
+      "tipo": "Peito e Tríceps",
+      "exercicios": [
         {
-          "name": "Nome do Exercício",
-          "sets": 3,
-          "reps": "8-12",
-          "rest_seconds": 60,
-          "notes": "Observações técnicas"
+          "nome": "Supino Reto com Barra",
+          "series": "4",
+          "repeticoes": "8-12",
+          "descanso": "90s",
+          "observacao": "Manter escápulas retraídas"
         }
       ]
     }
@@ -149,7 +139,7 @@ FORMATO DE RESPOSTA JSON:
         messages: [
           {
             role: 'system',
-            content: 'Você é um personal trainer certificado com expertise em periodização e prescrição de treinos. Responda SEMPRE em JSON válido, em português brasileiro, com planos detalhados e cientificamente embasados.'
+            content: 'Você é um personal trainer certificado. Responda SEMPRE em JSON válido, em português brasileiro. O campo "estrutura_semanal" DEVE ser um array de objetos com dia, tipo e exercicios. Cada exercício deve ter nome, series, repeticoes, descanso e observacao como strings.'
           },
           { role: 'user', content: prompt }
         ],
@@ -181,25 +171,47 @@ FORMATO DE RESPOSTA JSON:
       throw new Error('Falha ao processar resposta da IA');
     }
 
-    // Save using service role
+    const freq = frequenciaSemanal || student.frequencia_semanal || 3;
+
+    // Save to planos_treino_aluno (the table StudentInterface reads from)
     const { data: savedPlan, error: saveError } = await supabase
-      .from('planos_de_treino_gerados')
+      .from('planos_treino_aluno')
       .insert({
-        estudante_id: studentId,
+        aluno_id: studentId,
         professor_id: student.professor_id,
-        nome_plano: workoutPlan.plan_name,
+        nome_plano: workoutPlan.plan_name || 'Plano SmartReino',
         objetivo: objetivo || student.objetivo,
-        nivel: nivel || student.nivel_experiencia,
-        duracao_semanas: workoutPlan.duration_weeks,
-        plano_completo: workoutPlan,
-        status: 'ativo'
+        duracao_semanas: workoutPlan.duration_weeks || 4,
+        frequencia_semanal: freq,
+        estrutura_treino: workoutPlan.estrutura_semanal || workoutPlan.weekly_structure || [],
+        status: 'ativo',
+        semana_atual: 1,
+        descricao: workoutPlan.overview || '',
       })
       .select()
       .single();
 
     if (saveError) {
-      console.error('Error saving plan:', saveError);
+      console.error('Error saving plan to planos_treino_aluno:', saveError);
       throw new Error('Erro ao salvar plano de treino');
+    }
+
+    // Also save quiz answers back to the student record
+    if (quizAnswers) {
+      await supabase
+        .from('alunos')
+        .update({
+          objetivo: quizAnswers.objetivo || student.objetivo,
+          nivel_experiencia: quizAnswers.nivel || student.nivel_experiencia,
+          frequencia_semanal: parseInt(quizAnswers.frequencia) || student.frequencia_semanal,
+          ambiente_treino: quizAnswers.ambiente || student.ambiente_treino,
+          tempo_disponivel_min: parseInt(quizAnswers.tempo) || student.tempo_disponivel_min,
+          historico_lesoes: quizAnswers.lesoes || student.historico_lesoes,
+          foco_muscular: quizAnswers.foco || student.foco_muscular,
+          condicionamento_cardio: quizAnswers.cardio || student.condicionamento_cardio,
+          experiencia_pesos_livres: quizAnswers.pesos || student.experiencia_pesos_livres,
+        })
+        .eq('id', studentId);
     }
 
     return new Response(JSON.stringify({
