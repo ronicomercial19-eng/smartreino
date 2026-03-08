@@ -17,6 +17,7 @@ const Register = () => {
     age: "",
     objective: "",
     level: "",
+    accountType: "" as "professor" | "student" | "",
   });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -24,7 +25,16 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!Object.values(formData).every(value => value !== "")) {
+    if (!formData.accountType) {
+      toast({
+        title: "Erro no cadastro",
+        description: "Selecione o tipo de conta",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!Object.entries(formData).every(([_, value]) => value !== "")) {
       toast({
         title: "Erro no cadastro",
         description: "Por favor, preencha todos os campos",
@@ -36,7 +46,6 @@ const Register = () => {
     setLoading(true);
 
     try {
-      // Sign up with Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -47,15 +56,27 @@ const Register = () => {
             age: parseInt(formData.age),
             objective: formData.objective,
             level: formData.level,
+            user_type: formData.accountType,
           }
         }
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (data.user) {
+        // Insert role into user_roles table
+        const roleToInsert = formData.accountType === 'professor' ? 'admin' : 'user';
+        const { error: roleError } = await supabase
+          .from('user_roles' as any)
+          .upsert({
+            user_id: data.user.id,
+            role: roleToInsert,
+          }, { onConflict: 'user_id,role' });
+
+        if (roleError) {
+          console.error('Erro ao inserir role:', roleError);
+        }
+
         // Create extended profile
         const { error: profileError } = await supabase
           .from('user_profiles_extended')
@@ -66,7 +87,7 @@ const Register = () => {
             age: parseInt(formData.age),
             primary_goal: formData.objective,
             experience_level: formData.level,
-            user_type: 'admin' // Default to admin for new registrations
+            user_type: formData.accountType === 'professor' ? 'admin' : 'student',
           });
 
         if (profileError) {
@@ -75,10 +96,10 @@ const Register = () => {
 
         toast({
           title: "Cadastro realizado com sucesso!",
-          description: "Bem-vindo ao TrainSync! Você já está logado.",
+          description: formData.accountType === 'professor' 
+            ? "Bem-vindo, Professor! Você já pode gerenciar seus alunos."
+            : "Bem-vindo! Acesse seus treinos na interface do aluno.",
         });
-
-        // User will be automatically redirected by the auth state change in App.tsx
       }
     } catch (error: any) {
       console.error('Erro no cadastro:', error);
@@ -97,18 +118,44 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-blue-600">
-            Criar Conta
-          </CardTitle>
-          <CardDescription>
-            Cadastre-se para começar seus treinos
-          </CardDescription>
+    <div className="min-h-screen bg-gradient-to-br from-black to-zinc-900 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md border-border/50 glass">
+        <CardHeader className="text-center space-y-4">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-xl shadow-orange-500/20">
+            <span className="text-white text-2xl font-bold font-heading">9</span>
+          </div>
+          <div>
+            <CardTitle className="text-2xl font-bold font-heading gradient-text">
+              Criar Conta
+            </CardTitle>
+            <CardDescription className="text-muted-foreground mt-1">
+              Cadastre-se para começar seus treinos
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Account Type Selector */}
+            <div className="space-y-2">
+              <Label htmlFor="accountType">Tipo de Conta</Label>
+              <Select 
+                onValueChange={(value) => handleInputChange("accountType", value)}
+                disabled={loading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo de conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="professor">
+                    👨‍🏫 Professor / Personal Trainer
+                  </SelectItem>
+                  <SelectItem value="student">
+                    🏋️ Aluno
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="name">Nome Completo</Label>
               <Input
@@ -185,7 +232,7 @@ const Register = () => {
             </div>
             <Button 
               type="submit" 
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-primary hover:bg-primary/90"
               disabled={loading}
             >
               {loading ? "Criando conta..." : "Criar Conta"}
@@ -193,9 +240,9 @@ const Register = () => {
           </form>
           
           <div className="mt-4 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Já tem uma conta?{" "}
-              <Link to="/login" className="text-blue-600 hover:underline">
+              <Link to="/login" className="text-primary hover:underline">
                 Faça login aqui
               </Link>
             </p>
