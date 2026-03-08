@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -11,30 +10,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/AppLayout";
 import PeriodizationPasteArea from "@/components/PeriodizationPasteArea";
 import PeriodizationAnalysisResults from "@/components/PeriodizationAnalysisResults";
-import ExerciseSelection from "@/components/ExerciseSelection";
+import FullPlanView from "@/components/workout/FullPlanView";
 import { grokAIService } from "@/services/grokAIService";
 import { toast } from "@/components/ui/use-toast";
 import { logger } from "@/utils/logger";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Settings, 
-  FileText, 
-  Calendar, 
-  Target, 
-  TrendingUp,
-  CheckCircle,
-  AlertCircle,
-  Lightbulb,
-  Brain,
-  Zap,
-  Cpu,
-  BarChart3,
-  Activity,
-  Clock,
-  Users,
-  Dumbbell,
-  UserCheck,
-  Link as LinkIcon
+import { supabaseUntyped } from "@/integrations/supabase/untypedClient";
+import {
+  Settings, FileText, Target, TrendingUp, Brain, Zap, Cpu, BarChart3,
+  Activity, Clock, Users, Dumbbell, UserCheck, Link as LinkIcon, Layers, Loader2
 } from "lucide-react";
 
 interface Aluno {
@@ -45,17 +29,50 @@ interface Aluno {
   nivel_experiencia: string;
 }
 
+interface PeriodizationModel {
+  id: string;
+  title: string;
+  goal: string;
+  duration: string;
+  description: string;
+}
+
+interface SavedPlan {
+  id: string;
+  nome_plano: string;
+  objetivo: string;
+  duracao_semanas: number;
+  frequencia_semanal: number;
+  estrutura_treino: any;
+  tipo_periodizacao: string;
+  fase_atual: string;
+  semana_atual: number;
+  status: string;
+  created_at: string;
+  aluno_id: string;
+}
+
 const PeriodizationUpload = () => {
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [generateProgress, setGenerateProgress] = useState(0);
   const [pastedData, setPastedData] = useState("");
   const [activeTab, setActiveTab] = useState("configuracao");
-  const [showExerciseSelection, setShowExerciseSelection] = useState(false);
-  const [selectedExercises, setSelectedExercises] = useState<any[]>([]);
+
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [selectedAlunoId, setSelectedAlunoId] = useState<string>("");
   const [loadingAlunos, setLoadingAlunos] = useState(true);
+
+  const [periodizationModels, setPeriodizationModels] = useState<PeriodizationModel[]>([]);
+  const [selectedModelId, setSelectedModelId] = useState<string>("");
+  const [loadingModels, setLoadingModels] = useState(true);
+
+  const [savedPlans, setSavedPlans] = useState<SavedPlan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<SavedPlan | null>(null);
+
   const [formData, setFormData] = useState({
     objetivo: "",
     nivel: "",
@@ -64,14 +81,12 @@ const PeriodizationUpload = () => {
     periodizacao: "",
     grupo_prioritario: "",
     dias_semana: "",
-    variabilidade: "sim",
-    complexidade: "basico",
-    equipamentos: "",
     lesoes: ""
   });
 
   useEffect(() => {
     loadAlunos();
+    loadPeriodizationModels();
   }, []);
 
   const loadAlunos = async () => {
@@ -79,13 +94,11 @@ const PeriodizationUpload = () => {
       setLoadingAlunos(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
       const { data, error } = await supabase
         .from('alunos')
         .select('id, nome, email, objetivo, nivel_experiencia')
         .eq('professor_id', user.id)
         .order('nome');
-
       if (error) throw error;
       setAlunos(data || []);
     } catch (error) {
@@ -94,6 +107,55 @@ const PeriodizationUpload = () => {
       setLoadingAlunos(false);
     }
   };
+
+  const loadPeriodizationModels = async () => {
+    try {
+      setLoadingModels(true);
+      const { data, error } = await supabaseUntyped
+        .from('periodization_models')
+        .select('id, title, goal, duration, description')
+        .order('title');
+      if (error) throw error;
+      setPeriodizationModels(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar modelos:', error);
+    } finally {
+      setLoadingModels(false);
+    }
+  };
+
+  const loadSavedPlans = async () => {
+    try {
+      setLoadingPlans(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      let query = supabaseUntyped
+        .from('planos_treino_aluno')
+        .select('*')
+        .eq('professor_id', user.id)
+        .not('estrutura_treino->macrociclo', 'is', null)
+        .order('created_at', { ascending: false });
+
+      if (selectedAlunoId) {
+        query = query.eq('aluno_id', selectedAlunoId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setSavedPlans((data || []) as SavedPlan[]);
+    } catch (error) {
+      console.error('Erro ao carregar planos:', error);
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "treinos") {
+      loadSavedPlans();
+    }
+  }, [activeTab, selectedAlunoId]);
 
   const handleAlunoSelect = (alunoId: string) => {
     setSelectedAlunoId(alunoId);
@@ -104,248 +166,190 @@ const PeriodizationUpload = () => {
         objetivo: aluno.objetivo || prev.objetivo,
         nivel: aluno.nivel_experiencia || prev.nivel
       }));
-      toast({
-        title: "Aluno selecionado",
-        description: `Dados de ${aluno.nome} carregados automaticamente.`,
-      });
+      toast({ title: "Aluno selecionado", description: `Dados de ${aluno.nome} carregados.` });
     }
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!formData.objetivo || !formData.nivel) {
-      toast({
-        title: "Dados Incompletos",
-        description: "Por favor, preencha pelo menos o objetivo e nível do aluno.",
-        variant: "destructive"
-      });
+      toast({ title: "Dados Incompletos", description: "Preencha objetivo e nível.", variant: "destructive" });
       return;
     }
-
     await analyzeWithAI();
   };
 
   const analyzeWithAI = async () => {
     setIsAnalyzing(true);
     setAnalysisProgress(0);
-    
     try {
-      logger.info('Iniciando análise de periodização');
-      
-      // Simulate progress updates
       const progressInterval = setInterval(() => {
         setAnalysisProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
+          if (prev >= 90) { clearInterval(progressInterval); return 90; }
           return prev + 10;
         });
       }, 200);
-      
-      const combinedData = {
-        ...formData,
-        periodizacao_texto: pastedData
-      };
-      
+
+      const combinedData = { ...formData, periodizacao_texto: pastedData };
       const analysis = await grokAIService.analyzePeriodization(combinedData);
-      
+
       clearInterval(progressInterval);
       setAnalysisProgress(100);
-      
-      logger.info('Análise concluída');
-      
-      // Enhanced analysis with mock data structure
+
       const enhancedAnalysis = {
         ...analysis,
-        blocks: analysis.recommendedModels?.map((model: any, index: number) => ({
-          name: model.name,
-          duration: `${model.duration} min`,
-          focus: model.description,
-          intensity: Math.min(10, model.targetPSE || 7),
-          volume: Math.floor(Math.random() * 3) + 7
-        })) || [],
-        weeklyPlan: Array.from({ length: 12 }, (_, i) => ({
-          week: i + 1,
-          day3_focus: `Treino ${['A', 'B', 'C'][i % 3]}`,
-          day4_focus: `Treino ${['B', 'C', 'A'][i % 3]}`,
-          load: Math.floor(Math.random() * 4) + 6
-        })),
-        macroChartData: {
-          volume: Array.from({ length: 12 }, () => Math.floor(Math.random() * 4) + 6),
-          intensity: Array.from({ length: 12 }, () => Math.floor(Math.random() * 4) + 6)
-        },
         confidence: Math.round((analysis.confidence || 0.8) * 100),
         totalDuration: "12 semanas",
         mainObjective: formData.objetivo || "Desenvolvimento Geral"
       };
-      
+
       setAnalysisResult(enhancedAnalysis);
-      setShowExerciseSelection(true);
-      setActiveTab("treinos");
-      
-      toast({
-        title: "🤖 Análise IA Concluída!",
-        description: `Periodização analisada com ${enhancedAnalysis.confidence}% de confiança. Agora selecione os exercícios.`,
-      });
+      toast({ title: "🤖 Análise IA Concluída!", description: `Confiança: ${enhancedAnalysis.confidence}%` });
     } catch (error) {
-      logger.error('Erro durante análise de periodização');
-      toast({
-        title: "Erro na Análise",
-        description: "Ocorreu um erro durante a análise. Por favor, tente novamente.",
-        variant: "destructive"
-      });
+      logger.error('Erro durante análise');
+      toast({ title: "Erro na Análise", description: "Tente novamente.", variant: "destructive" });
     } finally {
       setIsAnalyzing(false);
       setTimeout(() => setAnalysisProgress(0), 2000);
     }
   };
 
+  const handleGenerateFullPlan = async () => {
+    if (!selectedAlunoId) {
+      toast({ title: "Selecione um aluno", description: "Vincule um aluno antes de gerar o plano completo.", variant: "destructive" });
+      return;
+    }
+    if (!formData.objetivo || !formData.nivel) {
+      toast({ title: "Dados Incompletos", description: "Preencha objetivo e nível.", variant: "destructive" });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerateProgress(0);
+
+    const progressInterval = setInterval(() => {
+      setGenerateProgress(prev => {
+        if (prev >= 90) { clearInterval(progressInterval); return 90; }
+        return prev + 5;
+      });
+    }, 1000);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-full-plan', {
+        body: {
+          studentId: selectedAlunoId,
+          periodizationModelId: selectedModelId || undefined,
+          periodizationText: pastedData || undefined,
+          formData: {
+            objetivo: formData.objetivo,
+            nivel: formData.nivel,
+            frequencia_semanal: parseInt(formData.dias_semana) || 4,
+          }
+        }
+      });
+
+      clearInterval(progressInterval);
+      setGenerateProgress(100);
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Erro desconhecido');
+
+      setSelectedPlan(data.plan);
+      setActiveTab("treinos");
+
+      toast({
+        title: "🎉 Plano Completo Gerado!",
+        description: `${data.summary?.total_semanas} semanas · ${data.summary?.total_mesociclos} mesociclos criados.`,
+      });
+
+      loadSavedPlans();
+    } catch (error: any) {
+      console.error('Erro ao gerar plano:', error);
+      toast({
+        title: "Erro na Geração",
+        description: error?.message || "Falha ao gerar plano completo.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+      setTimeout(() => setGenerateProgress(0), 2000);
+    }
+  };
+
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handlePeriodizationData = (data: string) => {
     setPastedData(data);
-    // Auto-analyze if we have basic form data
     if (formData.objetivo && formData.nivel) {
       setTimeout(() => analyzeWithAI(), 500);
     }
   };
 
-  const handleExercisesSelected = (exercises: any[]) => {
-    setSelectedExercises(exercises);
-    setShowExerciseSelection(false);
-    
-    // Update analysis result with selected exercises
-    setAnalysisResult(prev => ({
-      ...prev,
-      selectedExercises: exercises
-    }));
-
-    toast({
-      title: "✅ Exercícios Selecionados",
-      description: `${exercises.length} exercícios adicionados ao treino personalizado.`,
-    });
-  };
-
-  const handleGeneratePDF = () => {
-    toast({
-      title: "📄 Gerando PDF...",
-      description: "Relatório está sendo preparado para download.",
-    });
-    // TODO: Implement PDF generation
-  };
-
-  const handleGenerateLink = () => {
-    const shareableLink = `https://smartreino.ai/report/${Date.now()}`;
-    navigator.clipboard.writeText(shareableLink);
-    toast({
-      title: "🔗 Link Copiado!",
-      description: "Link compartilhável copiado para área de transferência.",
-    });
-  };
-
   return (
     <AppLayout>
       <div className="space-y-6 animate-fade-in">
-        {/* Enhanced Header */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold font-heading gradient-text flex items-center gap-3">
-              <Brain className="h-8 w-8 text-primary" />
-              TrainSync Smart Training
-            </h1>
-            <p className="text-muted-foreground">
-              Configure, analise e gere treinos profissionais com IA
-            </p>
-          </div>
+        {/* Header */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold font-heading gradient-text flex items-center gap-3">
+            <Brain className="h-8 w-8 text-primary" />
+            Geração de Plano Periodizado
+          </h1>
+          <p className="text-muted-foreground">
+            Selecione modelo de periodização, vincule ao aluno e gere treinos completos com IA
+          </p>
         </div>
 
         <div className="flex flex-wrap gap-3">
           <Badge className="bg-primary/20 text-primary border-primary/30 px-3 py-1">
-            <Cpu className="h-4 w-4 mr-2" />
-            IA Powered
+            <Cpu className="h-4 w-4 mr-2" /> IA Powered
           </Badge>
           <Badge className="bg-muted/50 text-muted-foreground border-muted">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Análise Avançada
+            <Layers className="h-4 w-4 mr-2" /> Macro/Meso/Micro
           </Badge>
           <Badge className="bg-muted/50 text-muted-foreground border-muted">
-            <FileText className="h-4 w-4 mr-2" />
-            Relatórios PDF
-          </Badge>
-          <Badge className="bg-muted/50 text-muted-foreground border-muted">
-            <Activity className="h-4 w-4 mr-2" />
-            Analytics Real-time
+            <BarChart3 className="h-4 w-4 mr-2" /> {periodizationModels.length} modelos
           </Badge>
         </div>
 
-        {/* Main Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-card border border-border">
-            <TabsTrigger 
-              value="configuracao" 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Configuração
+          <TabsList className="grid w-full grid-cols-3 bg-card border border-border">
+            <TabsTrigger value="configuracao" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Settings className="h-4 w-4 mr-2" /> Configuração
             </TabsTrigger>
-            <TabsTrigger 
-              value="treinos" 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <Dumbbell className="h-4 w-4 mr-2" />
-              Meus Treinos
+            <TabsTrigger value="treinos" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Dumbbell className="h-4 w-4 mr-2" /> Planos Gerados
             </TabsTrigger>
-            <TabsTrigger 
-              value="analytics" 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger 
-              value="relatorios" 
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Relatórios
+            <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TrendingUp className="h-4 w-4 mr-2" /> Análise IA
             </TabsTrigger>
           </TabsList>
 
-          {/* Configuration Tab */}
+          {/* ===== CONFIGURAÇÃO ===== */}
           <TabsContent value="configuracao" className="space-y-6">
             {/* Student Selector */}
             <Card className="bg-card border-border">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center space-x-3 text-card-foreground">
-                  <div className="w-1 h-8 bg-primary rounded-full"></div>
+                  <div className="w-1 h-8 bg-primary rounded-full" />
                   <UserCheck className="h-6 w-6 text-primary" />
-                  <span>Associar a Aluno (Opcional)</span>
+                  <span>Vincular Aluno *</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-4">
                   <Select value={selectedAlunoId} onValueChange={handleAlunoSelect}>
                     <SelectTrigger className="flex-1 bg-input border-border text-foreground">
-                      <SelectValue placeholder={loadingAlunos ? "Carregando..." : "Selecione um aluno para associar"} />
+                      <SelectValue placeholder={loadingAlunos ? "Carregando..." : "Selecione um aluno"} />
                     </SelectTrigger>
                     <SelectContent className="bg-popover border-border">
-                      {alunos.map((aluno) => (
-                        <SelectItem key={aluno.id} value={aluno.id}>
+                      {alunos.map(a => (
+                        <SelectItem key={a.id} value={a.id}>
                           <div className="flex items-center gap-2">
                             <Users className="h-4 w-4 text-muted-foreground" />
-                            <span>{aluno.nome}</span>
-                            {aluno.objetivo && (
-                              <Badge variant="outline" className="text-xs ml-2">
-                                {aluno.objetivo}
-                              </Badge>
-                            )}
+                            <span>{a.nome}</span>
+                            {a.objetivo && <Badge variant="outline" className="text-xs ml-2">{a.objetivo}</Badge>}
                           </div>
                         </SelectItem>
                       ))}
@@ -353,59 +357,47 @@ const PeriodizationUpload = () => {
                   </Select>
                   {selectedAlunoId && (
                     <Badge className="bg-green-500/20 text-green-500 border-green-500/30">
-                      <LinkIcon className="h-3 w-3 mr-1" />
-                      Vinculado
+                      <LinkIcon className="h-3 w-3 mr-1" /> Vinculado
                     </Badge>
                   )}
                 </div>
-                {alunos.length === 0 && !loadingAlunos && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Nenhum aluno cadastrado. A análise será salva sem associação.
-                  </p>
-                )}
               </CardContent>
             </Card>
 
             <div className="grid lg:grid-cols-2 gap-8">
-              {/* Enhanced Configuration Form */}
-              <Card className="bg-card border-border card-hover">
+              {/* Config Form */}
+              <Card className="bg-card border-border">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-3 text-card-foreground">
-                    <div className="w-1 h-8 bg-primary rounded-full"></div>
+                    <div className="w-1 h-8 bg-primary rounded-full" />
                     <Target className="h-6 w-6 text-primary" />
-                    <span>Escolha o Modelo de Treino</span>
+                    <span>Configuração do Plano</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={handleFormSubmit} className="space-y-6">
+                  <form onSubmit={handleFormSubmit} className="space-y-5">
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-muted-foreground">Objetivo Principal *</Label>
-                        <Select 
-                          value={formData.objetivo} 
-                          onValueChange={(value) => handleInputChange("objetivo", value)}
-                        >
+                        <Select value={formData.objetivo} onValueChange={v => handleInputChange("objetivo", v)}>
                           <SelectTrigger className="bg-input border-border text-foreground">
-                            <SelectValue placeholder="Selecione o objetivo" />
+                            <SelectValue placeholder="Objetivo" />
                           </SelectTrigger>
                           <SelectContent className="bg-popover border-border">
                             <SelectItem value="hipertrofia">🏋️ Hipertrofia</SelectItem>
                             <SelectItem value="forca">💪 Força</SelectItem>
                             <SelectItem value="potencia">⚡ Potência</SelectItem>
-                            <SelectItem value="resistencia">🏃 Resistência Muscular</SelectItem>
-                            <SelectItem value="perda-peso">🔥 Perda de Peso</SelectItem>
+                            <SelectItem value="resistencia">🏃 Resistência</SelectItem>
+                            <SelectItem value="emagrecimento">🔥 Emagrecimento</SelectItem>
+                            <SelectItem value="saude">❤️ Saúde Geral</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-
                       <div className="space-y-2">
-                        <Label className="text-muted-foreground">Nível de Experiência *</Label>
-                        <Select 
-                          value={formData.nivel} 
-                          onValueChange={(value) => handleInputChange("nivel", value)}
-                        >
+                        <Label className="text-muted-foreground">Nível *</Label>
+                        <Select value={formData.nivel} onValueChange={v => handleInputChange("nivel", v)}>
                           <SelectTrigger className="bg-input border-border text-foreground">
-                            <SelectValue placeholder="Selecione o nível" />
+                            <SelectValue placeholder="Nível" />
                           </SelectTrigger>
                           <SelectContent className="bg-popover border-border">
                             <SelectItem value="iniciante">🌱 Iniciante</SelectItem>
@@ -416,185 +408,220 @@ const PeriodizationUpload = () => {
                       </div>
                     </div>
 
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-muted-foreground">Dias por Semana</Label>
+                        <Select value={formData.dias_semana} onValueChange={v => handleInputChange("dias_semana", v)}>
+                          <SelectTrigger className="bg-input border-border text-foreground">
+                            <SelectValue placeholder="Frequência" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover border-border">
+                            <SelectItem value="2">2x/semana</SelectItem>
+                            <SelectItem value="3">3x/semana</SelectItem>
+                            <SelectItem value="4">4x/semana</SelectItem>
+                            <SelectItem value="5">5x/semana</SelectItem>
+                            <SelectItem value="6">6x/semana</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-muted-foreground">Modelo de Periodização</Label>
+                        <Select value={selectedModelId} onValueChange={setSelectedModelId}>
+                          <SelectTrigger className="bg-input border-border text-foreground">
+                            <SelectValue placeholder={loadingModels ? "Carregando..." : `${periodizationModels.length} modelos disponíveis`} />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover border-border max-h-60">
+                            <SelectItem value="auto">🤖 IA escolhe automaticamente</SelectItem>
+                            {periodizationModels.map(m => (
+                              <SelectItem key={m.id} value={m.id}>
+                                <div className="flex items-center gap-2">
+                                  <span>{m.title}</span>
+                                  <Badge variant="outline" className="text-[10px]">{m.duration}</Badge>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
-                      <Label className="text-muted-foreground">Limitações/Lesões</Label>
+                      <Label className="text-muted-foreground">Lesões / Restrições</Label>
                       <Textarea
-                        placeholder="Descreva qualquer lesão, dor ou limitação física..."
+                        placeholder="Descreva lesões ou limitações..."
                         value={formData.lesoes}
-                        onChange={(e) => handleInputChange("lesoes", e.target.value)}
-                        rows={3}
+                        onChange={e => handleInputChange("lesoes", e.target.value)}
+                        rows={2}
                         className="bg-input border-border text-foreground placeholder:text-muted-foreground"
                       />
                     </div>
 
+                    {/* Analysis Progress */}
                     {isAnalyzing && (
                       <div className="space-y-3 p-4 bg-primary/10 border border-primary/20 rounded-lg">
                         <div className="flex items-center space-x-2">
                           <Zap className="h-5 w-5 text-primary animate-pulse" />
-                          <span className="font-medium text-foreground">Gerando treino com IA...</span>
+                          <span className="font-medium text-foreground">Analisando periodização...</span>
                         </div>
-                        <Progress value={analysisProgress} className="w-full progress-glow" />
-                        <p className="text-sm text-muted-foreground">
-                          Analisando suas preferências e criando o treino personalizado...
+                        <Progress value={analysisProgress} className="w-full" />
+                      </div>
+                    )}
+
+                    {/* Generate Progress */}
+                    {isGenerating && (
+                      <div className="space-y-3 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                          <span className="font-medium text-foreground">Gerando plano completo com IA...</span>
+                        </div>
+                        <Progress value={generateProgress} className="w-full" />
+                        <p className="text-xs text-muted-foreground">
+                          Criando exercícios para cada dia de cada semana. Isso pode levar até 30 segundos.
                         </p>
                       </div>
                     )}
 
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 text-lg btn-glow"
-                      disabled={isAnalyzing}
-                    >
-                      {isAnalyzing ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-foreground mr-3"></div>
-                          Analisando com IA...
-                        </>
-                      ) : (
-                        <>
-                          <Brain className="h-5 w-5 mr-3" />
-                          Gerar Treino Inteligente
-                        </>
-                      )}
-                    </Button>
+                    <div className="flex gap-3">
+                      <Button
+                        type="submit"
+                        variant="outline"
+                        className="flex-1"
+                        disabled={isAnalyzing || isGenerating}
+                      >
+                        {isAnalyzing ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analisando...</>
+                        ) : (
+                          <><Brain className="h-4 w-4 mr-2" /> Analisar Periodização</>
+                        )}
+                      </Button>
+
+                      <Button
+                        type="button"
+                        onClick={handleGenerateFullPlan}
+                        className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold btn-glow"
+                        disabled={isAnalyzing || isGenerating || !selectedAlunoId}
+                      >
+                        {isGenerating ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Gerando...</>
+                        ) : (
+                          <><Zap className="h-4 w-4 mr-2" /> Gerar Plano Completo</>
+                        )}
+                      </Button>
+                    </div>
                   </form>
                 </CardContent>
               </Card>
 
-              {/* Enhanced Paste Area */}
+              {/* Paste Area */}
               <PeriodizationPasteArea onPeriodizationData={handlePeriodizationData} />
             </div>
           </TabsContent>
 
-          {/* Meus Treinos Tab */}
+          {/* ===== PLANOS GERADOS ===== */}
           <TabsContent value="treinos" className="space-y-6">
-            <Card className="glass border-border/50">
-              <CardHeader>
-                <CardTitle className="font-heading text-foreground">📋 Meus Treinos Gerados</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {analysisResult ? (
-                  <div className="space-y-6">
-                    <PeriodizationAnalysisResults
-                      analysisData={analysisResult}
-                      onGeneratePDF={() => console.log("Generate PDF")}
-                      onGenerateLink={() => console.log("Generate Link")}
-                    />
-                    
-                    {showExerciseSelection && (
-                      <ExerciseSelection
-                        analysisData={analysisResult}
-                        onExercisesSelected={handleExercisesSelected}
-                      />
-                    )}
+            {selectedPlan?.estrutura_treino?.macrociclo ? (
+              <FullPlanView
+                plan={selectedPlan.estrutura_treino}
+                currentWeek={selectedPlan.semana_atual || 1}
+                planName={selectedPlan.nome_plano}
+              />
+            ) : (
+              <>
+                {loadingPlans ? (
+                  <Card className="bg-card border-border">
+                    <CardContent className="py-12 text-center">
+                      <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+                      <p className="text-muted-foreground">Carregando planos...</p>
+                    </CardContent>
+                  </Card>
+                ) : savedPlans.length > 0 ? (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-foreground">Planos Periodizados Gerados</h3>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {savedPlans.map(plan => (
+                        <Card
+                          key={plan.id}
+                          className="bg-card border-border cursor-pointer hover:border-primary/50 transition-all"
+                          onClick={() => setSelectedPlan(plan)}
+                        >
+                          <CardContent className="p-4 space-y-3">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h4 className="font-semibold text-card-foreground">{plan.nome_plano}</h4>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {plan.duracao_semanas} semanas · {plan.frequencia_semanal}x/sem
+                                </p>
+                              </div>
+                              <Badge className={plan.status === 'ativo' ? 'bg-green-500/20 text-green-400' : 'bg-muted text-muted-foreground'}>
+                                {plan.status}
+                              </Badge>
+                            </div>
+                            <div className="flex gap-2 flex-wrap">
+                              {plan.tipo_periodizacao && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  <Layers className="h-3 w-3 mr-1" /> {plan.tipo_periodizacao}
+                                </Badge>
+                              )}
+                              {plan.fase_atual && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  {plan.fase_atual}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Criado em {new Date(plan.created_at).toLocaleDateString('pt-BR')}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <Dumbbell className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold font-heading mb-2 text-foreground">Nenhum treino gerado ainda</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Configure seus dados na aba "Configuração" para gerar treinos personalizados
-                    </p>
-                    <Button 
-                      onClick={() => setActiveTab("configuracao")}
-                      className="btn-glow"
-                    >
-                      <Target className="h-4 w-4 mr-2" />
-                      Ir para Configuração
-                    </Button>
-                  </div>
+                  <Card className="bg-card border-border">
+                    <CardContent className="py-12 text-center">
+                      <Dumbbell className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold font-heading mb-2 text-foreground">Nenhum plano periodizado</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Configure os dados na aba "Configuração" e clique em "Gerar Plano Completo"
+                      </p>
+                      <Button onClick={() => setActiveTab("configuracao")} className="btn-glow">
+                        <Target className="h-4 w-4 mr-2" /> Ir para Configuração
+                      </Button>
+                    </CardContent>
+                  </Card>
                 )}
-              </CardContent>
-            </Card>
+              </>
+            )}
+
+            {selectedPlan && (
+              <Button variant="outline" onClick={() => setSelectedPlan(null)} className="mt-2">
+                ← Voltar para lista
+              </Button>
+            )}
           </TabsContent>
 
-          {/* Analytics Tab */}
+          {/* ===== ANÁLISE IA ===== */}
           <TabsContent value="analytics" className="space-y-6">
-            <div className="grid lg:grid-cols-2 gap-6">
-              <Card className="glass border-border/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 font-heading text-foreground">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    <span>Performance Analytics</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="text-center p-8">
-                      <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold font-heading mb-2 text-foreground">Analytics em Desenvolvimento</h3>
-                      <p className="text-muted-foreground">
-                        Gráficos de performance e insights serão exibidos aqui
-                      </p>
-                    </div>
-                  </div>
+            {analysisResult ? (
+              <PeriodizationAnalysisResults
+                analysisData={analysisResult}
+                onGeneratePDF={() => toast({ title: "📄 Em desenvolvimento" })}
+                onGenerateLink={() => toast({ title: "🔗 Em desenvolvimento" })}
+              />
+            ) : (
+              <Card className="bg-card border-border">
+                <CardContent className="py-12 text-center">
+                  <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2 text-foreground">Nenhuma análise realizada</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Use "Analisar Periodização" na aba Configuração para ver insights da IA
+                  </p>
+                  <Button onClick={() => setActiveTab("configuracao")} variant="outline">
+                    <Brain className="h-4 w-4 mr-2" /> Ir para Configuração
+                  </Button>
                 </CardContent>
               </Card>
-
-              <Card className="glass border-border/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 font-heading text-foreground">
-                    <Activity className="h-5 w-5 text-primary" />
-                    <span>Estatísticas Detalhadas</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="text-center p-8">
-                      <Clock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold font-heading mb-2 text-foreground">Relatórios Avançados</h3>
-                      <p className="text-muted-foreground">
-                        Análises detalhadas de progresso e adaptações
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Relatórios Tab */}
-          <TabsContent value="relatorios" className="space-y-6">
-            <Card className="glass border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2 font-heading text-foreground">
-                  <FileText className="h-5 w-5 text-primary" />
-                  <span>Geração de Relatórios</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <h3 className="font-semibold font-heading text-foreground">📄 Relatório PDF</h3>
-                    <p className="text-muted-foreground">
-                      Gere um relatório completo com seus treinos e análises
-                    </p>
-                    <Button 
-                      onClick={handleGeneratePDF}
-                      className="w-full btn-glow"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Gerar PDF
-                    </Button>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h3 className="font-semibold font-heading text-foreground">🔗 Link Compartilhável</h3>
-                    <p className="text-muted-foreground">
-                      Crie um link para compartilhar seus resultados
-                    </p>
-                    <Button 
-                      onClick={handleGenerateLink}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      <Users className="h-4 w-4 mr-2" />
-                      Gerar Link
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>
