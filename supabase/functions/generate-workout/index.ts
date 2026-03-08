@@ -143,7 +143,7 @@ FORMATO DE RESPOSTA JSON (OBRIGATÓRIO):
           },
           { role: 'user', content: prompt }
         ],
-        model: 'google/gemini-2.0-flash-exp',
+        model: 'google/gemini-3-flash-preview',
         temperature: 0.7,
       }),
     });
