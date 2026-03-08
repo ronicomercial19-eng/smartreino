@@ -64,9 +64,9 @@ export function useUserRole(userId: string | null | undefined): UseUserRoleRetur
     fetchRole();
   }, [userId]);
 
-  const isAdmin = role === 'admin' || role === 'super_admin' as any;
-  const isProfessor = role === 'professor' || role === 'trainer' as any || isAdmin;
-  const isStudent = role === 'student' || role === 'user';
+  const isAdmin = role === 'admin' || (role as string) === 'super_admin';
+  const isProfessor = role === 'professor' || (role as string) === 'trainer' || isAdmin;
+  const isStudent = !isAdmin && !isProfessor;
 
   const canManageStudents = isAdmin || isProfessor;
   const canAccessSettings = isAdmin;
@@ -80,7 +80,7 @@ export function useUserRole(userId: string | null | undefined): UseUserRoleRetur
     loading,
     isAdmin,
     isProfessor,
-    isStudent: !isAdmin && !isProfessor,
+    isStudent,
     canManageStudents,
     canAccessSettings,
     defaultRoute,

@@ -35,7 +35,7 @@ export default function AlunoDetalhes() {
           title: "Erro ao carregar aluno",
           description: error instanceof Error ? error.message : "Erro desconhecido"
         });
-        navigate('/admin-students');
+        navigate('/gerenciamento-alunos');
       } finally {
         setLoading(false);
       }
@@ -82,7 +82,7 @@ export default function AlunoDetalhes() {
           <CardContent className="pt-6">
             <p className="text-center text-muted-foreground">Aluno não encontrado</p>
             <div className="flex justify-center mt-4">
-              <Button onClick={() => navigate('/admin-students')}>
+              <Button onClick={() => navigate('/gerenciamento-alunos')}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Voltar para lista
               </Button>
@@ -99,7 +99,7 @@ export default function AlunoDetalhes() {
     <PageLayout title="Detalhes do Aluno">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <Button variant="outline" onClick={() => navigate('/admin-students')}>
+          <Button variant="outline" onClick={() => navigate('/gerenciamento-alunos')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>

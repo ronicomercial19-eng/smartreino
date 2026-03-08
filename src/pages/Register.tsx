@@ -65,7 +65,7 @@ const Register = () => {
 
       if (data.user) {
         // Insert role into user_roles table
-        const roleToInsert = formData.accountType === 'professor' ? 'admin' : 'user';
+        const roleToInsert = formData.accountType === 'professor' ? 'professor' : 'user';
         const { error: roleError } = await supabase
           .from('user_roles' as any)
           .upsert({
@@ -87,7 +87,7 @@ const Register = () => {
             age: parseInt(formData.age),
             primary_goal: formData.objective,
             experience_level: formData.level,
-            user_type: formData.accountType === 'professor' ? 'admin' : 'student',
+            user_type: formData.accountType,
           });
 
         if (profileError) {
