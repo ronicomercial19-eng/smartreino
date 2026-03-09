@@ -235,18 +235,37 @@ const PeriodizationUpload = () => {
     }, 1000);
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-full-plan', {
-        body: {
-          studentId: selectedAlunoId,
-          periodizationModelId: selectedModelId || undefined,
-          periodizationText: pastedData || undefined,
-          formData: {
-            objetivo: formData.objetivo,
-            nivel: formData.nivel,
-            frequencia_semanal: parseInt(formData.dias_semana) || 4,
-          }
+      // Use fetch with extended timeout instead of supabase.functions.invoke
+      const session = (await supabase.auth.getSession()).data.session;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 min timeout
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-full-plan`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            studentId: selectedAlunoId,
+            periodizationModelId: selectedModelId || undefined,
+            periodizationText: pastedData || undefined,
+            formData: {
+              objetivo: formData.objetivo,
+              nivel: formData.nivel,
+              frequencia_semanal: parseInt(formData.dias_semana) || 4,
+            }
+          }),
+          signal: controller.signal,
         }
-      });
+      );
+      clearTimeout(timeoutId);
+
+      const data = await response.json();
+      const error = response.ok ? null : new Error(data?.error || `HTTP ${response.status}`);
 
       clearInterval(progressInterval);
       setGenerateProgress(100);
