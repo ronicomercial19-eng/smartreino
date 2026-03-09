@@ -49,8 +49,6 @@ export default function MeusTreinos() {
   }, [selectedStudentId]);
 
   const loadStudents = async () => {
-    if (!userProfile?.id) return;
-    
     try {
       setLoadingStudents(true);
       const data = await AlunosService.listarAlunos();
