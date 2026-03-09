@@ -135,7 +135,7 @@ ALTER TABLE public.alunos
 | Fase 1 — Segurança e Roles | ✅ Completa |
 | Fase 2 — Services Padronizados | ✅ Completa |
 | Fase 3 — Views Canônicas | ✅ Completa |
-| Fase 4 — API Gateway | ⬜ Pendente |
+| Fase 4 — API Gateway | ✅ Completa |
 | Fase 5 — Ecossistema | ⬜ Pendente |
 
 ## Views Canônicas Criadas (Fase 3)
