@@ -440,6 +440,7 @@ export type Database = {
           activated: boolean | null
           age: number | null
           altura_cm: number | null
+          aluno_id: string | null
           auto_password_temp: string | null
           birthdate: string | null
           coach_id: string
@@ -478,6 +479,7 @@ export type Database = {
           activated?: boolean | null
           age?: number | null
           altura_cm?: number | null
+          aluno_id?: string | null
           auto_password_temp?: string | null
           birthdate?: string | null
           coach_id: string
@@ -516,6 +518,7 @@ export type Database = {
           activated?: boolean | null
           age?: number | null
           altura_cm?: number | null
+          aluno_id?: string | null
           auto_password_temp?: string | null
           birthdate?: string | null
           coach_id?: string
@@ -550,7 +553,15 @@ export type Database = {
           user_id?: string | null
           weekly_frequency?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "athletes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audit_log: {
         Row: {
@@ -5542,6 +5553,26 @@ export type Database = {
           total_volume_kg: number | null
           week_number: number | null
           workout_date: string | null
+        }
+        Relationships: []
+      }
+      v_students_bridge: {
+        Row: {
+          altura_cm: number | null
+          aluno_id: string | null
+          athlete_id: string | null
+          auth_user_id: string | null
+          coach_id: string | null
+          data_cadastro: string | null
+          data_nascimento: string | null
+          email: string | null
+          nivel_experiencia: string | null
+          nome: string | null
+          objetivo: string | null
+          peso_atual: number | null
+          professor_id: string | null
+          status: Database["public"]["Enums"]["aluno_status"] | null
+          telefone: string | null
         }
         Relationships: []
       }
