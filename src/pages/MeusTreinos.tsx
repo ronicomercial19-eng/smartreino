@@ -31,7 +31,7 @@ export default function MeusTreinos() {
 
   useEffect(() => {
     loadStudents();
-  }, [userProfile]);
+  }, []);
 
   useEffect(() => {
     // Se vier de outra página com aluno pré-selecionado
