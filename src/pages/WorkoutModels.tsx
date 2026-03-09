@@ -235,7 +235,7 @@ const WorkoutModels = () => {
                   )}
 
                   {generationProgress === 100 && !isGenerating && (
-                    <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg text-green-600 text-sm">
+                    <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg text-primary text-sm">
                       <CheckCircle2 className="h-4 w-4" />
                       Plano gerado! Redirecionando...
                     </div>
