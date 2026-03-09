@@ -69,7 +69,7 @@ export const usersService = {
   },
 
   /** Check if user has a specific role */
-  async hasRole(userId: string, role: string): Promise<boolean> {
+  async hasRole(userId: string, role: 'admin' | 'demo' | 'professor' | 'student' | 'super_admin' | 'trainer' | 'user'): Promise<boolean> {
     const { data, error } = await supabase.rpc('has_role', { 
       _user_id: userId, 
       _role: role 
