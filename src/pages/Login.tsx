@@ -12,7 +12,27 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
   const navigate = useNavigate();
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({ title: "Informe seu email", description: "Digite seu email no campo acima para receber o link de recuperação.", variant: "destructive" });
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast({ title: "Email enviado!", description: "Verifique sua caixa de entrada para redefinir sua senha." });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message || "Erro ao enviar email de recuperação.", variant: "destructive" });
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,7 +118,7 @@ const Login = () => {
                 required
                 disabled={loading}
               />
-            </div>
+          </div>
             <Button 
               type="submit" 
               className="w-full bg-primary hover:bg-primary/90"
@@ -108,7 +128,15 @@ const Login = () => {
             </Button>
           </form>
           
-          <div className="text-center">
+          <div className="text-center space-y-2">
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="text-sm text-primary hover:underline"
+              disabled={forgotLoading}
+            >
+              {forgotLoading ? "Enviando..." : "Esqueci minha senha"}
+            </button>
             <p className="text-sm text-muted-foreground">
               Não tem uma conta?{" "}
               <Link to="/register" className="text-primary hover:underline">
