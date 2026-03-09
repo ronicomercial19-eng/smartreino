@@ -43,7 +43,7 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public */}
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={<Navigate to="/gerenciamento-alunos" replace />} />
       <Route path="/register" element={<Register />} />
       <Route path="/reset-password" element={<ResetPassword />} />
 
