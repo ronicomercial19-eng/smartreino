@@ -30,51 +30,38 @@ export const workoutGenerationService = {
   async gerarModelo(params: WorkoutGenerationParams): Promise<{ modelo_id: string }> {
     console.log("🏗️ Gerando modelo de treino:", params);
     
-    // Validar se usuário está autenticado e tem permissão
+    // Validate student exists in alunos table
     const { data: estudante, error: estudanteError } = await supabaseUntyped
       .from("alunos")
-      .select("id")
+      .select("id, nome")
       .eq("id", params.estudante_id)
-      .single();
+      .maybeSingle();
 
     if (estudanteError || !estudante) {
       throw new Error("Estudante não encontrado ou sem permissão");
     }
 
-    // Chamar função do banco para gerar modelo
-    const { data, error } = await supabaseUntyped.rpc(
-      "gerar_modelo_treino",
-      {
-        p_estudante_id: params.estudante_id,
-        p_objetivo: params.objetivo,
-        p_nivel: params.nivel,
-        p_periodizacao: params.periodizacao || {}
-      }
-    );
-
-    if (error) {
-      console.error("❌ Erro ao gerar modelo:", error);
-      throw error;
-    }
-
-    const modeloId = data?.[0]?.modelo_id;
-    if (!modeloId) {
-      throw new Error("Falha ao gerar modelo de treino");
-    }
-
-    // Criar entrada em planos_de_treino_gerados
-    const { error: planoError } = await supabaseUntyped
-      .from("planos_de_treino_gerados")
-      .insert([{
+    // Insert directly into modelos_de_treino (bypassing broken RPC that uses estudantes table)
+    const { data: modelo, error: modeloError } = await supabaseUntyped
+      .from("modelos_de_treino")
+      .insert({
         estudante_id: params.estudante_id,
-        modelo_id: modeloId,
-        estudante_id_ref: params.estudante_id
-      }]);
+        objetivo: params.objetivo,
+        nivel: params.nivel,
+        periodizacao: params.periodizacao || {},
+        tag: 'gerado_programa',
+        nome: `Modelo ${params.objetivo} - ${params.nivel}`,
+        descricao: `Modelo gerado para ${params.objetivo} nível ${params.nivel}`,
+      })
+      .select("id")
+      .single();
 
-    if (planoError) {
-      console.error("❌ Erro ao criar plano gerado:", planoError);
-      // Continuar mesmo com erro, pois o modelo foi criado
+    if (modeloError || !modelo) {
+      console.error("❌ Erro ao gerar modelo:", modeloError);
+      throw new Error(modeloError?.message || "Falha ao gerar modelo de treino");
     }
+
+    const modeloId = modelo.id;
 
     console.log("✅ Modelo gerado com sucesso:", modeloId);
     return { modelo_id: modeloId };
@@ -86,7 +73,7 @@ export const workoutGenerationService = {
         .from("alunos")
         .select("id")
         .eq("id", estudanteId)
-        .single();
+        .maybeSingle();
 
       return !error && !!data;
     } catch {
@@ -100,12 +87,10 @@ export const workoutGenerationService = {
         .from("ambiente_config")
         .select("valor")
         .eq("chave", "env")
-        .single();
+        .maybeSingle();
 
-      // Se não há config ou não é produção, permite seeds
       return data?.valor !== "production";
     } catch {
-      // Se erro ao consultar, permite por segurança
       return true;
     }
   },
@@ -115,10 +100,8 @@ export const workoutGenerationService = {
     let params: any = {};
 
     if (args.length === 1) {
-      // Backward compatible: single params object
       params = args[0] || {};
     } else if (args.length >= 2) {
-      // New style: (userProfile, workoutGoal, recentWorkouts)
       const [profile, goal, recentWorkouts] = args;
       params = {
         userId: profile?.id || profile?.userId || profile?.estudante_id,
@@ -135,7 +118,6 @@ export const workoutGenerationService = {
 
     try {
       if (!params.userId && !params.estudante_id) {
-        // No valid user id, return a local stub so UI can preview
         return {
           id: `temp_${Date.now()}`,
           name: `Treino ${params.goal || 'personalizado'}`,
@@ -165,11 +147,10 @@ export const workoutGenerationService = {
         type: params.goal || 'personalizado',
         targetPSE: params.periodizacao?.intensity === 'alta' ? 8 : params.periodizacao?.intensity === 'moderada' ? 7 : 6,
         estimatedCalories: 350,
-        description: 'Modelo gerado via Supabase RPC.'
+        description: 'Modelo gerado via banco de dados.'
       };
     } catch (e) {
       console.error('❌ Erro ao gerar treino personalizado:', e);
-      // Fallback seguro
       return {
         id: `temp_${Date.now()}`,
         name: `Treino ${params.goal || 'personalizado'}`,
