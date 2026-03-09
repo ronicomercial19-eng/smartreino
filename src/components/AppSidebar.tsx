@@ -49,32 +49,18 @@ const allNavigationItems: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
-    title: "Modelos de Treino",
+    title: "Gestão de Alunos",
+    url: "/gerenciamento-alunos",
+    icon: Users,
+  },
+  {
+    title: "Treinos",
     icon: Dumbbell,
     items: [
-      { title: "Visualizar Modelos", url: "/workout-models" },
-      { title: "Base de Dados", url: "/workout-models-database" },
-    ],
-  },
-  {
-    title: "Meus Treinos",
-    url: "/meus-treinos",
-    icon: Target,
-  },
-  {
-    title: "Analytics",
-    icon: TrendingUp,
-    items: [
-      { title: "Visão Geral", url: "/analytics", roles: ["admin"] },
-      { title: "Analytics por Aluno", url: "/student-analytics" },
-      { title: "Estatísticas Avançadas", url: "/advanced-statistics", roles: ["admin"] },
-    ],
-  },
-  {
-    title: "Periodização",
-    icon: BarChart3,
-    items: [
-      { title: "Upload de Periodização", url: "/periodization-upload" },
+      { title: "Gerar Treino", url: "/workout-models" },
+      { title: "Plano Periodizado", url: "/periodization-upload" },
+      { title: "Meus Treinos", url: "/meus-treinos" },
+      { title: "Base de Modelos", url: "/workout-models-database" },
     ],
   },
   {
@@ -83,17 +69,18 @@ const allNavigationItems: NavItem[] = [
     icon: BookOpen,
   },
   {
-    title: "IA & Chat",
-    icon: MessageSquare,
+    title: "Analytics",
+    icon: TrendingUp,
     items: [
-      { title: "Chat IA", url: "/ai-chat" },
-      { title: "Configurações IA", url: "/ai-config", roles: ["admin"] },
+      { title: "Por Aluno", url: "/student-analytics" },
+      { title: "Visão Geral", url: "/analytics", roles: ["admin"] },
+      { title: "Avançado", url: "/advanced-statistics", roles: ["admin"] },
     ],
   },
   {
-    title: "Gestão de Alunos",
-    url: "/gerenciamento-alunos",
-    icon: Users,
+    title: "Chat IA",
+    url: "/ai-chat",
+    icon: MessageSquare,
   },
   {
     title: "Configurações",
@@ -101,15 +88,18 @@ const allNavigationItems: NavItem[] = [
     icon: Settings,
   },
   {
-    title: "Roadmap",
-    url: "/roadmap",
-    icon: Target,
-    roles: ["admin"],
-  },
-  {
     title: "Interface Aluno",
     url: "/student-interface",
     icon: GraduationCap,
+  },
+  {
+    title: "Admin",
+    icon: BarChart3,
+    roles: ["admin"],
+    items: [
+      { title: "Config IA", url: "/ai-config" },
+      { title: "Roadmap", url: "/roadmap" },
+    ],
   },
 ];
 
