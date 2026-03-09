@@ -86,14 +86,18 @@ export default function WorkoutPlan() {
     }
   };
 
-  const workoutData = plan.plano_completo;
+  const workoutData = plan.estrutura_treino || plan.plano_completo || {};
 
-  // Tentar converter para o formato do template
+  // Convert to template format - estrutura_treino is already the array from AI
+  const estrutura = Array.isArray(workoutData) ? workoutData : (workoutData.weekly_structure || workoutData.estrutura_semanal || []);
   const templateData = {
     nome: plan.nome_plano,
     objetivo: plan.objetivo,
-    nivel: plan.nivel,
-    estrutura_semanal: workoutData.weekly_structure || workoutData.estrutura_semanal || []
+    nivel: plan.nivel || '',
+    estrutura_semanal: estrutura,
+    descricao: plan.descricao || workoutData.overview || '',
+    duracao_semanas: plan.duracao_semanas,
+    frequencia_semanal: plan.frequencia_semanal,
   };
 
   return (
