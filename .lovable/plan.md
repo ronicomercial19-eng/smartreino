@@ -1,128 +1,194 @@
 
 
-# Plano: Cadastro Focado em Treino + SmartReino Quiz + Correcao de Geracao
-
-## Problema Atual
-
-1. **Cadastro pede dados genericos** (email, data nascimento, genero) mas falta informacao de treino para a IA
-2. **Erro ao gerar treino**: a edge function `generate-workout` tem `verify_jwt = true` mas precisa de `verify_jwt = false` para funcionar corretamente; alem disso falta `analyze-periodization` no config.toml
-3. **Nao existe SmartReino Quiz**: o aluno nao tem como responder perguntas rapidas para gerar treino automaticamente
+# Plano de Implementacao — Ecossistema 9FIT (SmartReino Module)
 
 ---
 
-## O que sera feito
+## 1. AUDITORIA — Estado Atual
 
-### 1. Reformular Cadastro do Aluno
+### 1.1 Banco de Dados (103 tabelas/views)
 
-Simplificar para pedir apenas **nome + telefone** como dados pessoais, e adicionar **9 perguntas de treino** + **6 perguntas de preferencia** clicaveis (Select/Radio), para maximizar informacoes para a IA.
+Organizadas por dominio detectado:
 
-**Dados pessoais (2 campos):**
-- Nome completo
-- Telefone/WhatsApp
+| Dominio 9FIT | Tabelas Existentes | Problema |
+|---|---|---|
+| **users** | `profiles`, `user_profiles`, `user_profiles_extended`, `user_profile_details`, `user_roles`, `students`, `estudantes`, `athletes`, `alunos`, `student_profiles` | **10+ tabelas redundantes** para o mesmo conceito |
+| **training** | `workouts`, `workouts_new`, `workout_models`, `workout_templates`, `workout_exercises`, `workout_exercises_new`, `modelos_de_treino`, `planos_treino_aluno`, `planos_de_treino_gerados`, `generated_workout_plans`, `daily_workouts`, `program_workouts`, `workout_assignments_new`, `training_programs`, `training_structures`, `estruturas_de_treinamento` | **16+ tabelas** com sobreposicao massiva |
+| **progress** | `workout_logs`, `user_workout_logs`, `exercise_logs`, `workout_executions`, `workout_exercise_sets`, `workout_progress`, `historico_treinos_realizados`, `progresso_aluno`, `student_activity_history`, `strength_records` | **10+ tabelas** duplicando tracking |
+| **assessments** | `avaliacoes`, `avaliacoes_fisicas`, `avaliacoes_unificadas`, `physical_assessments`, `student_measurements`, `student_pdf_assessments`, `student_photos`, `student_anamnesis`, `historico_avaliacoes` | **9 tabelas** para avaliacoes |
+| **content** | `exercise_library`, `exercises`, `exercicios_novos`, `link_de_video`, `super_sets`, `supersets` | Duplicacao exercicios + supersets |
+| **analytics** | `real_time_analytics`, `analises_ia_aluno`, `system_health`, `system_events`, `audit_log` | OK, mas disperso |
+| **commerce** | `payments`, `plans`, `planos`, `products`, `user_plans`, `user_credits`, `student_credits`, `vacation_requests`, `vacation_freeze_requests` | Duplicacao planos/creditos |
+| **system** | `ambiente_config`, `notifications`, `logs_sincronizacao`, `uploads_periodizacao` | OK |
 
-**9 Perguntas de Treino (clicaveis):**
-1. Objetivo principal (hipertrofia / emagrecimento / forca / condicionamento / saude / reabilitacao)
-2. Nivel de experiencia (iniciante / intermediario / avancado)
-3. Frequencia semanal (2x / 3x / 4x / 5x / 6x)
-4. Ambiente de treino (academia / casa / ar livre / hibrido)
-5. Tempo disponivel por sessao (30min / 45min / 60min / 90min)
-6. Historico de lesoes (nenhuma / ombro / joelho / lombar / outro)
-7. Foco muscular prioritario (superior / inferior / core / corpo todo)
-8. Nivel de condicionamento cardiovascular (baixo / medio / alto)
-9. Experiencia com pesos livres (nunca / basico / confortavel / avancado)
+**Views canonicas existentes (bom):** `v_students_canonical`, `v_assessments_canonical`, `v_assignments_canonical`, `v_periodizations_canonical`, `v_system_health`, `v_workout_progression`
 
-**6 Perguntas de Preferencia de Treino:**
-1. Prefere treinos curtos e intensos OU longos e moderados
-2. Gosta de cardio integrado ao treino OU separado
-3. Prefere maquinas OU pesos livres OU ambos
-4. Treina sozinho OU com parceiro
-5. Horario preferido (manha / tarde / noite)
-6. Meta de tempo (1 mes / 3 meses / 6 meses / 12 meses)
+### 1.2 APIs (Edge Functions)
 
-### 2. Migrar Banco de Dados
+5 edge functions existentes — todas sem `verify_jwt`:
+- `generate-workout`
+- `modify-workout`
+- `generate-recommendations`
+- `analyze-periodization`
+- `generate-full-plan`
 
-Adicionar colunas na tabela `alunos` para armazenar as novas informacoes:
-- `tempo_disponivel_min` (integer)
-- `historico_lesoes` (text)
-- `foco_muscular` (varchar)
-- `condicionamento_cardio` (varchar)
-- `experiencia_pesos_livres` (varchar)
-- `preferencia_intensidade` (varchar)
-- `preferencia_cardio` (varchar)
-- `preferencia_equipamento` (varchar)
-- `treina_sozinho` (boolean)
-- `horario_preferido` (varchar)
-- `meta_tempo_meses` (integer)
+**Risco:** Nenhuma funcao valida JWT. Qualquer pessoa pode invocar.
 
-### 3. Corrigir Edge Function de Geracao
+### 1.3 Services (Frontend — 25 arquivos)
 
-- Mudar `verify_jwt = false` no config.toml para `generate-workout`
-- Validar JWT manualmente dentro da funcao
-- Adicionar CORS headers completos
-- Incluir TODOS os novos campos do aluno no prompt da IA
-- Adicionar `analyze-periodization` ao config.toml
+Sem camada de abstração unificada. Cada service acessa Supabase diretamente com padroes diferentes (`supabase` vs `supabaseUntyped`).
 
-### 4. Criar SmartReino Quiz (Interface do Aluno)
+### 1.4 Funcoes RPC (29 funcoes)
 
-Nova funcionalidade na interface do aluno: quando o aluno nao tem treino ativo, aparece um quiz de **9 perguntas clicaveis** (cards/botoes). Ao finalizar, chama a edge function `generate-workout` com todas as respostas e gera o treino do dia automaticamente.
+Mix de portugues/ingles. Funcoes de role: `has_role`, `is_admin`, `is_professor`, `is_trainer`, `is_super_admin`, `get_user_role` — redundancia.
 
-**Fluxo:**
+---
+
+## 2. RISCOS TECNICOS IDENTIFICADOS
+
+| # | Risco | Severidade | Impacto |
+|---|---|---|---|
+| R1 | Edge functions sem JWT verification | **CRITICO** | Acesso publico a geracao de treinos |
+| R2 | 10+ tabelas de usuarios/alunos redundantes | ALTO | Dados fragmentados, inconsistencia |
+| R3 | Dois clientes Supabase (`client` + `untypedClient`) | MEDIO | Bypass de tipagem, bugs silenciosos |
+| R4 | Role system inconsistente (trigger insere `user`, app espera `professor`) | **CRITICO** | Professores redirecionados como alunos |
+| R5 | Sem paginacao em queries | MEDIO | Limite 1000 rows do Supabase |
+| R6 | Sem versionamento de API | MEDIO | Impossivel evoluir sem quebrar |
+| R7 | Nomenclatura mista PT/EN em tabelas e funcoes | BAIXO | Dificuldade de manutencao |
+
+---
+
+## 3. PLANO DE IMPLEMENTACAO — 5 Fases
+
+### FASE 1 — Seguranca e Roles (Prioridade Maxima)
+
+**Objetivo:** Corrigir o sistema de roles e proteger edge functions.
+
+1. **Corrigir trigger `handle_new_user_role`** para ler `raw_user_meta_data->user_type` e inserir role correto (`professor`/`student`) em `user_roles`
+2. **Migrar roles existentes** — SQL para sincronizar `profiles.role` com `user_roles.role` para usuarios existentes
+3. **Ativar `verify_jwt = true`** em todas edge functions no `config.toml`
+4. **Atualizar edge functions** para extrair user do JWT e validar permissoes
+5. **Consolidar funcoes de role** — manter apenas `has_role` e `get_user_role`, depreciar `is_admin`/`is_professor`/`is_trainer`
+
+### FASE 2 — Camada de Servicos Padronizada
+
+**Objetivo:** Criar abstração unificada para comunicacao com backend.
+
+1. **Criar `src/lib/api/client.ts`** — wrapper unico sobre Supabase client (eliminar `untypedClient`)
+2. **Criar modulos por dominio:**
 
 ```text
-Aluno abre SmartReino
-    |
-    v
-Tem treino ativo? --SIM--> Mostra treino (como esta hoje)
-    |
-    NAO
-    |
-    v
-Quiz SmartReino (9 perguntas, uma por vez)
-    |
-    Pergunta 1: Qual seu objetivo? [cards clicaveis]
-    Pergunta 2: Nivel? [cards clicaveis]
-    ...
-    Pergunta 9: Experiencia com pesos? [cards clicaveis]
-    |
-    v
-Resumo das respostas + botao "Gerar Meu Treino"
-    |
-    v
-IA gera treino --> Salva no banco --> Exibe na interface
+src/services/
+  domains/
+    users/        → userService.ts (unifica auth, profile, role)
+    training/     → workoutService.ts, modelService.ts
+    assessments/  → assessmentService.ts
+    progress/     → progressService.ts
+    analytics/    → analyticsService.ts
+    system/       → systemService.ts
 ```
 
-### 5. Atualizar Formulario Admin
+3. **Criar `src/services/api.ts`** — facade que expoe todos os dominios como namespace unico
+4. **Manter services antigos** como re-exports para compatibilidade retroativa
 
-O formulario de cadastro do admin (`FormularioAluno`) tambem sera atualizado para usar as mesmas perguntas, mas em formato compacto (selects lado a lado), removendo email como obrigatorio e adicionando as 15 perguntas de treino.
+### FASE 3 — Consolidacao de Dados via Views
+
+**Objetivo:** Criar fonte unica de dados sem alterar tabelas existentes.
+
+1. **Expandir views canonicas** existentes (`v_students_canonical`, etc.) para incluir dados de todas as tabelas redundantes
+2. **Criar novas views:**
+   - `v_workouts_canonical` — unifica `workouts`, `workouts_new`, `workout_models`, `modelos_de_treino`
+   - `v_exercises_canonical` — unifica `exercises`, `exercise_library`, `exercicios_novos`
+   - `v_progress_canonical` — unifica `workout_logs`, `exercise_logs`, `historico_treinos_realizados`
+   - `v_plans_canonical` — unifica `plans`, `planos`, `user_plans`
+3. **Migrar services da Fase 2** para consultar views canonicas
+4. **Nenhuma tabela removida** — views servem como camada de abstração
+
+### FASE 4 — APIs Versionadas (Edge Functions)
+
+**Objetivo:** Padronizar endpoints conforme padrão 9FIT.
+
+1. **Criar edge function `api-gateway`** — roteador central:
+
+```text
+POST /api/v1/training/generate    → generate-workout
+POST /api/v1/training/modify      → modify-workout  
+POST /api/v1/training/full-plan   → generate-full-plan
+POST /api/v1/analytics/recommend  → generate-recommendations
+POST /api/v1/assessments/analyze  → analyze-periodization
+```
+
+2. **Manter edge functions originais** funcionando (compatibilidade)
+3. **Adicionar headers padrao** (`X-9FIT-Module: smartreino`, `X-9FIT-Version: 1.0`)
+4. **Implementar rate limiting** basico via `system_events`
+
+### FASE 5 — Preparacao para Integracao Ecossistema
+
+**Objetivo:** Tornar o sistema plugavel ao banco central 9FIT.
+
+1. **Criar `src/lib/ecosystem/config.ts`** — configuracao de conexao com ecossistema:
+
+```text
+ECOSYSTEM_MODE: 'standalone' | 'connected'
+CENTRAL_DB_URL: string (quando conectado)
+MODULE_ID: 'smartreino'
+```
+
+2. **Criar `src/lib/ecosystem/events.ts`** — sistema de eventos:
+   - Publicar eventos em `system_events` (workout_created, student_enrolled, etc.)
+   - Preparar para webhook dispatch futuro
+3. **Criar tabela `ecosystem_config`** — configuracoes do modulo dentro do ecossistema
+4. **Documentar contrato de integracao** — schema das views canonicas como "API de dados" do modulo
 
 ---
 
-## Arquivos a Criar
+## 4. ESTRUTURA DE PASTAS RECOMENDADA
 
-1. **`src/components/student/SmartReinoQuiz.tsx`** - Quiz de 9 perguntas com cards clicaveis, animacoes de transicao, barra de progresso, e chamada a edge function ao final
-
-## Arquivos a Modificar
-
-1. **`src/components/alunos/FormularioAluno.tsx`** - Reformular: nome + telefone + 15 perguntas de treino clicaveis
-2. **`src/services/alunosService.ts`** - Atualizar interface `Aluno` e `NovoAlunoInput` com novos campos
-3. **`supabase/config.toml`** - Adicionar `analyze-periodization`, mudar `verify_jwt = false`
-4. **`supabase/functions/generate-workout/index.ts`** - Incluir novos campos no prompt, validar JWT manual, melhorar CORS
-5. **`src/pages/StudentInterface.tsx`** - Integrar SmartReinoQuiz quando nao ha treino ativo
-
-## Migracao SQL
-
-```sql
-ALTER TABLE public.alunos
-  ADD COLUMN IF NOT EXISTS tempo_disponivel_min integer DEFAULT 60,
-  ADD COLUMN IF NOT EXISTS historico_lesoes text,
-  ADD COLUMN IF NOT EXISTS foco_muscular varchar DEFAULT 'corpo_todo',
-  ADD COLUMN IF NOT EXISTS condicionamento_cardio varchar DEFAULT 'medio',
-  ADD COLUMN IF NOT EXISTS experiencia_pesos_livres varchar DEFAULT 'basico',
-  ADD COLUMN IF NOT EXISTS preferencia_intensidade varchar DEFAULT 'moderado',
-  ADD COLUMN IF NOT EXISTS preferencia_cardio varchar DEFAULT 'integrado',
-  ADD COLUMN IF NOT EXISTS preferencia_equipamento varchar DEFAULT 'ambos',
-  ADD COLUMN IF NOT EXISTS treina_sozinho boolean DEFAULT true,
-  ADD COLUMN IF NOT EXISTS horario_preferido varchar DEFAULT 'manha',
-  ADD COLUMN IF NOT EXISTS meta_tempo_meses integer DEFAULT 3;
+```text
+src/
+  app/                          ← Nova (organização por feature)
+    dashboard/
+    training/
+    students/
+    assessments/
+    analytics/
+  lib/
+    api/
+      client.ts                 ← Cliente Supabase unificado
+    ecosystem/
+      config.ts                 ← Config ecossistema 9FIT
+      events.ts                 ← Sistema de eventos
+      types.ts                  ← Tipos compartilhados
+  services/
+    domains/                    ← Services por dominio
+      users/
+      training/
+      assessments/
+      progress/
+      analytics/
+      system/
+    index.ts                    ← Facade
+  components/                   ← Manter existente
+  pages/                        ← Manter existente (migrar gradualmente)
+  hooks/                        ← Manter existente
+  integrations/                 ← Manter existente
 ```
+
+Migracao gradual: novas features usam `src/app/`, paginas existentes continuam em `src/pages/`.
+
+---
+
+## 5. SEQUENCIA DE EXECUCAO
+
+| Fase | Estimativa | Dependencia | Risco de Quebra |
+|---|---|---|---|
+| Fase 1 — Seguranca | 1-2 sessoes | Nenhuma | Baixo (aditivo) |
+| Fase 2 — Services | 2-3 sessoes | Fase 1 | Nenhum (re-exports) |
+| Fase 3 — Views | 1-2 sessoes | Nenhuma | Nenhum (views novas) |
+| Fase 4 — API Gateway | 1-2 sessoes | Fase 1 | Nenhum (funcao nova) |
+| Fase 5 — Ecossistema | 1 sessao | Fases 2-4 | Nenhum (preparatorio) |
+
+**Total estimado:** 6-10 sessoes de implementacao.
+
+Todas as fases sao aditivas — nenhuma tabela removida, nenhuma funcionalidade quebrada, compatibilidade retroativa total.
 
