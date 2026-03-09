@@ -31,17 +31,18 @@ export interface EventPayload {
  */
 export async function publishEvent(payload: EventPayload): Promise<void> {
   try {
-    const { error } = await supabase.from('system_events').insert({
-      event_type: payload.event,
+    const { error } = await supabase.from('system_events').insert([{
+      event_type: 'created' as const,
       entity_type: payload.entityType,
       entity_id: payload.entityId,
       target_id: payload.targetId || null,
       metadata: {
+        domain_event: payload.event,
         ...payload.metadata,
         module_id: getModuleId(),
         timestamp: new Date().toISOString(),
       },
-    });
+    }]);
 
     if (error) {
       console.warn(`[9FIT Events] Failed to publish ${payload.event}:`, error.message);
