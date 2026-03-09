@@ -11,15 +11,27 @@ export interface WorkoutGenerationParams {
 
 export interface GeneratedWorkoutPlan {
   id: string;
-  estudante_id: string;
+  aluno_id: string;
   professor_id: string;
   nome_plano: string;
+  descricao: string;
   objetivo: string;
   nivel: string;
   duracao_semanas: number;
-  plano_completo: any;
+  frequencia_semanal: number;
+  estrutura_treino: any;
   status: string;
   created_at: string;
+  // Alias for backward compat
+  plano_completo?: any;
+}
+
+function mapPlan(row: any): GeneratedWorkoutPlan {
+  return {
+    ...row,
+    nivel: row.nivel || row.objetivo || '',
+    plano_completo: row.estrutura_treino, // alias
+  };
 }
 
 export class WorkoutAIService {
@@ -28,73 +40,61 @@ export class WorkoutAIService {
       body: params
     });
 
-    if (error) {
-      console.error('Error generating workout:', error);
-      throw new Error(error.message || 'Falha ao gerar treino');
-    }
+    if (error) throw new Error(error.message || 'Falha ao gerar treino');
+    if (!data.success) throw new Error(data.error || 'Erro ao gerar plano de treino');
 
-    if (!data.success) {
-      throw new Error(data.error || 'Erro ao gerar plano de treino');
-    }
-
-    return data.plan;
-  }
-
-  static async getStudentWorkouts(studentId: string): Promise<GeneratedWorkoutPlan[]> {
-    const { data, error } = await supabase
-      .from('planos_de_treino_gerados')
-      .select('*')
-      .eq('estudante_id', studentId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching workouts:', error);
-      throw new Error('Erro ao buscar treinos');
-    }
-
-    return (data as any) || [];
+    return mapPlan(data.plan);
   }
 
   static async getWorkoutById(planId: string): Promise<GeneratedWorkoutPlan> {
     const { data, error } = await supabase
-      .from('planos_de_treino_gerados')
+      .from('planos_treino_aluno')
       .select('*')
       .eq('id', planId)
-      .single();
+      .maybeSingle();
 
-    if (error) {
-      console.error('Error fetching workout:', error);
-      throw new Error('Erro ao buscar treino');
-    }
+    if (error) throw new Error('Erro ao buscar treino');
+    if (!data) throw new Error('Plano não encontrado');
 
-    return data as any;
+    return mapPlan(data);
+  }
+
+  static async getStudentWorkouts(studentId: string): Promise<GeneratedWorkoutPlan[]> {
+    const { data, error } = await supabase
+      .from('planos_treino_aluno')
+      .select('*')
+      .eq('aluno_id', studentId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw new Error('Erro ao buscar treinos');
+    return (data || []).map(mapPlan);
   }
 
   static async updateWorkout(planId: string, updates: Partial<GeneratedWorkoutPlan>): Promise<GeneratedWorkoutPlan> {
+    // Map plano_completo back to estrutura_treino
+    const dbUpdates: any = { ...updates };
+    if (dbUpdates.plano_completo) {
+      dbUpdates.estrutura_treino = dbUpdates.plano_completo;
+      delete dbUpdates.plano_completo;
+    }
+
     const { data, error } = await supabase
-      .from('planos_de_treino_gerados')
-      .update(updates as any)
+      .from('planos_treino_aluno')
+      .update(dbUpdates)
       .eq('id', planId)
       .select()
       .single();
 
-    if (error) {
-      console.error('Error updating workout:', error);
-      throw new Error('Erro ao atualizar treino');
-    }
-
-    return data as any;
+    if (error) throw new Error('Erro ao atualizar treino');
+    return mapPlan(data);
   }
 
   static async deleteWorkout(planId: string): Promise<void> {
     const { error } = await supabase
-      .from('planos_de_treino_gerados')
+      .from('planos_treino_aluno')
       .delete()
       .eq('id', planId);
 
-    if (error) {
-      console.error('Error deleting workout:', error);
-      throw new Error('Erro ao deletar treino');
-    }
+    if (error) throw new Error('Erro ao deletar treino');
   }
 }
