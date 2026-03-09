@@ -136,7 +136,7 @@ ALTER TABLE public.alunos
 | Fase 2 — Services Padronizados | ✅ Completa |
 | Fase 3 — Views Canônicas | ✅ Completa |
 | Fase 4 — API Gateway | ✅ Completa |
-| Fase 5 — Ecossistema | ⬜ Pendente |
+| Fase 5 — Ecossistema | ✅ Completa |
 
 ## Views Canônicas Criadas (Fase 3)
 - `v_exercises_canonical` — unifica `exercises` + `exercicios_novos`
@@ -144,3 +144,12 @@ ALTER TABLE public.alunos
 - `v_progress_canonical` — unifica `historico_treinos_realizados` + `workout_logs`
 - `v_plans_canonical` — unifica `planos` (comercial)
 - Existentes: `v_students_canonical`, `v_assessments_canonical`, `v_assignments_canonical`, `v_periodizations_canonical`
+
+## Ecosystem (Fase 5)
+- Tabela `ecosystem_config` com RLS (admin write, professor read)
+- Config carregada do banco com cache + fallback local
+- Sistema de eventos com webhook dispatch (quando `crossModuleEvents: true`)
+- `subscribeToEvents()` via Realtime para ouvir eventos de outros módulos
+- `SMARTREINO_DESCRIPTOR` — contrato completo do módulo (views, rotas, eventos, domínios)
+
+## ✅ PLANO 9FIT COMPLETO — Todas as 5 fases implementadas
