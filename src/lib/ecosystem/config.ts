@@ -2,9 +2,10 @@
  * 9FIT Ecosystem Configuration
  * 
  * Controls how this module connects to the central ecosystem.
- * In 'standalone' mode, operates independently.
- * In 'connected' mode, integrates with central 9FIT infrastructure.
+ * Reads config from `ecosystem_config` table when available,
+ * falls back to hardcoded defaults in standalone mode.
  */
+import { supabase } from "@/lib/api/client";
 
 export type EcosystemMode = 'standalone' | 'connected';
 
@@ -23,8 +24,8 @@ export interface EcosystemConfig {
   };
 }
 
-// Default: standalone mode (no central connection)
-const config: EcosystemConfig = {
+// Default: standalone mode
+const defaultConfig: EcosystemConfig = {
   mode: 'standalone',
   moduleId: 'smartreino',
   moduleVersion: '1.0.0',
@@ -37,14 +38,65 @@ const config: EcosystemConfig = {
   },
 };
 
+let cachedConfig: EcosystemConfig | null = null;
+
+/** Load config from ecosystem_config table, merge with defaults */
+export async function loadEcosystemConfig(): Promise<EcosystemConfig> {
+  if (cachedConfig) return cachedConfig;
+
+  try {
+    const { data, error } = await supabase
+      .from('ecosystem_config' as any)
+      .select('config_key, config_value')
+      .eq('module_id', 'smartreino');
+
+    if (error || !data?.length) {
+      cachedConfig = { ...defaultConfig };
+      return cachedConfig;
+    }
+
+    const configMap = Object.fromEntries(
+      data.map((row: any) => [row.config_key, row.config_value])
+    );
+
+    const moduleInfo = configMap.module_info || {};
+    const ecosystemMode = configMap.ecosystem_mode || {};
+    const features = configMap.features || defaultConfig.features;
+
+    cachedConfig = {
+      mode: ecosystemMode.mode || 'standalone',
+      moduleId: 'smartreino',
+      moduleVersion: moduleInfo.version || '1.0.0',
+      moduleName: moduleInfo.name || 'SmartReino',
+      features: {
+        centralAuth: features.centralAuth ?? false,
+        centralAnalytics: features.centralAnalytics ?? false,
+        centralStorage: features.centralStorage ?? false,
+        crossModuleEvents: features.crossModuleEvents ?? false,
+      },
+    };
+
+    return cachedConfig;
+  } catch {
+    cachedConfig = { ...defaultConfig };
+    return cachedConfig;
+  }
+}
+
+/** Sync getter — returns cached or default */
 export function getEcosystemConfig(): EcosystemConfig {
-  return { ...config };
+  return cachedConfig || { ...defaultConfig };
 }
 
 export function isConnectedMode(): boolean {
-  return config.mode === 'connected';
+  return getEcosystemConfig().mode === 'connected';
 }
 
 export function getModuleId(): string {
-  return config.moduleId;
+  return getEcosystemConfig().moduleId;
+}
+
+/** Invalidate cache (call after config update) */
+export function resetConfigCache(): void {
+  cachedConfig = null;
 }
