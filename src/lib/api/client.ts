@@ -36,6 +36,15 @@ export async function invokeFunction<T = any>(
   return { data: data as T, error: null };
 }
 
+// ── API Gateway ────────────────────────────────────────
+// Invoke via the centralized api-gateway with versioned routes
+export async function invokeGateway<T = any>(
+  route: string,
+  body: Record<string, any> = {}
+): Promise<{ data: T | null; error: string | null }> {
+  return invokeFunction<T>('api-gateway', { route, body });
+}
+
 // Module identifier for ecosystem headers
 export const MODULE_ID = 'smartreino' as const;
 export const MODULE_VERSION = '1.0.0' as const;
