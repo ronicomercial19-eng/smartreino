@@ -127,7 +127,7 @@ function filterNavForRole(items: NavItem[], role: string | null): NavItem[] {
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
-  const [openGroups, setOpenGroups] = useState<string[]>(["Modelos de Treino", "IA & Chat"]);
+  const [openGroups, setOpenGroups] = useState<string[]>(["Treinos"]);
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
