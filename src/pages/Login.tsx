@@ -12,7 +12,27 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
   const navigate = useNavigate();
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({ title: "Informe seu email", description: "Digite seu email no campo acima para receber o link de recuperação.", variant: "destructive" });
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast({ title: "Email enviado!", description: "Verifique sua caixa de entrada para redefinir sua senha." });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message || "Erro ao enviar email de recuperação.", variant: "destructive" });
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
