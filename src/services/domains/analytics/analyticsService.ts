@@ -52,4 +52,33 @@ export const analyticsService = {
     if (error) throw error;
     return data || [];
   },
+
+  // ─── Canonical Views ─────────────────────────────────
+
+  /** Query v_exercises_canonical — unified exercise library */
+  async getCanonicalExercises(filters?: {
+    search?: string;
+    muscle?: string;
+    limit?: number;
+  }) {
+    let query = supabase.from('v_exercises_canonical' as any).select('*');
+    if (filters?.search) query = query.ilike('name', `%${filters.search}%`);
+    if (filters?.muscle) query = query.contains('target_muscles', [filters.muscle]);
+    query = query.order('name', { ascending: true }).limit(filters?.limit || 200);
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
+
+  /** Query v_plans_canonical — unified commercial plans */
+  async getCanonicalPlans() {
+    const { data, error } = await supabase
+      .from('v_plans_canonical' as any)
+      .select('*')
+      .eq('is_active', true)
+      .order('price', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
 };

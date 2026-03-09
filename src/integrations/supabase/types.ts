@@ -199,6 +199,13 @@ export type Database = {
             referencedRelation: "planos"
             referencedColumns: ["id_plano"]
           },
+          {
+            foreignKeyName: "alunos_id_plano_ativo_fkey"
+            columns: ["id_plano_ativo"]
+            isOneToOne: false
+            referencedRelation: "v_plans_canonical"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ambiente_config: {
@@ -5330,6 +5337,26 @@ export type Database = {
           },
         ]
       }
+      v_exercises_canonical: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          difficulty_level: string | null
+          equipment: string | null
+          gif_url: string | null
+          goal: string | null
+          id: string | null
+          image_url: string | null
+          instructions: string | null
+          muscle_groups: Json | null
+          name: string | null
+          phase: string | null
+          source_table: string | null
+          target_muscles: string[] | null
+          video_url: string | null
+        }
+        Relationships: []
+      }
       v_periodizations_canonical: {
         Row: {
           athlete_id: string | null
@@ -5426,6 +5453,65 @@ export type Database = {
           recommended_for?: Json | null
           title?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      v_plans_canonical: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          duration_days: number | null
+          features: Json | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          price: number | null
+          source_table: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          duration_days?: number | null
+          features?: Json | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          price?: number | null
+          source_table?: never
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          duration_days?: number | null
+          features?: Json | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          price?: number | null
+          source_table?: never
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      v_progress_canonical: {
+        Row: {
+          avg_intensity: number | null
+          coach_notes: string | null
+          created_at: string | null
+          day_number: number | null
+          duration_minutes: number | null
+          exercises_data: Json | null
+          id: string | null
+          plan_id: string | null
+          rpe: number | null
+          source_table: string | null
+          student_id: string | null
+          student_notes: string | null
+          total_volume_kg: number | null
+          week_number: number | null
+          workout_date: string | null
         }
         Relationships: []
       }
@@ -5535,6 +5621,28 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v_workouts_canonical: {
+        Row: {
+          coach_id: string | null
+          created_at: string | null
+          current_phase: string | null
+          current_week: number | null
+          description: string | null
+          duration_weeks: number | null
+          id: string | null
+          name: string | null
+          objective: string | null
+          periodization_type: string | null
+          record_type: string | null
+          source_table: string | null
+          status: string | null
+          structure_data: Json | null
+          student_id: string | null
+          updated_at: string | null
+          weekly_frequency: number | null
+        }
+        Relationships: []
       }
     }
     Functions: {

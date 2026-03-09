@@ -77,4 +77,19 @@ export const progressService = {
       avgDuration: logs.length ? logs.reduce((s, l) => s + (l.duracao_minutos || 0), 0) / logs.length : 0,
     };
   },
+
+  // ─── Canonical Views ─────────────────────────────────
+
+  /** Query v_progress_canonical — unified view across all progress tables */
+  async getCanonicalProgress(studentId: string, limit = 50) {
+    const { data, error } = await supabase
+      .from('v_progress_canonical' as any)
+      .select('*')
+      .eq('student_id', studentId)
+      .order('workout_date', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data || [];
+  },
 };

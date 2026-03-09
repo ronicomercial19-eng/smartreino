@@ -163,4 +163,25 @@ export const trainingService = {
     if (error) throw error;
     return data;
   },
+
+  // ─── Canonical Views ─────────────────────────────────
+
+  /** Query v_workouts_canonical — unified view across all workout tables */
+  async getCanonicalWorkouts(filters?: {
+    studentId?: string;
+    coachId?: string;
+    recordType?: 'plan' | 'model' | 'legacy_model';
+    status?: string;
+    limit?: number;
+  }) {
+    let query = supabase.from('v_workouts_canonical' as any).select('*');
+    if (filters?.studentId) query = query.eq('student_id', filters.studentId);
+    if (filters?.coachId) query = query.eq('coach_id', filters.coachId);
+    if (filters?.recordType) query = query.eq('record_type', filters.recordType);
+    if (filters?.status) query = query.eq('status', filters.status);
+    query = query.order('created_at', { ascending: false }).limit(filters?.limit || 100);
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
 };

@@ -126,3 +126,21 @@ ALTER TABLE public.alunos
   ADD COLUMN IF NOT EXISTS meta_tempo_meses integer DEFAULT 3;
 ```
 
+---
+
+# Progresso Ecossistema 9FIT
+
+| Fase | Status |
+|---|---|
+| Fase 1 — Segurança e Roles | ✅ Completa |
+| Fase 2 — Services Padronizados | ✅ Completa |
+| Fase 3 — Views Canônicas | ✅ Completa |
+| Fase 4 — API Gateway | ⬜ Pendente |
+| Fase 5 — Ecossistema | ⬜ Pendente |
+
+## Views Canônicas Criadas (Fase 3)
+- `v_exercises_canonical` — unifica `exercises` + `exercicios_novos`
+- `v_workouts_canonical` — unifica `planos_treino_aluno` + `workout_models` + `modelos_de_treino`
+- `v_progress_canonical` — unifica `historico_treinos_realizados` + `workout_logs`
+- `v_plans_canonical` — unifica `planos` (comercial)
+- Existentes: `v_students_canonical`, `v_assessments_canonical`, `v_assignments_canonical`, `v_periodizations_canonical`
