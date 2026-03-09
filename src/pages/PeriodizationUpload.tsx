@@ -227,18 +227,24 @@ const PeriodizationUpload = () => {
     setIsGenerating(true);
     setGenerateProgress(0);
 
-    const progressInterval = setInterval(() => {
-      setGenerateProgress(prev => {
-        if (prev >= 90) { clearInterval(progressInterval); return 90; }
-        return prev + 5;
-      });
-    }, 1000);
+    const controller = new AbortController();
+    let progressInterval: ReturnType<typeof setInterval> | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     try {
-      // Use fetch with extended timeout instead of supabase.functions.invoke
-      const session = (await supabase.auth.getSession()).data.session;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 min timeout
+      progressInterval = setInterval(() => {
+        setGenerateProgress(prev => {
+          if (prev >= 90) return 90;
+          return prev + 5;
+        });
+      }, 1000);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error("Sessão expirada. Faça login novamente para gerar o plano.");
+      }
+
+      timeoutId = setTimeout(() => controller.abort(), 120000);
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-full-plan`,
@@ -246,12 +252,12 @@ const PeriodizationUpload = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            'Authorization': `Bearer ${session.access_token}`,
             'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
             studentId: selectedAlunoId,
-            periodizationModelId: selectedModelId || undefined,
+            periodizationModelId: selectedModelId && selectedModelId !== 'auto' ? selectedModelId : undefined,
             periodizationText: pastedData || undefined,
             formData: {
               objetivo: formData.objetivo,
@@ -262,17 +268,27 @@ const PeriodizationUpload = () => {
           signal: controller.signal,
         }
       );
-      clearTimeout(timeoutId);
 
-      const data = await response.json();
-      const error = response.ok ? null : new Error(data?.error || `HTTP ${response.status}`);
+      const rawResponse = await response.text();
+      let data: any = null;
 
-      clearInterval(progressInterval);
+      if (rawResponse) {
+        try {
+          data = JSON.parse(rawResponse);
+        } catch {
+          throw new Error(`Resposta inválida da função (HTTP ${response.status}).`);
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(data?.error || `HTTP ${response.status}`);
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Erro desconhecido');
+      }
+
       setGenerateProgress(100);
-
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Erro desconhecido');
-
       setSelectedPlan(data.plan);
       setActiveTab("treinos");
 
@@ -281,15 +297,20 @@ const PeriodizationUpload = () => {
         description: `${data.summary?.total_semanas} semanas · ${data.summary?.total_mesociclos} mesociclos criados.`,
       });
 
-      loadSavedPlans();
+      await loadSavedPlans();
     } catch (error: any) {
       console.error('Erro ao gerar plano:', error);
+      const isTimeout = error?.name === 'AbortError';
       toast({
         title: "Erro na Geração",
-        description: error?.message || "Falha ao gerar plano completo.",
+        description: isTimeout
+          ? "A geração excedeu o tempo limite. Tente novamente."
+          : (error?.message || "Falha ao gerar plano completo."),
         variant: "destructive"
       });
     } finally {
+      if (progressInterval) clearInterval(progressInterval);
+      if (timeoutId) clearTimeout(timeoutId);
       setIsGenerating(false);
       setTimeout(() => setGenerateProgress(0), 2000);
     }
