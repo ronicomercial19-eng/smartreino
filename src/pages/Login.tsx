@@ -98,7 +98,7 @@ const Login = () => {
                 required
                 disabled={loading}
               />
-            </div>
+          </div>
             <Button 
               type="submit" 
               className="w-full bg-primary hover:bg-primary/90"
@@ -108,7 +108,15 @@ const Login = () => {
             </Button>
           </form>
           
-          <div className="text-center">
+          <div className="text-center space-y-2">
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="text-sm text-primary hover:underline"
+              disabled={forgotLoading}
+            >
+              {forgotLoading ? "Enviando..." : "Esqueci minha senha"}
+            </button>
             <p className="text-sm text-muted-foreground">
               Não tem uma conta?{" "}
               <Link to="/register" className="text-primary hover:underline">
