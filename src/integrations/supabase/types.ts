@@ -1106,6 +1106,36 @@ export type Database = {
           },
         ]
       }
+      ecosystem_config: {
+        Row: {
+          config_key: string
+          config_value: Json
+          created_at: string
+          description: string | null
+          id: string
+          module_id: string
+          updated_at: string
+        }
+        Insert: {
+          config_key: string
+          config_value?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          module_id: string
+          updated_at?: string
+        }
+        Update: {
+          config_key?: string
+          config_value?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          module_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       estruturas_de_treinamento: {
         Row: {
           carga: number | null
