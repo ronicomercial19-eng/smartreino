@@ -840,15 +840,22 @@ export type Database = {
           agua_corporal: number | null
           altura: number | null
           aluno_id: string
+          athlete_id: string | null
           avaliacao_exames: string | null
           avaliador_cref: string | null
           avaliador_nome: string | null
+          cardio_bpm_max: number | null
+          cardio_bpm_repouso: number | null
+          cardio_sprint_vel: number | null
           circunferencia_braco: number | null
           circunferencia_cintura: number | null
           circunferencia_coxa: number | null
           circunferencia_panturrilha: number | null
           circunferencia_peitoral: number | null
           circunferencia_quadril: number | null
+          core_prancha_seg: number | null
+          core_side_plank_dir_seg: number | null
+          core_side_plank_esq_seg: number | null
           created_at: string
           dados_adicionais: Json | null
           data_avaliacao: string
@@ -861,6 +868,7 @@ export type Database = {
           dobra_suprailiaca: number | null
           dobra_triceps: number | null
           exames: Json | null
+          flags_inteligentes: Json | null
           gordura_corporal: number | null
           id: string
           id_externo: string | null
@@ -868,6 +876,10 @@ export type Database = {
           massa_gorda: number | null
           massa_magra: number | null
           massa_muscular: number | null
+          mob_ombro: number | null
+          mob_overhead_squat: number | null
+          mob_quadril: number | null
+          mob_tornozelo: number | null
           observacoes: string | null
           origem: string
           peso: number | null
@@ -880,6 +892,12 @@ export type Database = {
           rml_elevacao_p: number | null
           rml_flexao: number | null
           rml_pull: number | null
+          score_cardio: number | null
+          score_core: number | null
+          score_forca: number | null
+          score_global: number | null
+          score_mobilidade: number | null
+          score_resistencia: number | null
           sincronizado: boolean | null
           taxa_metabolica: number | null
           updated_at: string
@@ -888,15 +906,22 @@ export type Database = {
           agua_corporal?: number | null
           altura?: number | null
           aluno_id: string
+          athlete_id?: string | null
           avaliacao_exames?: string | null
           avaliador_cref?: string | null
           avaliador_nome?: string | null
+          cardio_bpm_max?: number | null
+          cardio_bpm_repouso?: number | null
+          cardio_sprint_vel?: number | null
           circunferencia_braco?: number | null
           circunferencia_cintura?: number | null
           circunferencia_coxa?: number | null
           circunferencia_panturrilha?: number | null
           circunferencia_peitoral?: number | null
           circunferencia_quadril?: number | null
+          core_prancha_seg?: number | null
+          core_side_plank_dir_seg?: number | null
+          core_side_plank_esq_seg?: number | null
           created_at?: string
           dados_adicionais?: Json | null
           data_avaliacao?: string
@@ -909,6 +934,7 @@ export type Database = {
           dobra_suprailiaca?: number | null
           dobra_triceps?: number | null
           exames?: Json | null
+          flags_inteligentes?: Json | null
           gordura_corporal?: number | null
           id?: string
           id_externo?: string | null
@@ -916,6 +942,10 @@ export type Database = {
           massa_gorda?: number | null
           massa_magra?: number | null
           massa_muscular?: number | null
+          mob_ombro?: number | null
+          mob_overhead_squat?: number | null
+          mob_quadril?: number | null
+          mob_tornozelo?: number | null
           observacoes?: string | null
           origem: string
           peso?: number | null
@@ -928,6 +958,12 @@ export type Database = {
           rml_elevacao_p?: number | null
           rml_flexao?: number | null
           rml_pull?: number | null
+          score_cardio?: number | null
+          score_core?: number | null
+          score_forca?: number | null
+          score_global?: number | null
+          score_mobilidade?: number | null
+          score_resistencia?: number | null
           sincronizado?: boolean | null
           taxa_metabolica?: number | null
           updated_at?: string
@@ -936,15 +972,22 @@ export type Database = {
           agua_corporal?: number | null
           altura?: number | null
           aluno_id?: string
+          athlete_id?: string | null
           avaliacao_exames?: string | null
           avaliador_cref?: string | null
           avaliador_nome?: string | null
+          cardio_bpm_max?: number | null
+          cardio_bpm_repouso?: number | null
+          cardio_sprint_vel?: number | null
           circunferencia_braco?: number | null
           circunferencia_cintura?: number | null
           circunferencia_coxa?: number | null
           circunferencia_panturrilha?: number | null
           circunferencia_peitoral?: number | null
           circunferencia_quadril?: number | null
+          core_prancha_seg?: number | null
+          core_side_plank_dir_seg?: number | null
+          core_side_plank_esq_seg?: number | null
           created_at?: string
           dados_adicionais?: Json | null
           data_avaliacao?: string
@@ -957,6 +1000,7 @@ export type Database = {
           dobra_suprailiaca?: number | null
           dobra_triceps?: number | null
           exames?: Json | null
+          flags_inteligentes?: Json | null
           gordura_corporal?: number | null
           id?: string
           id_externo?: string | null
@@ -964,6 +1008,10 @@ export type Database = {
           massa_gorda?: number | null
           massa_magra?: number | null
           massa_muscular?: number | null
+          mob_ombro?: number | null
+          mob_overhead_squat?: number | null
+          mob_quadril?: number | null
+          mob_tornozelo?: number | null
           observacoes?: string | null
           origem?: string
           peso?: number | null
@@ -976,6 +1024,12 @@ export type Database = {
           rml_elevacao_p?: number | null
           rml_flexao?: number | null
           rml_pull?: number | null
+          score_cardio?: number | null
+          score_core?: number | null
+          score_forca?: number | null
+          score_global?: number | null
+          score_mobilidade?: number | null
+          score_resistencia?: number | null
           sincronizado?: boolean | null
           taxa_metabolica?: number | null
           updated_at?: string
@@ -986,6 +1040,20 @@ export type Database = {
             columns: ["aluno_id"]
             isOneToOne: false
             referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_unificadas_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_unificadas_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
           },
         ]
@@ -3046,6 +3114,188 @@ export type Database = {
           },
         ]
       }
+      smart_treino_macro_rules: {
+        Row: {
+          aluno_id: string
+          carga_inicial_percent: number | null
+          created_at: string
+          deload_planned: boolean
+          density_control: boolean
+          descanso_acessorios: string | null
+          descanso_compostos: string | null
+          descanso_core: string | null
+          id: string
+          macro_number: number
+          macro_objetivo: string
+          professor_id: string
+          progression_type: string
+          reps_range: string
+          rpe_target: number
+          status: string
+          updated_at: string
+          volume_locked: boolean
+          weekly_frequency: number
+        }
+        Insert: {
+          aluno_id: string
+          carga_inicial_percent?: number | null
+          created_at?: string
+          deload_planned?: boolean
+          density_control?: boolean
+          descanso_acessorios?: string | null
+          descanso_compostos?: string | null
+          descanso_core?: string | null
+          id?: string
+          macro_number: number
+          macro_objetivo?: string
+          professor_id: string
+          progression_type?: string
+          reps_range?: string
+          rpe_target?: number
+          status?: string
+          updated_at?: string
+          volume_locked?: boolean
+          weekly_frequency?: number
+        }
+        Update: {
+          aluno_id?: string
+          carga_inicial_percent?: number | null
+          created_at?: string
+          deload_planned?: boolean
+          density_control?: boolean
+          descanso_acessorios?: string | null
+          descanso_compostos?: string | null
+          descanso_core?: string | null
+          id?: string
+          macro_number?: number
+          macro_objetivo?: string
+          professor_id?: string
+          progression_type?: string
+          reps_range?: string
+          rpe_target?: number
+          status?: string
+          updated_at?: string
+          volume_locked?: boolean
+          weekly_frequency?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_treino_macro_rules_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_treino_macro_rules_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smart_treino_muscle_volume: {
+        Row: {
+          created_at: string
+          distribution_json: Json | null
+          id: string
+          is_emphasis: boolean
+          macro_rules_id: string
+          muscle_group: string
+          weekly_sets: number
+        }
+        Insert: {
+          created_at?: string
+          distribution_json?: Json | null
+          id?: string
+          is_emphasis?: boolean
+          macro_rules_id: string
+          muscle_group: string
+          weekly_sets?: number
+        }
+        Update: {
+          created_at?: string
+          distribution_json?: Json | null
+          id?: string
+          is_emphasis?: boolean
+          macro_rules_id?: string
+          muscle_group?: string
+          weekly_sets?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_treino_muscle_volume_macro_rules_id_fkey"
+            columns: ["macro_rules_id"]
+            isOneToOne: false
+            referencedRelation: "smart_treino_macro_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smart_treino_profiles: {
+        Row: {
+          aluno_id: string
+          created_at: string
+          dominant_profile: Database["public"]["Enums"]["athlete_profile_type"]
+          gargalos_tecnicos: string[] | null
+          id: string
+          modalidade_principal: string | null
+          professor_id: string
+          riscos_estruturais: string[] | null
+          score_global: number | null
+          secondary_profile:
+            | Database["public"]["Enums"]["athlete_profile_type"]
+            | null
+          updated_at: string
+        }
+        Insert: {
+          aluno_id: string
+          created_at?: string
+          dominant_profile?: Database["public"]["Enums"]["athlete_profile_type"]
+          gargalos_tecnicos?: string[] | null
+          id?: string
+          modalidade_principal?: string | null
+          professor_id: string
+          riscos_estruturais?: string[] | null
+          score_global?: number | null
+          secondary_profile?:
+            | Database["public"]["Enums"]["athlete_profile_type"]
+            | null
+          updated_at?: string
+        }
+        Update: {
+          aluno_id?: string
+          created_at?: string
+          dominant_profile?: Database["public"]["Enums"]["athlete_profile_type"]
+          gargalos_tecnicos?: string[] | null
+          id?: string
+          modalidade_principal?: string | null
+          professor_id?: string
+          riscos_estruturais?: string[] | null
+          score_global?: number | null
+          secondary_profile?:
+            | Database["public"]["Enums"]["athlete_profile_type"]
+            | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_treino_profiles_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_treino_profiles_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       strength_records: {
         Row: {
           created_at: string
@@ -3087,6 +3337,7 @@ export type Database = {
           activity_date: string
           activity_name: string
           activity_type: string
+          athlete_id: string | null
           created_at: string | null
           details: Json | null
           id: string
@@ -3097,6 +3348,7 @@ export type Database = {
           activity_date?: string
           activity_name: string
           activity_type: string
+          athlete_id?: string | null
           created_at?: string | null
           details?: Json | null
           id?: string
@@ -3107,6 +3359,7 @@ export type Database = {
           activity_date?: string
           activity_name?: string
           activity_type?: string
+          athlete_id?: string | null
           created_at?: string | null
           details?: Json | null
           id?: string
@@ -3114,6 +3367,20 @@ export type Database = {
           student_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "student_activity_history_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_activity_history_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "student_activity_history_student_id_fkey"
             columns: ["student_id"]
@@ -3125,6 +3392,7 @@ export type Database = {
       }
       student_anamnesis: {
         Row: {
+          athlete_id: string | null
           category: string
           completed_at: string | null
           created_at: string | null
@@ -3134,6 +3402,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          athlete_id?: string | null
           category: string
           completed_at?: string | null
           created_at?: string | null
@@ -3143,6 +3412,7 @@ export type Database = {
           title: string
         }
         Update: {
+          athlete_id?: string | null
           category?: string
           completed_at?: string | null
           created_at?: string | null
@@ -3152,6 +3422,20 @@ export type Database = {
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "student_anamnesis_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_anamnesis_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "student_anamnesis_student_id_fkey"
             columns: ["student_id"]
@@ -3311,6 +3595,7 @@ export type Database = {
       student_measurements: {
         Row: {
           altura_cm: number | null
+          athlete_id: string | null
           circunferencia_braco_cm: number | null
           circunferencia_cintura_cm: number | null
           circunferencia_coxa_cm: number | null
@@ -3329,6 +3614,7 @@ export type Database = {
         }
         Insert: {
           altura_cm?: number | null
+          athlete_id?: string | null
           circunferencia_braco_cm?: number | null
           circunferencia_cintura_cm?: number | null
           circunferencia_coxa_cm?: number | null
@@ -3347,6 +3633,7 @@ export type Database = {
         }
         Update: {
           altura_cm?: number | null
+          athlete_id?: string | null
           circunferencia_braco_cm?: number | null
           circunferencia_cintura_cm?: number | null
           circunferencia_coxa_cm?: number | null
@@ -3364,6 +3651,20 @@ export type Database = {
           student_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "student_measurements_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_measurements_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "student_measurements_student_id_fkey"
             columns: ["student_id"]
@@ -3405,6 +3706,7 @@ export type Database = {
       }
       student_photos: {
         Row: {
+          athlete_id: string | null
           created_at: string | null
           description: string | null
           id: string
@@ -3415,6 +3717,7 @@ export type Database = {
           taken_date: string | null
         }
         Insert: {
+          athlete_id?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -3425,6 +3728,7 @@ export type Database = {
           taken_date?: string | null
         }
         Update: {
+          athlete_id?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -3435,6 +3739,20 @@ export type Database = {
           taken_date?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "student_photos_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_photos_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "student_photos_student_id_fkey"
             columns: ["student_id"]
@@ -4959,6 +5277,7 @@ export type Database = {
       workout_progress: {
         Row: {
           aluno_id: string
+          athlete_id: string | null
           calories_burned: number | null
           completed_at: string | null
           created_at: string | null
@@ -4976,6 +5295,7 @@ export type Database = {
         }
         Insert: {
           aluno_id: string
+          athlete_id?: string | null
           calories_burned?: number | null
           completed_at?: string | null
           created_at?: string | null
@@ -4993,6 +5313,7 @@ export type Database = {
         }
         Update: {
           aluno_id?: string
+          athlete_id?: string | null
           calories_burned?: number | null
           completed_at?: string | null
           created_at?: string | null
@@ -5014,6 +5335,20 @@ export type Database = {
             columns: ["aluno_id"]
             isOneToOne: false
             referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_progress_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_progress_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
           },
           {
@@ -5235,95 +5570,6 @@ export type Database = {
       }
     }
     Views: {
-      v_assessments_canonical: {
-        Row: {
-          altura: number | null
-          assessment_date: string | null
-          athlete_id: string | null
-          circunferencia_braco: number | null
-          circunferencia_cintura: number | null
-          circunferencia_coxa: number | null
-          circunferencia_panturrilha: number | null
-          circunferencia_peitoral: number | null
-          circunferencia_quadril: number | null
-          created_at: string | null
-          evaluator_name: string | null
-          gordura_corporal: number | null
-          id: string | null
-          imc: number | null
-          massa_gorda: number | null
-          massa_magra: number | null
-          massa_muscular: number | null
-          notes: string | null
-          peso: number | null
-          rml_abs: number | null
-          rml_agachamento: number | null
-          rml_flexao: number | null
-          source: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          altura?: number | null
-          assessment_date?: string | null
-          athlete_id?: string | null
-          circunferencia_braco?: number | null
-          circunferencia_cintura?: number | null
-          circunferencia_coxa?: number | null
-          circunferencia_panturrilha?: number | null
-          circunferencia_peitoral?: number | null
-          circunferencia_quadril?: number | null
-          created_at?: string | null
-          evaluator_name?: string | null
-          gordura_corporal?: number | null
-          id?: string | null
-          imc?: number | null
-          massa_gorda?: number | null
-          massa_magra?: number | null
-          massa_muscular?: number | null
-          notes?: string | null
-          peso?: number | null
-          rml_abs?: number | null
-          rml_agachamento?: number | null
-          rml_flexao?: number | null
-          source?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          altura?: number | null
-          assessment_date?: string | null
-          athlete_id?: string | null
-          circunferencia_braco?: number | null
-          circunferencia_cintura?: number | null
-          circunferencia_coxa?: number | null
-          circunferencia_panturrilha?: number | null
-          circunferencia_peitoral?: number | null
-          circunferencia_quadril?: number | null
-          created_at?: string | null
-          evaluator_name?: string | null
-          gordura_corporal?: number | null
-          id?: string | null
-          imc?: number | null
-          massa_gorda?: number | null
-          massa_magra?: number | null
-          massa_muscular?: number | null
-          notes?: string | null
-          peso?: number | null
-          rml_abs?: number | null
-          rml_agachamento?: number | null
-          rml_flexao?: number | null
-          source?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "avaliacoes_unificadas_aluno_id_fkey"
-            columns: ["athlete_id"]
-            isOneToOne: false
-            referencedRelation: "alunos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       v_assignments_canonical: {
         Row: {
           assigned_at: string | null
@@ -5705,6 +5951,132 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_assessments_unified: {
+        Row: {
+          agua_corporal: number | null
+          altura: number | null
+          aluno_id: string | null
+          athlete_id: string | null
+          avaliacao_exames: string | null
+          avaliador_cref: string | null
+          avaliador_nome: string | null
+          circunferencia_braco: number | null
+          circunferencia_cintura: number | null
+          circunferencia_coxa: number | null
+          circunferencia_panturrilha: number | null
+          circunferencia_peitoral: number | null
+          circunferencia_quadril: number | null
+          created_at: string | null
+          dados_adicionais: Json | null
+          data_avaliacao: string | null
+          dobra_abdominal: number | null
+          dobra_axilar_media: number | null
+          dobra_coxa: number | null
+          dobra_panturrilha: number | null
+          dobra_peitoral: number | null
+          dobra_subescapular: number | null
+          dobra_suprailiaca: number | null
+          dobra_triceps: number | null
+          exames: Json | null
+          gordura_corporal: number | null
+          id: string | null
+          id_externo: string | null
+          imc: number | null
+          massa_gorda: number | null
+          massa_magra: number | null
+          massa_muscular: number | null
+          observacoes: string | null
+          origem: string | null
+          peso: number | null
+          resolved_athlete_id: string | null
+          rm1_empurrar_perna: number | null
+          rm1_empurrar_superior: number | null
+          rm1_puxar_costas: number | null
+          rm1_puxar_inferior: number | null
+          rml_abs: number | null
+          rml_agachamento: number | null
+          rml_elevacao_p: number | null
+          rml_flexao: number | null
+          rml_pull: number | null
+          sincronizado: boolean | null
+          taxa_metabolica: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacoes_unificadas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_unificadas_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_unificadas_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_workout_progress_unified: {
+        Row: {
+          aluno_id: string | null
+          athlete_id: string | null
+          calories_burned: number | null
+          completed_at: string | null
+          created_at: string | null
+          date: string | null
+          duration_minutes: number | null
+          exercise_name: string | null
+          id: string | null
+          notes: string | null
+          reps: number | null
+          resolved_athlete_id: string | null
+          rpe: number | null
+          sets: number | null
+          training_name: string | null
+          weight_kg: number | null
+          workout_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_progress_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_progress_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_progress_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_progress_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       calcular_periodizacao_correspondencia: {
@@ -5814,6 +6186,16 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "cancelled"
+      athlete_profile_type:
+        | "forca_mmss"
+        | "forca_mmii"
+        | "resistencia_mmss"
+        | "resistencia_mmii"
+        | "core_estabilidade"
+        | "mobilidade"
+        | "potencia"
+        | "cardio"
+        | "equilibrado"
       difficulty_level: "beginner" | "intermediate" | "advanced"
       entity_status: "active" | "inactive" | "pending" | "archived" | "deleted"
       event_type:
@@ -5991,6 +6373,17 @@ export const Constants = {
         "in_progress",
         "completed",
         "cancelled",
+      ],
+      athlete_profile_type: [
+        "forca_mmss",
+        "forca_mmii",
+        "resistencia_mmss",
+        "resistencia_mmii",
+        "core_estabilidade",
+        "mobilidade",
+        "potencia",
+        "cardio",
+        "equilibrado",
       ],
       difficulty_level: ["beginner", "intermediate", "advanced"],
       entity_status: ["active", "inactive", "pending", "archived", "deleted"],

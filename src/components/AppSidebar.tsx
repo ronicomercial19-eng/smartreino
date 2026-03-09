@@ -12,7 +12,8 @@ import {
   ChevronDown,
   BarChart3,
   Target,
-  TrendingUp
+  TrendingUp,
+  Zap
 } from "lucide-react";
 
 import {
@@ -57,6 +58,7 @@ const allNavigationItems: NavItem[] = [
     title: "Treinos",
     icon: Dumbbell,
     items: [
+      { title: "Smart Treino Builder", url: "/smart-treino-builder" },
       { title: "Gerar Treino", url: "/workout-models" },
       { title: "Plano Periodizado", url: "/periodization-upload" },
       { title: "Meus Treinos", url: "/meus-treinos" },
