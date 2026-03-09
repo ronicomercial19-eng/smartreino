@@ -1,92 +1,54 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.5";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // JWT Authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Não autorizado' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    const authSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await authSupabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Token inválido' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const userId = claimsData.claims.sub;
+    console.log(`[analyze-periodization] Authenticated user: ${userId}`);
+
     const { objetivo, nivel, tempo_disponivel, restricoes, periodizacao, periodizacao_texto, lesoes, grupo_prioritario, dias_semana } = await req.json();
 
     console.log('📊 Iniciando análise de periodização com IA');
-    console.log('Dados recebidos:', { objetivo, nivel, tempo_disponivel, periodizacao });
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY não configurada');
     }
 
-    const prompt = `
-Você é um especialista em periodização de treinamento físico e ciência do esporte. Analise os seguintes dados e forneça uma análise COMPLETA e ESTRUTURADA:
-
-## DADOS DO ALUNO:
-- Objetivo Principal: ${objetivo || 'Não especificado'}
-- Nível de Experiência: ${nivel || 'Não especificado'}
-- Tempo Disponível por Sessão: ${tempo_disponivel || '60'} minutos
-- Restrições/Lesões: ${restricoes || lesoes || 'Nenhuma'}
-- Tipo de Periodização: ${periodizacao || 'Linear'}
-- Grupo Muscular Prioritário: ${grupo_prioritario || 'Nenhum específico'}
-- Dias por Semana: ${dias_semana || '3-4 dias'}
-
-${periodizacao_texto ? `
-## PERIODIZAÇÃO IMPORTADA:
-${periodizacao_texto}
-
-Analise o texto acima e extraia:
-1. Estrutura de mesociclos identificada
-2. Fases de treino detectadas
-3. Progressões sugeridas
-4. Otimizações baseadas em evidências científicas
-` : ''}
-
-## FORNEÇA UMA ANÁLISE EM JSON COM:
-{
-  "suggestions": [
-    "Lista de 5-7 sugestões específicas e acionáveis para periodização"
-  ],
-  "currentPhase": "Nome da fase atual recomendada (ex: Adaptação Anatômica, Hipertrofia, Força)",
-  "considerations": "Considerações especiais baseadas no perfil do aluno",
-  "confidence": 0.0-1.0,
-  "extractedStructure": {
-    "macrocycle_weeks": número de semanas do macrociclo,
-    "mesocycles": [
-      {
-        "name": "Nome do mesociclo",
-        "weeks": duração em semanas,
-        "focus": "Foco principal",
-        "volume": "Alto/Moderado/Baixo",
-        "intensity": "Alta/Moderada/Baixa"
-      }
-    ],
-    "progressions": ["Lista de progressões identificadas"],
-    "optimizations": ["Lista de otimizações sugeridas baseadas em ciência"]
-  },
-  "scientificRecommendations": [
-    "Recomendações baseadas em evidências científicas atuais"
-  ],
-  "weeklyPlan": [
-    {
-      "week": 1,
-      "focus": "Foco da semana",
-      "volume_level": 1-10,
-      "intensity_level": 1-10
-    }
-  ]
-}
-
-IMPORTANTE:
-- Baseie suas recomendações em princípios científicos de periodização
-- Considere princípios de supercompensação, fadiga acumulada e variabilidade
-- Sugira ajustes específicos para o objetivo do aluno
-- Se houver texto de periodização importado, extraia a estrutura e sugira melhorias
-`;
+    const prompt = buildAnalysisPrompt({ objetivo, nivel, tempo_disponivel, restricoes, periodizacao, periodizacao_texto, lesoes, grupo_prioritario, dias_semana });
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -100,10 +62,7 @@ IMPORTANTE:
             role: 'system',
             content: 'Você é um especialista em periodização de treinamento e ciência do esporte. Responda sempre em português brasileiro com análises técnicas e científicas. Retorne APENAS JSON válido.'
           },
-          {
-            role: 'user',
-            content: prompt
-          }
+          { role: 'user', content: prompt }
         ],
         model: 'google/gemini-2.5-flash',
         temperature: 0.7,
@@ -131,18 +90,14 @@ IMPORTANTE:
     }
 
     const data = await response.json();
-    console.log('AI Response received');
     
     let analysisResult;
     try {
       const content = data.choices[0].message.content;
-      
-      // Try to parse JSON from the response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         analysisResult = JSON.parse(jsonMatch[0]);
       } else {
-        // Fallback: create structured response from text
         analysisResult = createFallbackAnalysis(content, objetivo, nivel);
       }
     } catch (parseError) {
@@ -159,7 +114,6 @@ IMPORTANTE:
   } catch (error) {
     console.error('Error in analyze-periodization function:', error);
     
-    // Return fallback analysis instead of error
     const fallbackAnalysis = {
       suggestions: [
         'Progressão gradual de volume e intensidade',
@@ -184,6 +138,43 @@ IMPORTANTE:
     });
   }
 });
+
+function buildAnalysisPrompt(params: Record<string, any>): string {
+  const { objetivo, nivel, tempo_disponivel, restricoes, periodizacao, periodizacao_texto, lesoes, grupo_prioritario, dias_semana } = params;
+  
+  return `
+Você é um especialista em periodização de treinamento físico e ciência do esporte. Analise os seguintes dados e forneça uma análise COMPLETA e ESTRUTURADA:
+
+## DADOS DO ALUNO:
+- Objetivo Principal: ${objetivo || 'Não especificado'}
+- Nível de Experiência: ${nivel || 'Não especificado'}
+- Tempo Disponível por Sessão: ${tempo_disponivel || '60'} minutos
+- Restrições/Lesões: ${restricoes || lesoes || 'Nenhuma'}
+- Tipo de Periodização: ${periodizacao || 'Linear'}
+- Grupo Muscular Prioritário: ${grupo_prioritario || 'Nenhum específico'}
+- Dias por Semana: ${dias_semana || '3-4 dias'}
+
+${periodizacao_texto ? `
+## PERIODIZAÇÃO IMPORTADA:
+${periodizacao_texto}
+` : ''}
+
+## FORNEÇA UMA ANÁLISE EM JSON COM:
+{
+  "suggestions": ["Lista de 5-7 sugestões específicas"],
+  "currentPhase": "Nome da fase atual recomendada",
+  "considerations": "Considerações especiais",
+  "confidence": 0.0-1.0,
+  "extractedStructure": {
+    "macrocycle_weeks": número,
+    "mesocycles": [{"name": "Nome", "weeks": duração, "focus": "Foco", "volume": "Alto/Moderado/Baixo", "intensity": "Alta/Moderada/Baixa"}],
+    "progressions": ["Lista de progressões"],
+    "optimizations": ["Lista de otimizações"]
+  },
+  "scientificRecommendations": ["Recomendações baseadas em evidências"],
+  "weeklyPlan": [{"week": 1, "focus": "Foco", "volume_level": 1-10, "intensity_level": 1-10}]
+}`;
+}
 
 function getFallbackSuggestions(objetivo: string, nivel: string): string[] {
   const suggestions: string[] = [];
