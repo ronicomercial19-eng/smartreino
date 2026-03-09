@@ -80,8 +80,8 @@ async function dispatchWebhook(
   if (!webhookKey) return;
 
   try {
-    const { data } = await supabase
-      .from('ecosystem_config' as any)
+    const { data } = await (supabase as any)
+      .from('ecosystem_config')
       .select('config_value')
       .eq('module_id', 'smartreino')
       .eq('config_key', 'webhook_endpoints')
