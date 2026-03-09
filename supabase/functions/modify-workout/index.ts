@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.5";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -12,6 +12,32 @@ serve(async (req) => {
   }
 
   try {
+    // JWT Authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Não autorizado' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    const authSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await authSupabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Token inválido' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const userId = claimsData.claims.sub;
+    console.log(`[modify-workout] Authenticated user: ${userId}`);
+
     const { workoutPlanId, currentPlan, userCommand } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -21,7 +47,6 @@ serve(async (req) => {
 
     console.log(`[modify-workout] Modificando treino ${workoutPlanId} com comando: ${userCommand}`);
 
-    // Construir prompt para IA modificar o treino
     const systemPrompt = `Você é um especialista em prescrição de treinos. Sua tarefa é modificar o plano de treino atual baseado no comando do usuário.
 
 IMPORTANTE: 
@@ -69,20 +94,16 @@ Formato de resposta esperado:
       throw new Error("IA não retornou resposta válida");
     }
 
-    // Parse da resposta da IA com múltiplas estratégias
     let result;
     try {
-      // Estratégia 1: Tentar extrair JSON do código markdown
       const codeBlockMatch = aiContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
       if (codeBlockMatch) {
         result = JSON.parse(codeBlockMatch[1]);
       } else {
-        // Estratégia 2: Tentar extrair JSON direto
         const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           result = JSON.parse(jsonMatch[0]);
         } else {
-          // Estratégia 3: Se não tem JSON, retornar só a resposta
           result = {
             response: aiContent,
             updatedPlan: null
@@ -90,7 +111,6 @@ Formato de resposta esperado:
         }
       }
       
-      // Validar estrutura do resultado
       if (result && !result.response) {
         result.response = "Treino modificado com sucesso!";
       }
@@ -98,7 +118,7 @@ Formato de resposta esperado:
     } catch (e) {
       console.error("[modify-workout] Erro ao fazer parse da resposta:", e);
       result = {
-        response: aiContent.substring(0, 500), // Limitar tamanho
+        response: aiContent.substring(0, 500),
         updatedPlan: null
       };
     }

@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.5";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -12,21 +12,45 @@ serve(async (req) => {
   }
 
   try {
-    const { studentId, studentData } = await req.json();
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
-
-    if (!LOVABLE_API_KEY || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      throw new Error("Variáveis de ambiente não configuradas");
+    // JWT Authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Não autorizado' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY não configurado");
+    }
+
+    const authSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await authSupabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: 'Token inválido' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const userId = claimsData.claims.sub;
+    console.log(`[generate-recommendations] Authenticated user: ${userId}`);
+
+    const { studentId, studentData } = await req.json();
+
+    // Use service role for data queries
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(SUPABASE_URL, supabaseServiceKey);
 
     console.log(`[generate-recommendations] Gerando recomendações para aluno ${studentId}`);
 
-    // Buscar dados adicionais do aluno
     const { data: workoutHistory } = await supabase
       .from("historico_treinos_realizados")
       .select("*")
@@ -41,7 +65,6 @@ serve(async (req) => {
       .order("data_avaliacao", { ascending: false })
       .limit(5);
 
-    // Construir prompt para IA
     const systemPrompt = `Você é um personal trainer especializado em análise de desempenho e periodização de treino.
 
 Analise os dados do aluno e gere recomendações ESPECÍFICAS e ACIONÁVEIS. Cada recomendação deve ter:
@@ -49,29 +72,6 @@ Analise os dados do aluno e gere recomendações ESPECÍFICAS e ACIONÁVEIS. Cad
 - title: Título direto e objetivo (máx 60 caracteres)
 - description: Explicação clara baseada em dados (100-150 caracteres)
 - action: Ação específica recomendada com números concretos
-
-CRITÉRIOS DE ANÁLISE:
-1. Progressão de Carga: Identificar estagnação ou progressão inadequada
-2. Volume Total: Analisar se está dentro dos limites ideais para o objetivo
-3. Frequência: Comparar frequência planejada vs realizada
-4. PSE: Identificar sinais de overtraining (PSE >8) ou undertraining (PSE <5)
-5. Aderência: Se <70%, sugerir ajustes na programação
-6. Evolução Física: Analisar tendências de peso e medidas
-
-EXEMPLOS DE BOAS RECOMENDAÇÕES:
-{
-  "type": "warning",
-  "title": "Aderência abaixo do esperado",
-  "description": "Apenas 60% dos treinos foram realizados nas últimas 4 semanas. Isso pode comprometer os resultados.",
-  "action": "Reduzir frequência para 3x/semana com maior intensidade ou revisar horários disponíveis"
-}
-
-{
-  "type": "suggestion", 
-  "title": "Oportunidade de progressão de carga",
-  "description": "PSE médio de 5.8 indica treinos muito confortáveis. Há espaço para aumentar intensidade.",
-  "action": "Aumentar carga em 5-10% nos exercícios principais ou reduzir descanso em 15-20s"
-}
 
 Retorne JSON com: { "recommendations": [...] }`;
 
@@ -116,22 +116,18 @@ Gere 3-5 recomendações baseadas nos dados reais. Seja específico com números
       throw new Error("IA não retornou resposta válida");
     }
 
-    // Parse da resposta com múltiplas estratégias
     let recommendations;
     try {
-      // Tentar extrair JSON de blocos de código markdown
       const codeBlockMatch = aiContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
       if (codeBlockMatch) {
         const parsed = JSON.parse(codeBlockMatch[1]);
         recommendations = parsed.recommendations || [];
       } else {
-        // Tentar extrair JSON direto
         const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
           recommendations = parsed.recommendations || [];
         } else {
-          // Fallback: criar recomendação genérica
           recommendations = [{
             type: "suggestion",
             title: "Análise Pendente",
