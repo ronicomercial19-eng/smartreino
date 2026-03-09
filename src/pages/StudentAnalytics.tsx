@@ -150,15 +150,28 @@ export default function StudentAnalytics() {
     );
   }
 
-  if (!aluno) {
+  // Show student selector when no student is selected yet
+  if (!selectedStudentId || !aluno) {
     return (
-      <PageLayout title="Aluno não encontrado">
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">Aluno não encontrado</p>
-            <Button onClick={() => navigate(-1)} className="mt-4">Voltar</Button>
-          </CardContent>
-        </Card>
+      <PageLayout title="Analytics por Aluno">
+        <div className="space-y-6">
+          <StudentSelector
+            students={students}
+            selectedStudent={selectedStudentId}
+            onSelectStudent={setSelectedStudentId}
+            loading={loading}
+          />
+          {!selectedStudentId && (
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <p className="text-muted-foreground">Selecione um aluno para visualizar analytics</p>
+              </CardContent>
+            </Card>
+          )}
+          {selectedStudentId && loadingData && (
+            <LoadingSpinner text="Carregando dados do aluno..." />
+          )}
+        </div>
       </PageLayout>
     );
   }
