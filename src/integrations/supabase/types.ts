@@ -2081,6 +2081,84 @@ export type Database = {
           },
         ]
       }
+      periodization_annual_plans: {
+        Row: {
+          annual_goal: string | null
+          assessment_snapshot: Json | null
+          athlete_id: string
+          coach_id: string
+          created_at: string
+          dominant_profile: Json | null
+          flags: Json | null
+          id: string
+          macrocycles: Json | null
+          master_rules: Json | null
+          mesocycles: Json | null
+          micro_rules: Json | null
+          output_json: Json | null
+          running_distance: string | null
+          scores: Json | null
+          selected_model_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          annual_goal?: string | null
+          assessment_snapshot?: Json | null
+          athlete_id: string
+          coach_id: string
+          created_at?: string
+          dominant_profile?: Json | null
+          flags?: Json | null
+          id?: string
+          macrocycles?: Json | null
+          master_rules?: Json | null
+          mesocycles?: Json | null
+          micro_rules?: Json | null
+          output_json?: Json | null
+          running_distance?: string | null
+          scores?: Json | null
+          selected_model_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          annual_goal?: string | null
+          assessment_snapshot?: Json | null
+          athlete_id?: string
+          coach_id?: string
+          created_at?: string
+          dominant_profile?: Json | null
+          flags?: Json | null
+          id?: string
+          macrocycles?: Json | null
+          master_rules?: Json | null
+          mesocycles?: Json | null
+          micro_rules?: Json | null
+          output_json?: Json | null
+          running_distance?: string | null
+          scores?: Json | null
+          selected_model_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "periodization_annual_plans_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodization_annual_plans_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       periodization_history: {
         Row: {
           change_description: string | null
@@ -3127,12 +3205,17 @@ export type Database = {
           id: string
           macro_number: number
           macro_objetivo: string
+          model_name: string | null
+          pillar: string | null
           professor_id: string
           progression_type: string
+          protocol_code: string | null
+          protocol_name: string | null
           reps_range: string
           rpe_target: number
           status: string
           updated_at: string
+          variation_name: string | null
           volume_locked: boolean
           weekly_frequency: number
         }
@@ -3148,12 +3231,17 @@ export type Database = {
           id?: string
           macro_number: number
           macro_objetivo?: string
+          model_name?: string | null
+          pillar?: string | null
           professor_id: string
           progression_type?: string
+          protocol_code?: string | null
+          protocol_name?: string | null
           reps_range?: string
           rpe_target?: number
           status?: string
           updated_at?: string
+          variation_name?: string | null
           volume_locked?: boolean
           weekly_frequency?: number
         }
@@ -3169,12 +3257,17 @@ export type Database = {
           id?: string
           macro_number?: number
           macro_objetivo?: string
+          model_name?: string | null
+          pillar?: string | null
           professor_id?: string
           progression_type?: string
+          protocol_code?: string | null
+          protocol_name?: string | null
           reps_range?: string
           rpe_target?: number
           status?: string
           updated_at?: string
+          variation_name?: string | null
           volume_locked?: boolean
           weekly_frequency?: number
         }
@@ -3295,6 +3388,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      smart_treino_protocols: {
+        Row: {
+          block_9_template: Json
+          block_integration: string
+          block_neural: string
+          block_reset: string
+          created_at: string
+          id: string
+          model_description: string
+          model_id: number
+          pillar: string
+          pillar_label: string
+          protocol_axis: string
+          protocol_id: number
+          protocol_name: string
+          recommended_for: string[]
+          rpe_range: string
+          variation_focus: string
+          variation_id: number
+          variation_name: string
+        }
+        Insert: {
+          block_9_template?: Json
+          block_integration?: string
+          block_neural?: string
+          block_reset?: string
+          created_at?: string
+          id: string
+          model_description: string
+          model_id: number
+          pillar: string
+          pillar_label: string
+          protocol_axis: string
+          protocol_id: number
+          protocol_name: string
+          recommended_for?: string[]
+          rpe_range?: string
+          variation_focus: string
+          variation_id: number
+          variation_name: string
+        }
+        Update: {
+          block_9_template?: Json
+          block_integration?: string
+          block_neural?: string
+          block_reset?: string
+          created_at?: string
+          id?: string
+          model_description?: string
+          model_id?: number
+          pillar?: string
+          pillar_label?: string
+          protocol_axis?: string
+          protocol_id?: number
+          protocol_name?: string
+          recommended_for?: string[]
+          rpe_range?: string
+          variation_focus?: string
+          variation_id?: number
+          variation_name?: string
+        }
+        Relationships: []
       }
       strength_records: {
         Row: {
