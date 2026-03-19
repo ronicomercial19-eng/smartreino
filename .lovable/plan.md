@@ -1,155 +1,116 @@
 
 
-# Plano: Cadastro Focado em Treino + SmartReino Quiz + Correcao de Geracao
+# Matriz 9x9x9 — 729 Protocolos no Smart Treino Builder
 
-## Problema Atual
+## Contexto
 
-1. **Cadastro pede dados genericos** (email, data nascimento, genero) mas falta informacao de treino para a IA
-2. **Erro ao gerar treino**: a edge function `generate-workout` tem `verify_jwt = true` mas precisa de `verify_jwt = false` para funcionar corretamente; alem disso falta `analyze-periodization` no config.toml
-3. **Nao existe SmartReino Quiz**: o aluno nao tem como responder perguntas rapidas para gerar treino automaticamente
+A conversa com o Gemini definiu uma arquitetura de treinamento profunda:
+- **9 Protocolos Chefes** (VMAX, Threshold, Endurance, Tensão Mecânica, Estresse Metabólico, Simetria & Fluxo, Reativo, Mobilidade Carregada, Resiliência)
+- **9 Variações Modulares** por protocolo (fases de progressão anual)
+- **9 Modelos de Treino** por variação (progressão semanal/mensal)
+- **Estrutura de prescrição obrigatória**: Neural → Integração → Bloco 9 → Reset
 
----
+O sistema atual do Smart Treino Builder conhece apenas 4 macrociclos genéricos e não tem conceito de protocolo, variação modular nem blocos de prescrição (Neural/Integração/9/Reset).
 
-## O que sera feito
+## O que será construído
 
-### 1. Reformular Cadastro do Aluno
+### 1. Tabela de Protocolos no Supabase
 
-Simplificar para pedir apenas **nome + telefone** como dados pessoais, e adicionar **9 perguntas de treino** + **6 perguntas de preferencia** clicaveis (Select/Radio), para maximizar informacoes para a IA.
+Nova tabela `smart_treino_protocols` com os 729 registros pré-populados:
 
-**Dados pessoais (2 campos):**
-- Nome completo
-- Telefone/WhatsApp
+| Campo | Tipo | Exemplo |
+|-------|------|---------|
+| `id` | text PK | `"4.5.3"` |
+| `pillar` | text | `"estrutural"` |
+| `pillar_label` | text | `"Estrutural & Morfológico"` |
+| `protocol_id` | int (1-9) | `4` |
+| `protocol_name` | text | `"Tensão Mecânica"` |
+| `protocol_axis` | text | `"Recrutamento de fibras brancas"` |
+| `variation_id` | int (1-9) | `5` |
+| `variation_name` | text | `"Excêntrico"` |
+| `variation_focus` | text | `"Fase negativa lenta"` |
+| `model_id` | int (1-9) | `3` |
+| `model_description` | text | `"Excêntrica 5s com pausa isométrica 2s"` |
+| `block_neural` | text | `"Isometria máxima 6s no exercício principal"` |
+| `block_integration` | text | `"Mobilidade articular específica"` |
+| `block_9_template` | jsonb | `{"sets":"3-4","reps":"6-8","cadence":"5:2:1:0","rest":90}` |
+| `block_reset` | text | `"Alongamento estático do músculo alvo"` |
+| `rpe_range` | text | `"7-8"` |
+| `recommended_for` | text[] | `["intermediario","avancado"]` |
 
-**9 Perguntas de Treino (clicaveis):**
-1. Objetivo principal (hipertrofia / emagrecimento / forca / condicionamento / saude / reabilitacao)
-2. Nivel de experiencia (iniciante / intermediario / avancado)
-3. Frequencia semanal (2x / 3x / 4x / 5x / 6x)
-4. Ambiente de treino (academia / casa / ar livre / hibrido)
-5. Tempo disponivel por sessao (30min / 45min / 60min / 90min)
-6. Historico de lesoes (nenhuma / ombro / joelho / lombar / outro)
-7. Foco muscular prioritario (superior / inferior / core / corpo todo)
-8. Nivel de condicionamento cardiovascular (baixo / medio / alto)
-9. Experiencia com pesos livres (nunca / basico / confortavel / avancado)
+Isso permite que o professor selecione protocolo → variação → modelo, e o sistema já entrega os blocos preenchidos com parâmetros corretos.
 
-**6 Perguntas de Preferencia de Treino:**
-1. Prefere treinos curtos e intensos OU longos e moderados
-2. Gosta de cardio integrado ao treino OU separado
-3. Prefere maquinas OU pesos livres OU ambos
-4. Treina sozinho OU com parceiro
-5. Horario preferido (manha / tarde / noite)
-6. Meta de tempo (1 mes / 3 meses / 6 meses / 12 meses)
+### 2. Seed dos 729 registros via Edge Function
 
-### 2. Migrar Banco de Dados
+Uma edge function `seed-protocols` que gera os 729 registros usando a IA (Gemini) baseada no dossiê completo da conversa. Chamada uma única vez pelo admin para popular a tabela.
 
-Adicionar colunas na tabela `alunos` para armazenar as novas informacoes:
-- `tempo_disponivel_min` (integer)
-- `historico_lesoes` (text)
-- `foco_muscular` (varchar)
-- `condicionamento_cardio` (varchar)
-- `experiencia_pesos_livres` (varchar)
-- `preferencia_intensidade` (varchar)
-- `preferencia_cardio` (varchar)
-- `preferencia_equipamento` (varchar)
-- `treina_sozinho` (boolean)
-- `horario_preferido` (varchar)
-- `meta_tempo_meses` (integer)
+Alternativamente, podemos gerar os dados via script e inserir via migration — mais confiável e sem custo de IA.
 
-### 3. Corrigir Edge Function de Geracao
+### 3. Atualizar o Wizard do Smart Treino Builder
 
-- Mudar `verify_jwt = false` no config.toml para `generate-workout`
-- Validar JWT manualmente dentro da funcao
-- Adicionar CORS headers completos
-- Incluir TODOS os novos campos do aluno no prompt da IA
-- Adicionar `analyze-periodization` ao config.toml
+**Etapa 2 (Periodização)** — Substituir o selector simples de "Macro 1-4" por:
 
-### 4. Criar SmartReino Quiz (Interface do Aluno)
+1. **Pilar** (Performance / Estrutural / Longevidade) — 3 opções
+2. **Protocolo Chefe** (1-9) — filtrado pelo pilar selecionado
+3. **Variação Modular** (1-9) — filtrado pelo protocolo
+4. **Modelo de Treino** (1-9) — filtrado pela variação
 
-Nova funcionalidade na interface do aluno: quando o aluno nao tem treino ativo, aparece um quiz de **9 perguntas clicaveis** (cards/botoes). Ao finalizar, chama a edge function `generate-workout` com todas as respostas e gera o treino do dia automaticamente.
+Cada seleção auto-preenche os parâmetros (RPE, reps, descanso, blocos Neural/Integração/9/Reset).
 
-**Fluxo:**
+**Etapa 4 (Parâmetros)** — Mostrar os 4 blocos obrigatórios:
+- Bloco Neural (pré-preenchido pelo modelo)
+- Bloco Integração (pré-preenchido)
+- Bloco 9 (parâmetros de execução: séries, reps, cadência, descanso)
+- Bloco Reset (pré-preenchido)
 
-```text
-Aluno abre SmartReino
-    |
-    v
-Tem treino ativo? --SIM--> Mostra treino (como esta hoje)
-    |
-    NAO
-    |
-    v
-Quiz SmartReino (9 perguntas, uma por vez)
-    |
-    Pergunta 1: Qual seu objetivo? [cards clicaveis]
-    Pergunta 2: Nivel? [cards clicaveis]
-    ...
-    Pergunta 9: Experiencia com pesos? [cards clicaveis]
-    |
-    v
-Resumo das respostas + botao "Gerar Meu Treino"
-    |
-    v
-IA gera treino --> Salva no banco --> Exibe na interface
+O professor pode ajustar texto mas os parâmetros numéricos vêm do modelo.
+
+### 4. Atualizar a Edge Function `generate-smart-treino`
+
+O prompt do sistema incluirá:
+- O protocolo selecionado (nome, eixo, variação, modelo)
+- Os 4 blocos de prescrição como template obrigatório
+- A IA deve gerar exercícios organizados nos 4 blocos (Neural → Integração → Bloco 9 → Reset) em vez de apenas "slots" genéricos
+
+Output atualizado por sessão:
+```json
+{
+  "session_label": "A",
+  "session_name": "MMII Anterior + Core",
+  "blocks": {
+    "neural": [{ "exercise": "Prancha isométrica", "sets": 2, "duration": "30s" }],
+    "integration": [{ "exercise": "Avanço com rotação", "sets": 2, "reps": "8" }],
+    "block_9": [{ "movement_pattern": "Agachamento bilateral", "sets": 4, "reps": "6-8", "cadence": "5:0:1:0", "rest": 90 }],
+    "reset": [{ "exercise": "L.M. Quadríceps + Respiração 4-2-6", "duration": "3min" }]
+  }
+}
 ```
 
-### 5. Atualizar Formulario Admin
+### 5. Atualizar a Visualização (StepReviewGenerate)
 
-O formulario de cadastro do admin (`FormularioAluno`) tambem sera atualizado para usar as mesmas perguntas, mas em formato compacto (selects lado a lado), removendo email como obrigatorio e adicionando as 15 perguntas de treino.
+Mostrar o treino gerado com os 4 blocos visuais (cards coloridos):
+- 🟢 Neural (verde) 
+- 🔵 Integração (azul)
+- 🟠 Bloco 9 (laranja — cor da marca)
+- ⚪ Reset (cinza)
 
----
+### 6. Salvar protocolo selecionado na tabela `smart_treino_macro_rules`
 
-## Arquivos a Criar
+Adicionar colunas: `protocol_code` (text, ex: "4.5.3"), `pillar`, `protocol_name`, `variation_name`, `model_name`.
 
-1. **`src/components/student/SmartReinoQuiz.tsx`** - Quiz de 9 perguntas com cards clicaveis, animacoes de transicao, barra de progresso, e chamada a edge function ao final
+## Arquivos criados/modificados
 
-## Arquivos a Modificar
+| Arquivo | Ação |
+|---------|------|
+| `supabase/migrations/smart_treino_protocols.sql` | Nova tabela + seed de 729 registros |
+| `supabase/migrations/macro_rules_protocol_cols.sql` | Colunas adicionais em `smart_treino_macro_rules` |
+| `src/services/smartTreinoService.ts` | Adicionar tipos e queries para protocolos |
+| `src/components/smart-treino/StepMacroRules.tsx` | Seletor hierárquico Pilar → Protocolo → Variação → Modelo |
+| `src/components/smart-treino/StepParameters.tsx` | Mostrar 4 blocos (Neural/Integração/9/Reset) |
+| `src/components/smart-treino/StepReviewGenerate.tsx` | Visualização em 4 blocos com cores |
+| `supabase/functions/generate-smart-treino/index.ts` | Prompt atualizado com blocos e contexto de protocolo |
 
-1. **`src/components/alunos/FormularioAluno.tsx`** - Reformular: nome + telefone + 15 perguntas de treino clicaveis
-2. **`src/services/alunosService.ts`** - Atualizar interface `Aluno` e `NovoAlunoInput` com novos campos
-3. **`supabase/config.toml`** - Adicionar `analyze-periodization`, mudar `verify_jwt = false`
-4. **`supabase/functions/generate-workout/index.ts`** - Incluir novos campos no prompt, validar JWT manual, melhorar CORS
-5. **`src/pages/StudentInterface.tsx`** - Integrar SmartReinoQuiz quando nao ha treino ativo
+## Questão de seed
 
-## Migracao SQL
+Os 729 registros serão gerados como dados estáticos na migration SQL. Cada registro terá as instruções de bloco (Neural, Integração, Bloco 9, Reset) baseadas na conversa com o Gemini. Isso garante consistência e não depende de chamadas de IA para popular.
 
-```sql
-ALTER TABLE public.alunos
-  ADD COLUMN IF NOT EXISTS tempo_disponivel_min integer DEFAULT 60,
-  ADD COLUMN IF NOT EXISTS historico_lesoes text,
-  ADD COLUMN IF NOT EXISTS foco_muscular varchar DEFAULT 'corpo_todo',
-  ADD COLUMN IF NOT EXISTS condicionamento_cardio varchar DEFAULT 'medio',
-  ADD COLUMN IF NOT EXISTS experiencia_pesos_livres varchar DEFAULT 'basico',
-  ADD COLUMN IF NOT EXISTS preferencia_intensidade varchar DEFAULT 'moderado',
-  ADD COLUMN IF NOT EXISTS preferencia_cardio varchar DEFAULT 'integrado',
-  ADD COLUMN IF NOT EXISTS preferencia_equipamento varchar DEFAULT 'ambos',
-  ADD COLUMN IF NOT EXISTS treina_sozinho boolean DEFAULT true,
-  ADD COLUMN IF NOT EXISTS horario_preferido varchar DEFAULT 'manha',
-  ADD COLUMN IF NOT EXISTS meta_tempo_meses integer DEFAULT 3;
-```
-
----
-
-# Progresso Ecossistema 9FIT
-
-| Fase | Status |
-|---|---|
-| Fase 1 — Segurança e Roles | ✅ Completa |
-| Fase 2 — Services Padronizados | ✅ Completa |
-| Fase 3 — Views Canônicas | ✅ Completa |
-| Fase 4 — API Gateway | ✅ Completa |
-| Fase 5 — Ecossistema | ✅ Completa |
-
-## Views Canônicas Criadas (Fase 3)
-- `v_exercises_canonical` — unifica `exercises` + `exercicios_novos`
-- `v_workouts_canonical` — unifica `planos_treino_aluno` + `workout_models` + `modelos_de_treino`
-- `v_progress_canonical` — unifica `historico_treinos_realizados` + `workout_logs`
-- `v_plans_canonical` — unifica `planos` (comercial)
-- Existentes: `v_students_canonical`, `v_assessments_canonical`, `v_assignments_canonical`, `v_periodizations_canonical`
-
-## Ecosystem (Fase 5)
-- Tabela `ecosystem_config` com RLS (admin write, professor read)
-- Config carregada do banco com cache + fallback local
-- Sistema de eventos com webhook dispatch (quando `crossModuleEvents: true`)
-- `subscribeToEvents()` via Realtime para ouvir eventos de outros módulos
-- `SMARTREINO_DESCRIPTOR` — contrato completo do módulo (views, rotas, eventos, domínios)
-
-## ✅ PLANO 9FIT COMPLETO — Todas as 5 fases implementadas
