@@ -2081,6 +2081,84 @@ export type Database = {
           },
         ]
       }
+      periodization_annual_plans: {
+        Row: {
+          annual_goal: string | null
+          assessment_snapshot: Json | null
+          athlete_id: string
+          coach_id: string
+          created_at: string
+          dominant_profile: Json | null
+          flags: Json | null
+          id: string
+          macrocycles: Json | null
+          master_rules: Json | null
+          mesocycles: Json | null
+          micro_rules: Json | null
+          output_json: Json | null
+          running_distance: string | null
+          scores: Json | null
+          selected_model_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          annual_goal?: string | null
+          assessment_snapshot?: Json | null
+          athlete_id: string
+          coach_id: string
+          created_at?: string
+          dominant_profile?: Json | null
+          flags?: Json | null
+          id?: string
+          macrocycles?: Json | null
+          master_rules?: Json | null
+          mesocycles?: Json | null
+          micro_rules?: Json | null
+          output_json?: Json | null
+          running_distance?: string | null
+          scores?: Json | null
+          selected_model_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          annual_goal?: string | null
+          assessment_snapshot?: Json | null
+          athlete_id?: string
+          coach_id?: string
+          created_at?: string
+          dominant_profile?: Json | null
+          flags?: Json | null
+          id?: string
+          macrocycles?: Json | null
+          master_rules?: Json | null
+          mesocycles?: Json | null
+          micro_rules?: Json | null
+          output_json?: Json | null
+          running_distance?: string | null
+          scores?: Json | null
+          selected_model_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "periodization_annual_plans_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodization_annual_plans_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       periodization_history: {
         Row: {
           change_description: string | null
