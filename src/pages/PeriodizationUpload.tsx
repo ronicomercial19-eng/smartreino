@@ -11,14 +11,16 @@ import { AppLayout } from "@/components/AppLayout";
 import PeriodizationPasteArea from "@/components/PeriodizationPasteArea";
 import PeriodizationAnalysisResults from "@/components/PeriodizationAnalysisResults";
 import FullPlanView from "@/components/workout/FullPlanView";
+import PlanReviewPanel from "@/components/smart-treino/PlanReviewPanel";
 import { grokAIService } from "@/services/grokAIService";
+import { smartPeriodizationService } from "@/services/smartPeriodizationService";
 import { toast } from "@/components/ui/use-toast";
 import { logger } from "@/utils/logger";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseUntyped } from "@/integrations/supabase/untypedClient";
 import {
   Settings, FileText, Target, TrendingUp, Brain, Zap, Cpu, BarChart3,
-  Activity, Clock, Users, Dumbbell, UserCheck, Link as LinkIcon, Layers, Loader2
+  Activity, Clock, Users, Dumbbell, UserCheck, Link as LinkIcon, Layers, Loader2, ClipboardCheck
 } from "lucide-react";
 
 interface Aluno {
@@ -354,12 +356,15 @@ const PeriodizationUpload = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-card border border-border">
+           <TabsList className="grid w-full grid-cols-4 bg-card border border-border">
             <TabsTrigger value="configuracao" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Settings className="h-4 w-4 mr-2" /> Configuração
             </TabsTrigger>
             <TabsTrigger value="treinos" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Dumbbell className="h-4 w-4 mr-2" /> Planos Gerados
+            </TabsTrigger>
+            <TabsTrigger value="revisao" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <ClipboardCheck className="h-4 w-4 mr-2" /> Revisão
             </TabsTrigger>
             <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <TrendingUp className="h-4 w-4 mr-2" /> Análise IA
@@ -637,6 +642,37 @@ const PeriodizationUpload = () => {
               <Button variant="outline" onClick={() => setSelectedPlan(null)} className="mt-2">
                 ← Voltar para lista
               </Button>
+            )}
+          </TabsContent>
+
+          {/* ===== REVISÃO DO PROFESSOR ===== */}
+          <TabsContent value="revisao" className="space-y-6">
+            {selectedPlan?.estrutura_treino ? (
+              <PlanReviewPanel
+                plan={selectedPlan.estrutura_treino}
+                onSave={async (adjustments) => {
+                  try {
+                    await smartPeriodizationService.adjustPlan(selectedPlan.id, adjustments);
+                    toast({ title: "✅ Ajustes salvos!", description: "O plano foi atualizado com seus ajustes." });
+                    await loadSavedPlans();
+                  } catch (error: any) {
+                    toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+                  }
+                }}
+              />
+            ) : (
+              <Card className="bg-card border-border">
+                <CardContent className="py-12 text-center">
+                  <ClipboardCheck className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2 text-foreground">Nenhum plano selecionado</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Selecione um plano na aba "Planos Gerados" para revisar e ajustar
+                  </p>
+                  <Button onClick={() => setActiveTab("treinos")} variant="outline">
+                    <Dumbbell className="h-4 w-4 mr-2" /> Ver Planos
+                  </Button>
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
 
