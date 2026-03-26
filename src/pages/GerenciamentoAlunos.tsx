@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { FormularioAluno } from '@/components/alunos/FormularioAluno';
 import { TabelaAlunos } from '@/components/alunos/TabelaAlunos';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function GerenciamentoAlunos() {
   const { toast } = useToast();
@@ -24,6 +25,7 @@ export default function GerenciamentoAlunos() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogAberto, setDialogAberto] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
   const [estatisticas, setEstatisticas] = useState({
     total: 0,
     ativos: 0,
@@ -31,8 +33,25 @@ export default function GerenciamentoAlunos() {
     porObjetivo: {} as Record<string, number>
   });
 
+  // Wait for auth session before loading data
   useEffect(() => {
-    carregarDados();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthReady(true);
+      if (session?.user) {
+        carregarDados();
+      } else {
+        setLoading(false);
+      }
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setAuthReady(true);
+      if (session?.user) {
+        carregarDados();
+      } else {
+        setLoading(false);
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {

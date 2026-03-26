@@ -34,29 +34,41 @@ serve(async (req) => {
       });
     }
 
-    const { studentId, periodizationModelId, periodizationText, formData } = await req.json();
+    const { studentId, periodizationModelId, periodizationText, formData, smartTreinoContext } = await req.json();
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // 1. Fetch student data
-    const { data: student, error: studentError } = await supabase
-      .from('alunos')
-      .select('*')
-      .eq('id', studentId)
-      .single();
-
-    if (studentError || !student) {
-      throw new Error('Aluno não encontrado');
+    // 1. Fetch student data (try athletes first, then alunos)
+    let student: any = null;
+    const { data: athleteData } = await supabase.from('athletes').select('*').eq('id', studentId).single();
+    if (athleteData) {
+      student = {
+        nome: athleteData.name,
+        objetivo: athleteData.objetivo || athleteData.primary_goal,
+        nivel_experiencia: athleteData.nivel || athleteData.experience_level,
+        frequencia_semanal: athleteData.sessions_per_week || athleteData.weekly_frequency,
+        ambiente_treino: athleteData.training_environment,
+        tempo_disponivel_min: 60,
+        historico_lesoes: athleteData.injuries_limitations,
+        restricoes_medicas: athleteData.injuries?.join(', '),
+        foco_muscular: 'corpo_todo',
+        condicionamento_cardio: 'medio',
+        experiencia_pesos_livres: 'basico',
+        preferencia_intensidade: 'moderado',
+        preferencia_cardio: 'integrado',
+        preferencia_equipamento: 'ambos',
+        meta_tempo_meses: 3,
+      };
+    } else {
+      const { data: alunoData, error: alunoError } = await supabase.from('alunos').select('*').eq('id', studentId).single();
+      if (alunoError || !alunoData) throw new Error('Aluno não encontrado');
+      student = alunoData;
     }
 
     // 2. Fetch periodization model if provided
     let periodizationModel = null;
     if (periodizationModelId) {
-      const { data: model } = await supabase
-        .from('periodization_models')
-        .select('*')
-        .eq('id', periodizationModelId)
-        .single();
+      const { data: model } = await supabase.from('periodization_models').select('*').eq('id', periodizationModelId).single();
       periodizationModel = model;
     }
 
@@ -89,7 +101,58 @@ ${periodizationText}
 `
         : '';
 
-    const prompt = `Você é um especialista em periodização de treinamento e prescrição de exercícios. Gere um PLANO DE TREINO COMPLETO organizado hierarquicamente em Macrociclo > Mesociclos > Semanas > Dias.
+    // 4. Build Smart Treino 9FIT protocol context
+    let smartTreinoBlock = '';
+    if (smartTreinoContext) {
+      smartTreinoBlock = `
+PROTOCOLO 9FIT APLICADO (OBRIGATÓRIO):
+- Código: ${smartTreinoContext.protocol_code}
+- Pilar: ${smartTreinoContext.pillar}
+- Protocolo: ${smartTreinoContext.protocol_name} (${smartTreinoContext.protocol_axis})
+- Variação: ${smartTreinoContext.variation_name} — ${smartTreinoContext.variation_focus}
+- Modelo: ${smartTreinoContext.model_description}
+- RPE: ${smartTreinoContext.rpe_range}
+
+ESTRUTURA OBRIGATÓRIA POR SESSÃO (4 BLOCOS):
+1. NEURAL (Despertar SNC): ${smartTreinoContext.block_neural}
+2. INTEGRAÇÃO (Conexão de cadeias): ${smartTreinoContext.block_integration}
+3. BLOCO 9 (Execução principal): ${JSON.stringify(smartTreinoContext.block_9_template)}
+4. RESET (Recuperação): ${smartTreinoContext.block_reset}
+
+REGRA: Cada dia de treino DEVE seguir a ordem Neural → Integração → Bloco 9 → Reset.
+Organize os exercícios dentro dos 4 blocos obrigatórios.
+`;
+
+      if (smartTreinoContext.profile) {
+        smartTreinoBlock += `
+PERFIL TÉCNICO DO ATLETA:
+- Perfil dominante: ${smartTreinoContext.profile.dominant_profile}
+- Score global: ${smartTreinoContext.profile.score_global}
+- Gargalos: ${smartTreinoContext.profile.gargalos?.join(', ') || 'nenhum'}
+- Riscos: ${smartTreinoContext.profile.riscos?.join(', ') || 'nenhum'}
+`;
+      }
+
+      if (smartTreinoContext.rules) {
+        smartTreinoBlock += `
+REGRAS DO MACROCICLO:
+- Reps: ${smartTreinoContext.rules.reps_range}
+- RPE alvo: ${smartTreinoContext.rules.rpe_target}
+- Progressão: ${smartTreinoContext.rules.progression_type}
+- Densidade controlada: ${smartTreinoContext.rules.density_control ? 'SIM' : 'NÃO'}
+- Volume travado: ${smartTreinoContext.rules.volume_locked ? 'SIM' : 'NÃO'}
+`;
+      }
+
+      if (smartTreinoContext.volumes?.length > 0) {
+        smartTreinoBlock += `
+VOLUME SEMANAL POR MÚSCULO:
+${smartTreinoContext.volumes.map((v: any) => `- ${v.muscle}: ${v.sets} séries/sem ${v.emphasis ? '(ÊNFASE)' : ''}`).join('\n')}
+`;
+      }
+    }
+
+    const prompt = `Você é o SMART PERIODIZER da 9FIT — módulo de geração de planos periodizados completos.
 
 PERFIL DO ALUNO:
 - Nome: ${student.nome}
@@ -103,11 +166,10 @@ PERFIL DO ALUNO:
 - Condicionamento cardio: ${student.condicionamento_cardio || 'medio'}
 - Experiência com pesos: ${student.experiencia_pesos_livres || 'basico'}
 - Preferência intensidade: ${student.preferencia_intensidade || 'moderado'}
-- Preferência cardio: ${student.preferencia_cardio || 'integrado'}
-- Equipamento: ${student.preferencia_equipamento || 'ambos'}
 - Meta de tempo: ${student.meta_tempo_meses || 3} meses
 
 ${periodizationContext}
+${smartTreinoBlock}
 
 INSTRUÇÕES CRÍTICAS:
 1. Crie um plano COMPLETO para ${student.meta_tempo_meses || 3} meses (${(student.meta_tempo_meses || 3) * 4} semanas aprox.)
@@ -116,12 +178,13 @@ INSTRUÇÕES CRÍTICAS:
 4. Cada exercício deve ter: nome, séries, repetições, descanso e observação
 5. Aplique princípios de periodização: progressão de volume/intensidade, deload a cada 3-4 semanas
 6. Considere o ambiente (${student.ambiente_treino || 'academia'}) na seleção de exercícios
+${smartTreinoContext ? '7. OBRIGATÓRIO: Organize cada dia nos 4 blocos (neural, integração, bloco_9, reset) conforme protocolo 9FIT' : ''}
 
 RETORNE APENAS JSON VÁLIDO no seguinte formato:
 {
   "macrociclo": {
     "nome": "Nome descritivo do macrociclo",
-    "duracao_semanas": número_total_de_semanas
+    "duracao_semanas": número_total_de_semanas${smartTreinoContext ? ',\n    "protocolo_9fit": "código do protocolo",\n    "pilar": "nome do pilar"' : ''}
   },
   "mesociclos": [
     {
@@ -142,15 +205,15 @@ RETORNE APENAS JSON VÁLIDO no seguinte formato:
       "dias": [
         {
           "dia": "Segunda",
-          "nome": "Treino A - Peito e Tríceps",
-          "tipo": "Peito e Tríceps",
+          "nome": "Treino A - Descrição",
+          "tipo": "Tipo do treino",
           "exercicios": [
             {
-              "nome": "Supino Reto com Barra",
+              "nome": "Nome do Exercício",
               "series": "4",
               "repeticoes": "8-12",
               "descanso": "90s",
-              "observacao": "Escápulas retraídas, controle excêntrico"
+              "observacao": "Notas técnicas"${smartTreinoContext ? ',\n              "bloco": "neural|integration|block_9|reset"' : ''}
             }
           ]
         }
@@ -162,11 +225,9 @@ RETORNE APENAS JSON VÁLIDO no seguinte formato:
 IMPORTANTE: Gere TODAS as semanas completas com TODOS os dias e exercícios. Não use abreviações como "repita semana X".`;
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY não configurada');
-    }
+    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY não configurada');
 
-    console.log('🏋️ Gerando plano completo para:', student.nome, '| Semanas:', (student.meta_tempo_meses || 3) * 4);
+    console.log('🏋️ Gerando plano completo para:', student.nome, '| Semanas:', (student.meta_tempo_meses || 3) * 4, smartTreinoContext ? `| Protocolo 9FIT: ${smartTreinoContext.protocol_code}` : '');
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -178,11 +239,11 @@ IMPORTANTE: Gere TODAS as semanas completas com TODOS os dias e exercícios. Nã
         messages: [
           {
             role: 'system',
-            content: 'Você é um especialista certificado em prescrição de exercícios e periodização de treinamento. Retorne APENAS JSON válido em português brasileiro. Gere planos completos com exercícios reais e específicos para cada dia de cada semana.'
+            content: 'Você é o SMART PERIODIZER da 9FIT — especialista certificado em prescrição de exercícios e periodização. Retorne APENAS JSON válido em português brasileiro. Gere planos completos com exercícios reais e específicos para cada dia de cada semana. Se um protocolo 9FIT for fornecido, organize cada dia nos 4 blocos obrigatórios: Neural → Integração → Bloco 9 → Reset.'
           },
           { role: 'user', content: prompt }
         ],
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-3-flash-preview',
         temperature: 0.7,
       }),
     });
@@ -190,7 +251,6 @@ IMPORTANTE: Gere TODAS as semanas completas com TODOS os dias e exercícios. Nã
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
       console.error('AI API error:', aiResponse.status, errText);
-
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ success: false, error: 'Rate limit excedido. Tente novamente em alguns minutos.' }), {
           status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -201,7 +261,6 @@ IMPORTANTE: Gere TODAS as semanas completas com TODOS os dias e exercícios. Nã
           status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-
       throw new Error(`Erro na API de IA: ${aiResponse.status}`);
     }
 
@@ -222,7 +281,6 @@ IMPORTANTE: Gere TODAS as semanas completas com TODOS os dias e exercícios. Nã
       throw new Error('Falha ao processar resposta da IA');
     }
 
-    // Validate structure
     if (!fullPlan.macrociclo || !fullPlan.mesociclos || !fullPlan.semanas) {
       console.error('Invalid plan structure:', Object.keys(fullPlan));
       throw new Error('Estrutura do plano inválida');
@@ -230,7 +288,11 @@ IMPORTANTE: Gere TODAS as semanas completas com TODOS os dias e exercícios. Nã
 
     console.log('✅ Plano gerado:', fullPlan.macrociclo.nome, '|', fullPlan.semanas.length, 'semanas |', fullPlan.mesociclos.length, 'mesociclos');
 
-    // 4. Save to planos_treino_aluno
+    // 5. Save to planos_treino_aluno
+    const tipoPeriodizacao = smartTreinoContext
+      ? `smart_treino_v2 (${smartTreinoContext.protocol_code})`
+      : periodizationModel?.title || 'Personalizada';
+
     const { data: savedPlan, error: saveError } = await supabase
       .from('planos_treino_aluno')
       .insert({
@@ -241,7 +303,7 @@ IMPORTANTE: Gere TODAS as semanas completas com TODOS os dias e exercícios. Nã
         duracao_semanas: fullPlan.macrociclo.duracao_semanas || fullPlan.semanas.length,
         frequencia_semanal: freq,
         estrutura_treino: fullPlan,
-        tipo_periodizacao: periodizationModel?.title || 'Personalizada',
+        tipo_periodizacao: tipoPeriodizacao,
         fase_atual: fullPlan.mesociclos[0]?.nome || 'Fase 1',
         semana_atual: 1,
         status: 'ativo',
@@ -271,6 +333,7 @@ IMPORTANTE: Gere TODAS as semanas completas com TODOS os dias e exercícios. Nã
         total_semanas: fullPlan.semanas.length,
         total_mesociclos: fullPlan.mesociclos.length,
         mesociclos: fullPlan.mesociclos.map((m: any) => m.nome),
+        protocolo_9fit: smartTreinoContext?.protocol_code || null,
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
