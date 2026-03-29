@@ -101,7 +101,7 @@ export class AlunosService {
     const { data, error } = await supabase
       .from('alunos')
       .insert({
-        professor_id: userData.user.id,
+        professor_id: userId,
         nome: aluno.nome,
         email,
         objetivo: aluno.objetivo,
