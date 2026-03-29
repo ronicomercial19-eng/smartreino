@@ -83,13 +83,14 @@ export class AlunosService {
    * Criar novo aluno
    */
   static async criarAluno(aluno: NovoAlunoInput): Promise<Aluno> {
-    // 1. Get authenticated user FIRST
-    const { data: userData, error: userError } = await supabase.auth.getUser();
+    // 1. Get authenticated user — prefer getSession (local) over getUser (network)
+    const { data: { session } } = await supabase.auth.getSession();
     
-    if (userError || !userData.user) {
-      logger.error('Usuário não autenticado ao criar aluno', 'AlunosService.criarAluno', userError);
+    if (!session?.user) {
+      logger.error('Usuário não autenticado ao criar aluno', 'AlunosService.criarAluno', null);
       throw new Error('Usuário não autenticado. Faça login novamente.');
     }
+    const userId = session.user.id;
 
     // 2. Generate email if not provided (field is required by DB)
     const email = aluno.email && aluno.email.trim()
@@ -100,7 +101,7 @@ export class AlunosService {
     const { data, error } = await supabase
       .from('alunos')
       .insert({
-        professor_id: userData.user.id,
+        professor_id: userId,
         nome: aluno.nome,
         email,
         objetivo: aluno.objetivo,
