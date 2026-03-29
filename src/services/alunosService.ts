@@ -83,49 +83,48 @@ export class AlunosService {
    * Criar novo aluno
    */
   static async criarAluno(aluno: NovoAlunoInput): Promise<Aluno> {
-    // Validação básica - email opcional agora
-    if (aluno.email && !SecurityService.validateEmail(aluno.email)) {
-      throw new Error('Email inválido');
-    }
-
-    // Se email fornecido, verificar duplicado
-    if (aluno.email) {
-      const { data: existingAluno } = await supabase
-        .from('alunos')
-        .select('id, email')
-        .eq('email', aluno.email)
-        .eq('status', 'ativo')
-        .maybeSingle();
-
-      if (existingAluno) {
-        throw new Error('Aluno já cadastrado com este email');
-      }
-    }
-
+    // 1. Get authenticated user FIRST
     const { data: userData, error: userError } = await supabase.auth.getUser();
     
     if (userError || !userData.user) {
-      throw new Error('Usuário não autenticado');
+      logger.error('Usuário não autenticado ao criar aluno', 'AlunosService.criarAluno', userError);
+      throw new Error('Usuário não autenticado. Faça login novamente.');
     }
 
-    const alunoData = {
-      professor_id: userData.user.id,
-      ...aluno,
-      // Garantir email não vazio para o banco
-      email: aluno.email || `${aluno.nome.toLowerCase().replace(/\s+/g, '.')}@smartreino.app`,
-    };
+    // 2. Generate email if not provided (field is required by DB)
+    const email = aluno.email && aluno.email.trim()
+      ? aluno.email.trim()
+      : `${aluno.nome.toLowerCase().replace(/[^a-z0-9]/g, '.')}.${Date.now()}@smartreino.app`;
 
-    const compliance = SecurityService.checkLGPDCompliance(alunoData);
-    if (!compliance.compliant) {
-      logger.warn('Dados não conformes com LGPD', 'AlunosService.criarAluno', {
-        issues: compliance.issues
-      });
-    }
-
+    // 3. Insert directly — let DB constraints handle uniqueness
     const { data, error } = await supabase
       .from('alunos')
       .insert({
-        ...alunoData,
+        professor_id: userData.user.id,
+        nome: aluno.nome,
+        email,
+        objetivo: aluno.objetivo,
+        telefone: aluno.telefone || null,
+        data_nascimento: aluno.data_nascimento || null,
+        peso_atual: aluno.peso_atual || null,
+        altura_cm: aluno.altura_cm || null,
+        nivel_experiencia: aluno.nivel_experiencia || null,
+        ambiente_treino: aluno.ambiente_treino || null,
+        restricoes_medicas: aluno.restricoes_medicas || null,
+        observacoes: aluno.observacoes || null,
+        frequencia_semanal: aluno.frequencia_semanal || null,
+        genero: aluno.genero || null,
+        tempo_disponivel_min: aluno.tempo_disponivel_min || null,
+        historico_lesoes: aluno.historico_lesoes || null,
+        foco_muscular: aluno.foco_muscular || null,
+        condicionamento_cardio: aluno.condicionamento_cardio || null,
+        experiencia_pesos_livres: aluno.experiencia_pesos_livres || null,
+        preferencia_intensidade: aluno.preferencia_intensidade || null,
+        preferencia_cardio: aluno.preferencia_cardio || null,
+        preferencia_equipamento: aluno.preferencia_equipamento || null,
+        treina_sozinho: aluno.treina_sozinho ?? null,
+        horario_preferido: aluno.horario_preferido || null,
+        meta_tempo_meses: aluno.meta_tempo_meses || null,
         status: 'ativo'
       })
       .select()
@@ -133,15 +132,11 @@ export class AlunosService {
 
     if (error) {
       logger.error('Erro ao criar aluno', 'AlunosService.criarAluno', error);
+      if (error.code === '23505') {
+        throw new Error('Aluno já cadastrado com este email');
+      }
       throw error;
     }
-
-    await SecurityService.auditDataAccess(
-      userData.user.id,
-      'write',
-      'alunos',
-      data.id
-    );
 
     logger.info('Aluno criado com sucesso', 'AlunosService.criarAluno', { alunoId: data.id });
     return data as Aluno;
