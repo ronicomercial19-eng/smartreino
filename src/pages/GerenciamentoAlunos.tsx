@@ -3,11 +3,11 @@
  * Funcionalidades: Listar, Adicionar, Editar, Excluir, Enviar Treino
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PageLayout } from '@/components/shared/PageLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { AlunosService, type Aluno } from '@/services/alunosService';
 import { Plus, Search, Users, TrendingUp } from 'lucide-react';
@@ -21,55 +21,25 @@ import { supabase } from '@/integrations/supabase/client';
 export default function GerenciamentoAlunos() {
   const { toast } = useToast();
   const [alunos, setAlunos] = useState<Aluno[]>([]);
-  const [alunosFiltrados, setAlunosFiltrados] = useState<Aluno[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogAberto, setDialogAberto] = useState(false);
-  const [authReady, setAuthReady] = useState(false);
   const [estatisticas, setEstatisticas] = useState({
-    total: 0,
-    ativos: 0,
-    inativos: 0,
+    total: 0, ativos: 0, inativos: 0,
     porObjetivo: {} as Record<string, number>
   });
 
-  // Wait for auth session before loading data
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthReady(true);
-      if (session?.user) {
-        carregarDados();
-      } else {
-        setLoading(false);
-      }
-    });
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setAuthReady(true);
-      if (session?.user) {
-        carregarDados();
-      } else {
-        setLoading(false);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    filtrarAlunos();
-  }, [searchTerm, alunos]);
-
-  const carregarDados = async () => {
+  const carregarDados = useCallback(async () => {
     try {
       setLoading(true);
       const [alunosData, stats] = await Promise.all([
         AlunosService.listarAlunos(),
         AlunosService.obterEstatisticas()
       ]);
-      
       setAlunos(alunosData);
       setEstatisticas(stats);
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      console.error('[GerenciamentoAlunos] Erro:', error);
       toast({
         variant: "destructive",
         title: "Erro ao carregar alunos",
@@ -78,41 +48,58 @@ export default function GerenciamentoAlunos() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const filtrarAlunos = () => {
-    if (!searchTerm.trim()) {
-      setAlunosFiltrados(alunos);
-      return;
-    }
+  // Wait for auth then load
+  useEffect(() => {
+    let mounted = true;
 
-    const termo = searchTerm.toLowerCase();
-    const filtrados = alunos.filter(aluno => 
-      aluno.nome.toLowerCase().includes(termo) ||
-      aluno.email.toLowerCase().includes(termo) ||
-      aluno.objetivo.toLowerCase().includes(termo)
-    );
-    
-    setAlunosFiltrados(filtrados);
-  };
+    const tryLoad = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user && mounted) {
+        carregarDados();
+      } else if (mounted) {
+        setLoading(false);
+      }
+    };
+
+    // Listen for auth changes (login/logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user && mounted) {
+        carregarDados();
+      } else if (mounted) {
+        setLoading(false);
+      }
+    });
+
+    tryLoad();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [carregarDados]);
+
+  // Filter
+  const alunosFiltrados = searchTerm.trim()
+    ? alunos.filter(a => {
+        const t = searchTerm.toLowerCase();
+        return a.nome.toLowerCase().includes(t) ||
+               a.email.toLowerCase().includes(t) ||
+               a.objetivo.toLowerCase().includes(t);
+      })
+    : alunos;
 
   const handleAlunoAdicionado = () => {
     setDialogAberto(false);
     carregarDados();
-    toast({
-      title: "✅ Aluno cadastrado",
-      description: "Aluno adicionado com sucesso ao sistema"
-    });
   };
 
   const handleExcluirAluno = async (id: string) => {
     try {
       await AlunosService.excluirAluno(id);
       carregarDados();
-      toast({
-        title: "✅ Aluno removido",
-        description: "Aluno marcado como inativo"
-      });
+      toast({ title: "✅ Aluno removido", description: "Aluno marcado como inativo" });
     } catch (error) {
       toast({
         variant: "destructive",
@@ -123,11 +110,7 @@ export default function GerenciamentoAlunos() {
   };
 
   if (loading) {
-    return (
-      <PageLayout>
-        <LoadingSpinner />
-      </PageLayout>
-    );
+    return <PageLayout><LoadingSpinner /></PageLayout>;
   }
 
   return (
@@ -163,9 +146,7 @@ export default function GerenciamentoAlunos() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{estatisticas.total}</div>
-            <p className="text-xs text-muted-foreground">
-              {estatisticas.ativos} ativos
-            </p>
+            <p className="text-xs text-muted-foreground">{estatisticas.ativos} ativos</p>
           </CardContent>
         </Card>
 
@@ -180,9 +161,7 @@ export default function GerenciamentoAlunos() {
                 ? Math.round((estatisticas.ativos / estatisticas.total) * 100)
                 : 0}%
             </div>
-            <p className="text-xs text-muted-foreground">
-              Alunos ativos no sistema
-            </p>
+            <p className="text-xs text-muted-foreground">Alunos ativos no sistema</p>
           </CardContent>
         </Card>
 
@@ -197,6 +176,9 @@ export default function GerenciamentoAlunos() {
                   {objetivo}: {count}
                 </Badge>
               ))}
+              {Object.keys(estatisticas.porObjetivo).length === 0 && (
+                <span className="text-xs text-muted-foreground">Sem dados</span>
+              )}
             </div>
           </CardContent>
         </Card>

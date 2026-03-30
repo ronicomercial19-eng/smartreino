@@ -8,10 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlunosService, type NovoAlunoInput, type Aluno } from '@/services/alunosService';
 import { useToast } from '@/hooks/use-toast';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { 
   Target, Dumbbell, Calendar, MapPin, Clock, AlertTriangle, 
@@ -22,6 +20,8 @@ interface FormularioAlunoProps {
   aluno?: Aluno;
   onSuccess: () => void;
 }
+
+// ── Option constants ──
 
 const OBJETIVOS = [
   { value: 'hipertrofia', label: 'Hipertrofia', icon: Dumbbell },
@@ -39,11 +39,11 @@ const NIVEIS = [
 ];
 
 const FREQUENCIAS = [
-  { value: 2, label: '2x/sem' },
-  { value: 3, label: '3x/sem' },
-  { value: 4, label: '4x/sem' },
-  { value: 5, label: '5x/sem' },
-  { value: 6, label: '6x/sem' },
+  { value: '2', label: '2x/sem' },
+  { value: '3', label: '3x/sem' },
+  { value: '4', label: '4x/sem' },
+  { value: '5', label: '5x/sem' },
+  { value: '6', label: '6x/sem' },
 ];
 
 const AMBIENTES = [
@@ -54,10 +54,10 @@ const AMBIENTES = [
 ];
 
 const TEMPOS = [
-  { value: 30, label: '30 min' },
-  { value: 45, label: '45 min' },
-  { value: 60, label: '60 min' },
-  { value: 90, label: '90 min' },
+  { value: '30', label: '30 min' },
+  { value: '45', label: '45 min' },
+  { value: '60', label: '60 min' },
+  { value: '90', label: '90 min' },
 ];
 
 const LESOES = [
@@ -111,23 +111,25 @@ const HORARIOS = [
 ];
 
 const METAS_TEMPO = [
-  { value: 1, label: '1 mês' },
-  { value: 3, label: '3 meses' },
-  { value: 6, label: '6 meses' },
-  { value: 12, label: '12 meses' },
+  { value: '1', label: '1 mês' },
+  { value: '3', label: '3 meses' },
+  { value: '6', label: '6 meses' },
+  { value: '12', label: '12 meses' },
 ];
 
+// ── Chip selector ──
+
 interface ChipSelectorProps {
-  options: { value: string | number; label: string; icon?: any }[];
-  value: string | number | undefined;
-  onChange: (val: any) => void;
+  options: { value: string; label: string; icon?: any }[];
+  value: string | undefined;
+  onChange: (val: string) => void;
 }
 
 function ChipSelector({ options, value, onChange }: ChipSelectorProps) {
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((opt) => {
-        const isSelected = String(value) === String(opt.value);
+        const isSelected = value === opt.value;
         const Icon = opt.icon;
         return (
           <button
@@ -149,63 +151,114 @@ function ChipSelector({ options, value, onChange }: ChipSelectorProps) {
   );
 }
 
+// ── Form state (all strings for simplicity, convert on submit) ──
+
+interface FormState {
+  nome: string;
+  telefone: string;
+  objetivo: string;
+  nivel_experiencia: string;
+  frequencia_semanal: string;
+  ambiente_treino: string;
+  tempo_disponivel_min: string;
+  historico_lesoes: string;
+  foco_muscular: string;
+  condicionamento_cardio: string;
+  experiencia_pesos_livres: string;
+  preferencia_intensidade: string;
+  preferencia_cardio: string;
+  preferencia_equipamento: string;
+  treina_sozinho: string;
+  horario_preferido: string;
+  meta_tempo_meses: string;
+  observacoes: string;
+}
+
+function buildInitialState(aluno?: Aluno): FormState {
+  return {
+    nome: aluno?.nome ?? '',
+    telefone: aluno?.telefone ?? '',
+    objetivo: aluno?.objetivo ?? 'hipertrofia',
+    nivel_experiencia: aluno?.nivel_experiencia ?? 'iniciante',
+    frequencia_semanal: String(aluno?.frequencia_semanal ?? 3),
+    ambiente_treino: aluno?.ambiente_treino ?? 'academia',
+    tempo_disponivel_min: String(aluno?.tempo_disponivel_min ?? 60),
+    historico_lesoes: aluno?.historico_lesoes ?? 'nenhuma',
+    foco_muscular: aluno?.foco_muscular ?? 'corpo_todo',
+    condicionamento_cardio: aluno?.condicionamento_cardio ?? 'medio',
+    experiencia_pesos_livres: aluno?.experiencia_pesos_livres ?? 'basico',
+    preferencia_intensidade: aluno?.preferencia_intensidade ?? 'curto_intenso',
+    preferencia_cardio: aluno?.preferencia_cardio ?? 'integrado',
+    preferencia_equipamento: aluno?.preferencia_equipamento ?? 'ambos',
+    treina_sozinho: String(aluno?.treina_sozinho ?? true),
+    horario_preferido: aluno?.horario_preferido ?? 'manha',
+    meta_tempo_meses: String(aluno?.meta_tempo_meses ?? 3),
+    observacoes: aluno?.observacoes ?? '',
+  };
+}
+
+// ── Main component ──
+
 export function FormularioAluno({ aluno, onSuccess }: FormularioAlunoProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<Partial<NovoAlunoInput>>({
-    nome: aluno?.nome || '',
-    email: aluno?.email || '',
-    telefone: aluno?.telefone || '',
-    objetivo: aluno?.objetivo || 'hipertrofia',
-    nivel_experiencia: aluno?.nivel_experiencia || 'iniciante',
-    frequencia_semanal: aluno?.frequencia_semanal || 3,
-    ambiente_treino: aluno?.ambiente_treino || 'academia',
-    tempo_disponivel_min: aluno?.tempo_disponivel_min || 60,
-    historico_lesoes: aluno?.historico_lesoes || 'nenhuma',
-    foco_muscular: aluno?.foco_muscular || 'corpo_todo',
-    condicionamento_cardio: aluno?.condicionamento_cardio || 'medio',
-    experiencia_pesos_livres: aluno?.experiencia_pesos_livres || 'basico',
-    preferencia_intensidade: aluno?.preferencia_intensidade || 'curto_intenso',
-    preferencia_cardio: aluno?.preferencia_cardio || 'integrado',
-    preferencia_equipamento: aluno?.preferencia_equipamento || 'ambos',
-    treina_sozinho: aluno?.treina_sozinho ?? true,
-    horario_preferido: aluno?.horario_preferido || 'manha',
-    meta_tempo_meses: aluno?.meta_tempo_meses || 3,
-    observacoes: aluno?.observacoes || '',
-  });
+  const [form, setForm] = useState<FormState>(() => buildInitialState(aluno));
+
+  const set = (field: keyof FormState) => (val: string) =>
+    setForm(prev => ({ ...prev, [field]: val }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.nome) {
+
+    if (!form.nome.trim()) {
       toast({ variant: "destructive", title: "Campo obrigatório", description: "Preencha o nome do aluno" });
       return;
     }
 
+    setLoading(true);
+
     try {
-      setLoading(true);
-      
+      const input: NovoAlunoInput = {
+        nome: form.nome.trim(),
+        email: '', // auto-generated by service
+        telefone: form.telefone || undefined,
+        objetivo: form.objetivo,
+        nivel_experiencia: form.nivel_experiencia,
+        frequencia_semanal: Number(form.frequencia_semanal),
+        ambiente_treino: form.ambiente_treino,
+        tempo_disponivel_min: Number(form.tempo_disponivel_min),
+        historico_lesoes: form.historico_lesoes,
+        foco_muscular: form.foco_muscular,
+        condicionamento_cardio: form.condicionamento_cardio,
+        experiencia_pesos_livres: form.experiencia_pesos_livres,
+        preferencia_intensidade: form.preferencia_intensidade,
+        preferencia_cardio: form.preferencia_cardio,
+        preferencia_equipamento: form.preferencia_equipamento,
+        treina_sozinho: form.treina_sozinho === 'true',
+        horario_preferido: form.horario_preferido,
+        meta_tempo_meses: Number(form.meta_tempo_meses),
+        observacoes: form.observacoes || undefined,
+      };
+
       if (aluno) {
-        await AlunosService.atualizarAluno(aluno.id, formData as NovoAlunoInput);
+        await AlunosService.atualizarAluno(aluno.id, input);
         toast({ title: "✅ Aluno atualizado", description: "Dados atualizados com sucesso" });
       } else {
-        await AlunosService.criarAluno(formData as NovoAlunoInput);
+        await AlunosService.criarAluno(input);
+        toast({ title: "✅ Aluno cadastrado", description: "Aluno adicionado com sucesso ao sistema" });
       }
-      
+
       onSuccess();
     } catch (error) {
+      console.error('[FormularioAluno] Erro:', error);
       toast({
         variant: "destructive",
-        title: "Erro ao salvar",
-        description: error instanceof Error ? error.message : "Erro desconhecido"
+        title: "Erro ao salvar aluno",
+        description: error instanceof Error ? error.message : "Erro desconhecido. Tente novamente."
       });
     } finally {
       setLoading(false);
     }
-  };
-
-  const updateField = (field: keyof NovoAlunoInput, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -218,11 +271,22 @@ export function FormularioAluno({ aluno, onSuccess }: FormularioAlunoProps) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="nome">Nome Completo *</Label>
-            <Input id="nome" value={formData.nome} onChange={(e) => updateField('nome', e.target.value)} required />
+            <Input
+              id="nome"
+              value={form.nome}
+              onChange={(e) => set('nome')(e.target.value)}
+              required
+              placeholder="Nome do aluno"
+            />
           </div>
           <div>
             <Label htmlFor="telefone">Telefone/WhatsApp</Label>
-            <Input id="telefone" value={formData.telefone} onChange={(e) => updateField('telefone', e.target.value)} placeholder="(11) 99999-9999" />
+            <Input
+              id="telefone"
+              value={form.telefone}
+              onChange={(e) => set('telefone')(e.target.value)}
+              placeholder="(11) 99999-9999"
+            />
           </div>
         </div>
       </div>
@@ -237,39 +301,39 @@ export function FormularioAluno({ aluno, onSuccess }: FormularioAlunoProps) {
         <div className="space-y-4">
           <div>
             <Label className="flex items-center gap-1.5 mb-2"><Target className="h-3.5 w-3.5" /> 1. Objetivo Principal</Label>
-            <ChipSelector options={OBJETIVOS} value={formData.objetivo} onChange={(v) => updateField('objetivo', v)} />
+            <ChipSelector options={OBJETIVOS} value={form.objetivo} onChange={set('objetivo')} />
           </div>
           <div>
             <Label className="flex items-center gap-1.5 mb-2"><Activity className="h-3.5 w-3.5" /> 2. Nível de Experiência</Label>
-            <ChipSelector options={NIVEIS} value={formData.nivel_experiencia} onChange={(v) => updateField('nivel_experiencia', v)} />
+            <ChipSelector options={NIVEIS} value={form.nivel_experiencia} onChange={set('nivel_experiencia')} />
           </div>
           <div>
             <Label className="flex items-center gap-1.5 mb-2"><Calendar className="h-3.5 w-3.5" /> 3. Frequência Semanal</Label>
-            <ChipSelector options={FREQUENCIAS} value={formData.frequencia_semanal} onChange={(v) => updateField('frequencia_semanal', v)} />
+            <ChipSelector options={FREQUENCIAS} value={form.frequencia_semanal} onChange={set('frequencia_semanal')} />
           </div>
           <div>
             <Label className="flex items-center gap-1.5 mb-2"><MapPin className="h-3.5 w-3.5" /> 4. Ambiente de Treino</Label>
-            <ChipSelector options={AMBIENTES} value={formData.ambiente_treino} onChange={(v) => updateField('ambiente_treino', v)} />
+            <ChipSelector options={AMBIENTES} value={form.ambiente_treino} onChange={set('ambiente_treino')} />
           </div>
           <div>
             <Label className="flex items-center gap-1.5 mb-2"><Clock className="h-3.5 w-3.5" /> 5. Tempo Disponível por Sessão</Label>
-            <ChipSelector options={TEMPOS} value={formData.tempo_disponivel_min} onChange={(v) => updateField('tempo_disponivel_min', v)} />
+            <ChipSelector options={TEMPOS} value={form.tempo_disponivel_min} onChange={set('tempo_disponivel_min')} />
           </div>
           <div>
             <Label className="flex items-center gap-1.5 mb-2"><AlertTriangle className="h-3.5 w-3.5" /> 6. Histórico de Lesões</Label>
-            <ChipSelector options={LESOES} value={formData.historico_lesoes} onChange={(v) => updateField('historico_lesoes', v)} />
+            <ChipSelector options={LESOES} value={form.historico_lesoes} onChange={set('historico_lesoes')} />
           </div>
           <div>
             <Label className="flex items-center gap-1.5 mb-2"><Dumbbell className="h-3.5 w-3.5" /> 7. Foco Muscular Prioritário</Label>
-            <ChipSelector options={FOCOS} value={formData.foco_muscular} onChange={(v) => updateField('foco_muscular', v)} />
+            <ChipSelector options={FOCOS} value={form.foco_muscular} onChange={set('foco_muscular')} />
           </div>
           <div>
             <Label className="flex items-center gap-1.5 mb-2"><HeartPulse className="h-3.5 w-3.5" /> 8. Condicionamento Cardiovascular</Label>
-            <ChipSelector options={CONDICIONAMENTO} value={formData.condicionamento_cardio} onChange={(v) => updateField('condicionamento_cardio', v)} />
+            <ChipSelector options={CONDICIONAMENTO} value={form.condicionamento_cardio} onChange={set('condicionamento_cardio')} />
           </div>
           <div>
             <Label className="flex items-center gap-1.5 mb-2"><Weight className="h-3.5 w-3.5" /> 9. Experiência com Pesos Livres</Label>
-            <ChipSelector options={EXP_PESOS} value={formData.experiencia_pesos_livres} onChange={(v) => updateField('experiencia_pesos_livres', v)} />
+            <ChipSelector options={EXP_PESOS} value={form.experiencia_pesos_livres} onChange={set('experiencia_pesos_livres')} />
           </div>
         </div>
       </div>
@@ -284,31 +348,31 @@ export function FormularioAluno({ aluno, onSuccess }: FormularioAlunoProps) {
         <div className="space-y-4">
           <div>
             <Label className="flex items-center gap-1.5 mb-2"><Zap className="h-3.5 w-3.5" /> 1. Intensidade Preferida</Label>
-            <ChipSelector options={INTENSIDADE} value={formData.preferencia_intensidade} onChange={(v) => updateField('preferencia_intensidade', v)} />
+            <ChipSelector options={INTENSIDADE} value={form.preferencia_intensidade} onChange={set('preferencia_intensidade')} />
           </div>
           <div>
             <Label className="flex items-center gap-1.5 mb-2"><HeartPulse className="h-3.5 w-3.5" /> 2. Cardio</Label>
-            <ChipSelector options={PREF_CARDIO} value={formData.preferencia_cardio} onChange={(v) => updateField('preferencia_cardio', v)} />
+            <ChipSelector options={PREF_CARDIO} value={form.preferencia_cardio} onChange={set('preferencia_cardio')} />
           </div>
           <div>
             <Label className="flex items-center gap-1.5 mb-2"><Wrench className="h-3.5 w-3.5" /> 3. Equipamento Preferido</Label>
-            <ChipSelector options={PREF_EQUIP} value={formData.preferencia_equipamento} onChange={(v) => updateField('preferencia_equipamento', v)} />
+            <ChipSelector options={PREF_EQUIP} value={form.preferencia_equipamento} onChange={set('preferencia_equipamento')} />
           </div>
           <div>
             <Label className="flex items-center gap-1.5 mb-2"><Users className="h-3.5 w-3.5" /> 4. Treina Sozinho?</Label>
             <ChipSelector 
               options={[{ value: 'true', label: 'Sozinho' }, { value: 'false', label: 'Com Parceiro' }]} 
-              value={String(formData.treina_sozinho)} 
-              onChange={(v) => updateField('treina_sozinho', v === 'true')} 
+              value={form.treina_sozinho} 
+              onChange={set('treina_sozinho')} 
             />
           </div>
           <div>
             <Label className="flex items-center gap-1.5 mb-2"><Sun className="h-3.5 w-3.5" /> 5. Horário Preferido</Label>
-            <ChipSelector options={HORARIOS} value={formData.horario_preferido} onChange={(v) => updateField('horario_preferido', v)} />
+            <ChipSelector options={HORARIOS} value={form.horario_preferido} onChange={set('horario_preferido')} />
           </div>
           <div>
             <Label className="flex items-center gap-1.5 mb-2"><Timer className="h-3.5 w-3.5" /> 6. Meta de Tempo</Label>
-            <ChipSelector options={METAS_TEMPO} value={formData.meta_tempo_meses} onChange={(v) => updateField('meta_tempo_meses', v)} />
+            <ChipSelector options={METAS_TEMPO} value={form.meta_tempo_meses} onChange={set('meta_tempo_meses')} />
           </div>
         </div>
       </div>
@@ -317,7 +381,12 @@ export function FormularioAluno({ aluno, onSuccess }: FormularioAlunoProps) {
 
       <div>
         <Label htmlFor="observacoes">Observações Adicionais</Label>
-        <Textarea id="observacoes" value={formData.observacoes} onChange={(e) => updateField('observacoes', e.target.value)} placeholder="Informações extras relevantes" />
+        <Textarea
+          id="observacoes"
+          value={form.observacoes}
+          onChange={(e) => set('observacoes')(e.target.value)}
+          placeholder="Informações extras relevantes"
+        />
       </div>
 
       <div className="flex justify-end gap-2 sticky bottom-0 bg-background pt-4">
