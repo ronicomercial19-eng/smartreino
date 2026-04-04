@@ -12,7 +12,6 @@ serve(async (req) => {
   }
 
   try {
-    // JWT Authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Não autorizado' }), {
@@ -47,16 +46,23 @@ serve(async (req) => {
 
     console.log(`[modify-workout] Modificando treino ${workoutPlanId} com comando: ${userCommand}`);
 
-    const systemPrompt = `Você é um especialista em prescrição de treinos. Sua tarefa é modificar o plano de treino atual baseado no comando do usuário.
+    const systemPrompt = `Você é um especialista em prescrição de treinos do sistema 9FIT. Sua tarefa é modificar o plano de treino atual baseado no comando do usuário.
 
-IMPORTANTE: 
+METODOLOGIA 9FIT — ESTRUTURA OBRIGATÓRIA DE 4 BLOCOS:
+Todo treino segue obrigatoriamente esta sequência:
+1. NEURAL (Ativação) — Preparação neuromuscular específica
+2. INTEGRAÇÃO (Conexão) — Mobilidade e aquecimento funcional
+3. BLOCO 9 (Execução Principal) — O foco do treino com exercícios principais
+4. RESET (Recuperação) — Volta à calma e regeneração
+
+REGRAS:
 - Retorne APENAS o plano de treino modificado em formato JSON
-- Mantenha a estrutura original do plano
+- Mantenha a estrutura de 4 blocos obrigatória
 - Aplique APENAS as modificações solicitadas
 - Seja preciso e específico nas alterações
-- Se a solicitação for ambígua, sugira a melhor interpretação
+- Respeite os parâmetros do protocolo (séries, reps, RPE, cadência)
 
-Formato de resposta esperado:
+Formato de resposta:
 {
   "response": "Descrição clara da modificação realizada",
   "updatedPlan": { ... plano modificado em JSON ... }
@@ -104,42 +110,28 @@ Formato de resposta esperado:
         if (jsonMatch) {
           result = JSON.parse(jsonMatch[0]);
         } else {
-          result = {
-            response: aiContent,
-            updatedPlan: null
-          };
+          result = { response: aiContent, updatedPlan: null };
         }
       }
-      
       if (result && !result.response) {
         result.response = "Treino modificado com sucesso!";
       }
-      
     } catch (e) {
       console.error("[modify-workout] Erro ao fazer parse da resposta:", e);
-      result = {
-        response: aiContent.substring(0, 500),
-        updatedPlan: null
-      };
+      result = { response: aiContent.substring(0, 500), updatedPlan: null };
     }
 
     console.log(`[modify-workout] Modificação concluída: ${result.response}`);
 
-    return new Response(
-      JSON.stringify(result),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
-    );
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
   } catch (error) {
     console.error("[modify-workout] Erro:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Erro desconhecido" }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
 });

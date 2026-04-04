@@ -6,6 +6,76 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ── Helper: parse model description into unique block_9_template ──
+function parseModelTemplate(
+  baseB9: { sets: string; reps: string; cadence: string; rest: number },
+  modelDesc: string,
+  variationIdx: number,
+  modelIdx: number,
+  pillar: string
+): { sets: string; reps: string; cadence: string; rest: number; rpe: string } {
+  // Try to extract sets×reps from description (e.g. "3x12 RPE 6")
+  const setsRepsMatch = modelDesc.match(/(\d+)\s*x\s*(\d+[-–]?\d*)/i);
+  // Try to extract RPE
+  const rpeMatch = modelDesc.match(/RPE\s*(\d+(?:\.\d+)?)/i);
+  // Try to extract cadence like 3:0:1:0
+  const cadenceMatch = modelDesc.match(/(\d:\d:\d:\d)/);
+  // Try to extract rest in seconds
+  const restMatch = modelDesc.match(/(\d+)\s*(?:s|seg|sec)\s*(?:rec|descanso|rest)/i);
+
+  // Progressive variation: each model gets slightly different params
+  const restVariation = Math.round(baseB9.rest + (modelIdx - 5) * 5); // spread ±20s around base
+  
+  let sets = baseB9.sets;
+  let reps = baseB9.reps;
+  let cadence = baseB9.cadence;
+  let rest = Math.max(30, Math.min(180, restVariation));
+
+  if (setsRepsMatch) {
+    sets = setsRepsMatch[1];
+    reps = setsRepsMatch[2];
+  } else {
+    // Derive from position: early models = more reps/less sets, later = fewer reps/more sets
+    const baseRepsNum = parseInt(baseB9.reps.split("-")[0]) || 10;
+    const baseSetsNum = parseInt(baseB9.sets.split("-")[0]) || 3;
+    const repsDelta = Math.round((modelIdx - 5) * -0.5);
+    const setsDelta = modelIdx >= 7 ? 1 : 0;
+    sets = String(Math.max(2, baseSetsNum + setsDelta));
+    reps = String(Math.max(3, baseRepsNum + repsDelta));
+  }
+
+  if (cadenceMatch) cadence = cadenceMatch[1];
+  if (restMatch) rest = parseInt(restMatch[1]);
+
+  // RPE: derive from match or position
+  let rpe = "6-7";
+  if (rpeMatch) {
+    rpe = rpeMatch[1];
+  } else if (pillar === "longevidade") {
+    rpe = String(Math.min(8, 4 + Math.round(variationIdx * 0.4 + modelIdx * 0.15)));
+  } else {
+    rpe = String(Math.min(10, 5 + Math.round(variationIdx * 0.3 + modelIdx * 0.2)));
+  }
+
+  return { sets, reps, cadence, rest, rpe };
+}
+
+// ── Goal tags mapping per protocol ──
+function getGoalTags(protocolId: number): string[] {
+  switch (protocolId) {
+    case 1: return ["performance", "emagrecimento", "cardio"];
+    case 2: return ["performance", "emagrecimento", "cardio"];
+    case 3: return ["performance", "emagrecimento", "cardio"];
+    case 4: return ["forca", "hipertrofia"];
+    case 5: return ["hipertrofia", "emagrecimento"];
+    case 6: return ["estetica", "reabilitacao"];
+    case 7: return ["funcional", "longevidade", "reabilitacao"];
+    case 8: return ["funcional", "longevidade", "reabilitacao"];
+    case 9: return ["funcional", "longevidade", "reabilitacao"];
+    default: return [];
+  }
+}
+
 const PROTOCOLS = [
   { id: 1, pillar: "performance", pillar_label: "Performance Aeróbica", name: "VMAX", axis: "Velocidade pura e economia de movimento", neural: "Ativação de arco plantar (Short Foot) + Stiffness drills", integration: "Drills de corrida + Mobilidade de tornozelo", b9: { sets: "3-6", reps: "variável", cadence: "explosivo", rest: 90 }, reset: "Liberação miofascial plantar + Respiração 4-2-6", variations: [
     { name: "Adaptação", focus: "Técnica e Drills", models: ["Drills técnicos sem foco em tempo","Postura e balanço de braços","Cadência controlada com metrônomo","Educativo de skipping básico","Corrida em superfície macia","Mini-sprints com foco técnico","Drills combinados (A-B-C)","Técnica de partida e aceleração","Avaliação técnica de corrida"] },
@@ -117,24 +187,21 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Check if already seeded
-    const { count } = await supabase.from("smart_treino_protocols").select("*", { count: "exact", head: true });
-    if (count && count >= 729) {
-      return new Response(JSON.stringify({ message: "Already seeded", count }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
+    // Force re-seed with differentiated templates
     const rows: any[] = [];
     for (const p of PROTOCOLS) {
+      const goalTags = getGoalTags(p.id);
       for (let vi = 0; vi < p.variations.length; vi++) {
         const v = p.variations[vi];
         const variationId = vi + 1;
         for (let mi = 0; mi < v.models.length; mi++) {
           const modelId = mi + 1;
           const code = `${p.id}.${variationId}.${modelId}`;
-          let rpe = "5-7";
-          if (variationId <= 3) rpe = p.pillar === "longevidade" ? "4-6" : "5-7";
-          else if (variationId <= 6) rpe = p.pillar === "longevidade" ? "5-7" : "6-8";
-          else rpe = p.pillar === "longevidade" ? "6-8" : "7-9";
+          
+          // Generate unique block_9_template per model
+          const b9Template = parseModelTemplate(p.b9, v.models[mi], variationId, modelId, p.pillar);
+
+          let rpe = b9Template.rpe;
 
           rows.push({
             id: code,
@@ -150,14 +217,18 @@ serve(async (req) => {
             model_description: v.models[mi],
             block_neural: p.neural,
             block_integration: p.integration,
-            block_9_template: p.b9,
+            block_9_template: { sets: b9Template.sets, reps: b9Template.reps, cadence: b9Template.cadence, rest: b9Template.rest, rpe: b9Template.rpe },
             block_reset: p.reset,
             rpe_range: rpe,
             recommended_for: p.pillar === "longevidade" ? ["iniciante", "intermediario"] : ["iniciante", "intermediario", "avancado"],
+            goal_tags: goalTags,
           });
         }
       }
     }
+
+    // Delete existing and re-insert
+    await supabase.from("smart_treino_protocols").delete().neq("id", "");
 
     // Insert in batches of 100
     for (let i = 0; i < rows.length; i += 100) {
@@ -166,7 +237,7 @@ serve(async (req) => {
       if (error) throw error;
     }
 
-    return new Response(JSON.stringify({ success: true, count: rows.length }), {
+    return new Response(JSON.stringify({ success: true, count: rows.length, message: "Protocols seeded with differentiated templates and goal_tags" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

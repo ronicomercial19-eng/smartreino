@@ -3450,6 +3450,7 @@ export type Database = {
           block_neural: string
           block_reset: string
           created_at: string
+          goal_tags: string[] | null
           id: string
           model_description: string
           model_id: number
@@ -3470,6 +3471,7 @@ export type Database = {
           block_neural?: string
           block_reset?: string
           created_at?: string
+          goal_tags?: string[] | null
           id: string
           model_description: string
           model_id: number
@@ -3490,6 +3492,7 @@ export type Database = {
           block_neural?: string
           block_reset?: string
           created_at?: string
+          goal_tags?: string[] | null
           id?: string
           model_description?: string
           model_id?: number

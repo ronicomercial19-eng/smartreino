@@ -33,6 +33,7 @@ import WorkoutPlan from "./pages/WorkoutPlan";
 import StudentAnalytics from "./pages/StudentAnalytics";
 import AdvancedStatistics from "./pages/AdvancedStatistics";
 import SmartTreinoBuilder from "./pages/SmartTreinoBuilder";
+import ProtocolCatalog from "./pages/ProtocolCatalog";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +82,7 @@ function AppRoutes() {
       <Route path="/advanced-statistics/:id?" element={<AdvancedStatistics />} />
       <Route path="/student-interface" element={<StudentInterface />} />
       <Route path="/smart-treino-builder" element={<SmartTreinoBuilder />} />
+      <Route path="/protocol-catalog" element={<ProtocolCatalog />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
