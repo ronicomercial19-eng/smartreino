@@ -118,7 +118,7 @@ export default function ProtocolCatalog() {
               <CardHeader className="pb-2">
                 <CardTitle className={`flex items-center gap-2 ${cfg.color}`}>
                   <Icon className="h-5 w-5" />
-                  {Object.values(protos)[0]?.label || pillar}
+                  {(Object.values(protos) as any[])[0]?.label || pillar}
                 </CardTitle>
               </CardHeader>
               <CardContent>
