@@ -59,6 +59,7 @@ const allNavigationItems: NavItem[] = [
     icon: Dumbbell,
     items: [
       { title: "Smart Treino Builder", url: "/smart-treino-builder" },
+      { title: "Catálogo 9x9x9", url: "/protocol-catalog" },
       { title: "Gerar Treino", url: "/workout-models" },
       { title: "Plano Periodizado", url: "/periodization-upload" },
       { title: "Meus Treinos", url: "/meus-treinos" },

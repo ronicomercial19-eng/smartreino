@@ -82,6 +82,7 @@ function AppRoutes() {
       <Route path="/advanced-statistics/:id?" element={<AdvancedStatistics />} />
       <Route path="/student-interface" element={<StudentInterface />} />
       <Route path="/smart-treino-builder" element={<SmartTreinoBuilder />} />
+      <Route path="/protocol-catalog" element={<ProtocolCatalog />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
