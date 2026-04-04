@@ -33,6 +33,7 @@ import WorkoutPlan from "./pages/WorkoutPlan";
 import StudentAnalytics from "./pages/StudentAnalytics";
 import AdvancedStatistics from "./pages/AdvancedStatistics";
 import SmartTreinoBuilder from "./pages/SmartTreinoBuilder";
+import ProtocolCatalog from "./pages/ProtocolCatalog";
 
 const queryClient = new QueryClient();
 
