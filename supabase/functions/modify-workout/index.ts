@@ -26,15 +26,16 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } }
     });
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await authSupabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    // Fix: use getUser instead of non-existent getClaims
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
+    if (authError || !user) {
+      console.error("[modify-workout] Auth error:", authError?.message);
       return new Response(JSON.stringify({ error: 'Token inválido' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const userId = claimsData.claims.sub;
+    const userId = user.id;
     console.log(`[modify-workout] Authenticated user: ${userId}`);
 
     const { workoutPlanId, currentPlan, userCommand } = await req.json();
@@ -55,20 +56,34 @@ Todo treino segue obrigatoriamente esta sequência:
 3. BLOCO 9 (Execução Principal) — O foco do treino com exercícios principais
 4. RESET (Recuperação) — Volta à calma e regeneração
 
-REGRAS:
-- Retorne APENAS o plano de treino modificado em formato JSON
-- Mantenha a estrutura de 4 blocos obrigatória
-- Aplique APENAS as modificações solicitadas
-- Seja preciso e específico nas alterações
-- Respeite os parâmetros do protocolo (séries, reps, RPE, cadência)
+PROTOCOLOS POR MODALIDADE:
+- FORÇA: Tensão Mecânica (séries 4-6, reps 3-6, RPE 8-9, descanso 120-180s, cadência 3:1:2:0)
+- HIPERTROFIA: Estresse Metabólico (séries 3-4, reps 8-15, RPE 7-8, descanso 60-90s, cadência 3:0:1:0)
+- EMAGRECIMENTO: Circuitos + densidade alta (séries 3, reps 12-20, RPE 6-7, descanso 30-45s)
+- PERFORMANCE: Potência + velocidade (séries 3-5, reps 3-8, RPE 7-9, descanso 90-120s)
+- FUNCIONAL: Movimentos integrados (séries 2-3, reps 10-15, RPE 5-7, descanso 45-60s)
 
-Formato de resposta:
+TÉCNICAS DE INTENSIDADE DISPONÍVEIS:
+- Drop Set: Reduzir carga 20-30% sem descanso, 2-3 drops
+- Rest-Pause: Pausas de 10-15s entre mini-séries até falha
+- Super Set: Dois exercícios consecutivos sem descanso
+- Giant Set: 3+ exercícios consecutivos
+- Tempo Negativo: Fase excêntrica 4-6 segundos
+- Cluster Set: Micro-pausas de 10-20s intra-série
+
+REGRAS:
+- Retorne APENAS o plano de treino modificado em formato JSON válido
+- Mantenha a estrutura existente, aplique APENAS as modificações solicitadas
+- Respeite os parâmetros do protocolo da modalidade
+- Quando aplicar técnicas de intensidade, adicione campo "tecnica_intensidade" ao exercício
+
+Formato de resposta OBRIGATÓRIO (JSON puro, sem markdown):
 {
   "response": "Descrição clara da modificação realizada",
-  "updatedPlan": { ... plano modificado em JSON ... }
+  "updatedPlan": { ... plano modificado completo ... }
 }`;
 
-    const userPrompt = `Plano de Treino Atual:\n${JSON.stringify(currentPlan, null, 2)}\n\nComando do Usuário: ${userCommand}\n\nModifique o treino conforme solicitado e retorne o resultado.`;
+    const userPrompt = `Plano de Treino Atual:\n${JSON.stringify(currentPlan, null, 2)}\n\nComando do Usuário: ${userCommand}\n\nModifique o treino conforme solicitado e retorne o resultado em JSON válido.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -83,7 +98,7 @@ Formato de resposta:
           { role: "user", content: userPrompt }
         ],
         temperature: 0.3,
-        max_tokens: 4000
+        max_tokens: 8000
       }),
     });
 
@@ -100,19 +115,24 @@ Formato de resposta:
       throw new Error("IA não retornou resposta válida");
     }
 
+    console.log(`[modify-workout] AI response length: ${aiContent.length}`);
+
     let result;
     try {
-      const codeBlockMatch = aiContent.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-      if (codeBlockMatch) {
-        result = JSON.parse(codeBlockMatch[1]);
+      // Try to extract JSON from code blocks first
+      const codeBlockMatch = aiContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      const jsonStr = codeBlockMatch ? codeBlockMatch[1] : aiContent;
+      
+      // Find the outermost JSON object
+      const firstBrace = jsonStr.indexOf('{');
+      const lastBrace = jsonStr.lastIndexOf('}');
+      
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        result = JSON.parse(jsonStr.substring(firstBrace, lastBrace + 1));
       } else {
-        const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          result = JSON.parse(jsonMatch[0]);
-        } else {
-          result = { response: aiContent, updatedPlan: null };
-        }
+        result = { response: aiContent.substring(0, 500), updatedPlan: null };
       }
+      
       if (result && !result.response) {
         result.response = "Treino modificado com sucesso!";
       }
@@ -121,7 +141,7 @@ Formato de resposta:
       result = { response: aiContent.substring(0, 500), updatedPlan: null };
     }
 
-    console.log(`[modify-workout] Modificação concluída: ${result.response}`);
+    console.log(`[modify-workout] Modificação concluída. Has updatedPlan: ${!!result.updatedPlan}`);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

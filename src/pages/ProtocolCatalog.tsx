@@ -54,12 +54,14 @@ export default function ProtocolCatalog() {
   }, []);
 
   const loadProtocols = async () => {
-    const { data } = await supabase
+    const { data, error } = await (supabase as any)
       .from("smart_treino_protocols")
       .select("*")
       .order("protocol_id")
       .order("variation_id")
-      .order("model_id");
+      .order("model_id")
+      .limit(1000);
+    if (error) console.error("Error loading protocols:", error);
     if (data) setProtocols(data as any);
     setLoading(false);
   };

@@ -59,14 +59,30 @@ export default function SmartTreinoBuilder() {
   const [generatedResult, setGeneratedResult] = useState<GeneratedStructure | null>(null);
   const [savedRulesId, setSavedRulesId] = useState<string | null>(null);
 
-  // Load user + athletes
+  // Load user + athletes from both tables
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         setUserId(session.user.id);
-        (supabase as any).from("athletes").select("id, name").eq("coach_id", session.user.id).then(({ data }: any) => {
-          setAthletes(data || []);
-        });
+        
+        // Fetch from athletes table
+        const { data: athletesData } = await (supabase as any)
+          .from("athletes")
+          .select("id, name")
+          .eq("coach_id", session.user.id);
+        
+        // Fetch from alunos table
+        const { data: alunosData } = await (supabase as any)
+          .from("alunos")
+          .select("id, nome")
+          .eq("professor_id", session.user.id);
+        
+        // Unify both sources
+        const unified = [
+          ...(athletesData || []).map((a: any) => ({ id: a.id, name: a.name, source: 'athlete' })),
+          ...(alunosData || []).map((a: any) => ({ id: a.id, name: a.nome, source: 'aluno' })),
+        ];
+        setAthletes(unified);
       }
     });
   }, []);
