@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PageLayout } from '@/components/shared/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,8 +8,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { WorkoutAIService } from '@/services/workoutAIService';
-import { Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
+import { Sparkles, ArrowLeft, Loader2, FileText } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import type { Aluno } from '@/services/alunosService';
+
+interface SavedPeriodization {
+  id: string;
+  plan_name: string;
+  model_id: string;
+  customizations: any;
+  status: string;
+}
 
 export default function GenerateWorkout() {
   const navigate = useNavigate();
@@ -23,6 +32,26 @@ export default function GenerateWorkout() {
   const [frequencia, setFrequencia] = useState(aluno?.frequencia_semanal?.toString() || '');
   const [ambiente, setAmbiente] = useState(aluno?.ambiente_treino || '');
   const [restricoes, setRestricoes] = useState(aluno?.restricoes_medicas || '');
+  const [periodizations, setPeriodizations] = useState<SavedPeriodization[]>([]);
+  const [selectedPeriodization, setSelectedPeriodization] = useState('');
+
+  // Load saved periodizations
+  useEffect(() => {
+    const loadPeriodizations = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const { data } = await (supabase as any)
+        .from('saved_periodizations')
+        .select('id, plan_name, model_id, customizations, status')
+        .eq('user_id', session.user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+      
+      if (data) setPeriodizations(data);
+    };
+    loadPeriodizations();
+  }, []);
 
   if (!aluno) {
     return (
@@ -51,12 +80,21 @@ export default function GenerateWorkout() {
 
     setLoading(true);
     try {
+      // Build periodization context if selected
+      let periodizationContext = '';
+      if (selectedPeriodization) {
+        const period = periodizations.find(p => p.id === selectedPeriodization);
+        if (period) {
+          periodizationContext = `\nContexto da Periodização Ativa: ${period.plan_name}\nCustomizações: ${JSON.stringify(period.customizations || {})}`;
+        }
+      }
+
       const plan = await WorkoutAIService.generateWorkout({
         studentId: aluno.id,
         objetivo,
         nivel,
         frequenciaSemanal: parseInt(frequencia),
-        restricoes,
+        restricoes: restricoes + periodizationContext,
         ambiente
       });
 
@@ -98,6 +136,28 @@ export default function GenerateWorkout() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Periodização */}
+            {periodizations.length > 0 && (
+              <div className="space-y-2 p-4 rounded-lg border border-primary/20 bg-primary/5">
+                <Label htmlFor="periodizacao" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  Importar Periodização (opcional)
+                </Label>
+                <Select value={selectedPeriodization} onValueChange={setSelectedPeriodization}>
+                  <SelectTrigger id="periodizacao">
+                    <SelectValue placeholder="Selecionar periodização salva..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem periodização</SelectItem>
+                    {periodizations.map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.plan_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">O contexto da periodização será usado para guiar a geração do treino</p>
+              </div>
+            )}
+
             {/* Objetivo */}
             <div className="space-y-2">
               <Label htmlFor="objetivo">Objetivo Principal *</Label>
