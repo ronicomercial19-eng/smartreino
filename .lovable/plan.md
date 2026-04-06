@@ -1,86 +1,60 @@
 
 
-# Recalibração Pragmática do Smart Treino + Chat IA em Tempo Real
+# Correções Críticas: Chat IA + Smart Treino + Catálogo + Periodização
 
-## Problemas Identificados
+## Problemas Diagnosticados
 
-1. **Chat IA nao atualiza treinos em tempo real**: O `WorkoutAIChat` salva mudancas no `sessionStorage` e requer click manual no botao verde. O plano atualizado nao e aplicado ao `WorkoutDisplayTemplate` imediatamente.
+1. **Chat IA não aplica mudanças**: A Edge Function `modify-workout` usa `authSupabase.auth.getClaims(token)` que **não existe** no Supabase JS SDK. Retorna 401 sempre. A IA responde com texto mas `updatedPlan` nunca chega.
 
-2. **Protocolos repetidos entre modalidades**: Os `block_9_template` e `block_neural` sao identicos dentro da mesma variacao (ex: todos 9 modelos de "Tensao Mecanica > Padrao" tem `reps:8-12, cadence:3:0:1:0, rest:75`). Os modelos diferem apenas no `model_description`, mas os parametros de execucao nao mudam.
+2. **Smart Treino Builder não encontra atletas**: Busca na tabela `athletes` com `coach_id`, mas o usuário logado pode ter ID diferente do `coach_id`. Além disso, também deveria buscar da tabela `alunos` (que tem 5 registros com `professor_id`).
 
-3. **729 variacoes ja existem no banco**: Confirmado — a tabela `smart_treino_protocols` tem 729 registros com dados detalhados e diferenciados POR protocolo (Tensao Mecanica vs Estresse Metabolico tem parametros distintos). O seed function contem dados ricos e corretos.
+3. **Catálogo 9x9x9 não mostra todos protocolos**: Os 729 registros existem no banco. O problema é o limite padrão de 1000 rows do Supabase (ok neste caso), mas a query sem `.limit()` pode falhar se RLS bloquear. Verificar RLS na tabela `smart_treino_protocols`.
 
-4. **Frontend nao exibe os modelos de treino de forma navegavel**: O seletor hierarquico funciona mas nao ha uma pagina para explorar/visualizar todos os protocolos disponveis.
+4. **Importação de periodização para treino**: Não existe fluxo para importar dados de periodização salva e usar como base para geração de treino completo.
 
 ---
 
-## O Que Sera Feito
+## Correções
 
-### 1. Chat IA — Aplicacao em Tempo Real (sem botao verde)
-
-**Arquivo**: `src/components/workout/WorkoutAIChat.tsx`
-
-- Remover o fluxo de `sessionStorage` + botao de confirmacao
-- Quando a IA retornar `updatedPlan`, chamar `onPlanUpdated(data.updatedPlan)` imediatamente
-- O `WorkoutPlan.tsx` ja faz `setPlan({ ...plan, plano_completo: updatedPlan })` no `handlePlanUpdate`, entao a UI ja re-renderiza automaticamente
-- Adicionar indicador visual de "Aplicando..." durante o save no banco
-
-### 2. Diferenciar `block_9_template` Por Modelo
-
-**Arquivo**: `supabase/functions/seed-protocols/index.ts`
-
-O problema: dentro de cada variacao, os 9 modelos compartilham o mesmo `b9` template do protocolo pai. Cada modelo precisa ter seu proprio `block_9_template` com parametros especificos.
-
-- Atualizar a funcao `generateProtocols()` para gerar `block_9_template` unico por modelo, baseado no `model_description` (ex: "3x12 RPE 6" → `{sets:"3", reps:"12", cadence:"3:0:1:0", rest:75, rpe:"6"}`)
-- Fazer parsing inteligente do `model_description` para extrair sets/reps/cadencia quando descrito
-- Re-executar o seed para atualizar os 729 registros com templates diferenciados
-
-### 3. Pagina de Catalogo de Protocolos (Biblioteca 9x9x9)
-
-**Novo arquivo**: `src/pages/ProtocolCatalog.tsx`
-
-- Grid visual dos 9 protocolos organizados por Pilar
-- Click para expandir variacoes e modelos
-- Mostrar parametros de cada modelo (sets, reps, RPE, cadencia)
-- Filtros por pilar, objetivo (forca/hipertrofia/emagrecimento), nivel
-- Badge com cor por pilar (verde/azul/amarelo)
-
-**Rota**: `/protocol-catalog`
-**Sidebar**: Adicionar em "Treinos" submenu
-
-### 4. Mapear Protocolos por Modalidade/Objetivo
-
-**Arquivo**: `supabase/functions/seed-protocols/index.ts` + migration
-
-- Adicionar campo `goal_tags` (text[]) em `smart_treino_protocols`:
-  - Protocolos 1-3 (Performance) → `["performance", "emagrecimento", "cardio"]`
-  - Protocolo 4 (Tensao Mecanica) → `["forca", "hipertrofia"]`
-  - Protocolo 5 (Estresse Metabolico) → `["hipertrofia", "emagrecimento"]`
-  - Protocolo 6 (Simetria) → `["estetica", "reabilitacao"]`
-  - Protocolos 7-9 (Longevidade) → `["funcional", "longevidade", "reabilitacao"]`
-- Permitir filtragem inteligente no seletor do wizard
-
-### 5. Recalibrar `modify-workout` com Contexto do Protocolo
-
+### 1. Fix `modify-workout` Edge Function
 **Arquivo**: `supabase/functions/modify-workout/index.ts`
 
-- Buscar o protocolo associado ao treino (se houver `protocol_code` salvo)
-- Injetar contexto do protocolo 9FIT (4 blocos obrigatorios) no prompt do sistema
-- Garantir que modificacoes respeitem a estrutura Neural/Integracao/Bloco9/Reset
-- Manter parametros dentro do range do protocolo selecionado
+- Substituir `auth.getClaims(token)` por `auth.getUser(token)` — método que realmente existe
+- Extrair `user.id` do resultado
+- Garantir que o JSON parse da resposta da IA funcione corretamente
+- Após save no banco via `handlePlanUpdate`, o `WorkoutPlan.tsx` já re-renderiza (fluxo correto)
+
+### 2. Fix Smart Treino Builder — Busca de Atletas
+**Arquivo**: `src/pages/SmartTreinoBuilder.tsx`
+
+- Buscar de **ambas** tabelas: `athletes` (campo `name`, `coach_id`) e `alunos` (campo `nome`, `professor_id`)
+- Unificar em um único seletor com label da origem
+- Garantir que o `selectedAlunoId` funcione com ambas tabelas
+
+### 3. Fix Catálogo de Protocolos
+**Arquivo**: `src/pages/ProtocolCatalog.tsx`
+
+- Adicionar `.limit(1000)` explícito na query (729 < 1000, mas seguro)
+- Usar `(supabase as any)` caso a tabela não esteja nos types gerados
+- Verificar/criar RLS policy para `smart_treino_protocols` (SELECT para authenticated)
+
+### 4. Importação de Periodização para Treino
+**Arquivo**: `src/pages/WorkoutPlan.tsx` + novo componente
+
+- Adicionar botão "Importar Periodização" no `WorkoutPlan` e/ou no `GenerateWorkout`
+- Buscar periodizações salvas do aluno (`saved_periodizations`, `athlete_periodizations`, `periodization_plans`)
+- Injetar dados da periodização (macrociclo, mesociclo, fase atual) como contexto na geração de treino
+- Passar esse contexto ao `generate-workout` edge function
 
 ---
 
-## Arquivos Criados/Modificados
+## Arquivos Modificados
 
-| Arquivo | Acao |
+| Arquivo | Ação |
 |---------|------|
-| `src/components/workout/WorkoutAIChat.tsx` | Remover sessionStorage, aplicar mudancas em tempo real |
-| `supabase/functions/modify-workout/index.ts` | Adicionar contexto de protocolo ao prompt |
-| `supabase/functions/seed-protocols/index.ts` | Templates diferenciados por modelo |
-| `supabase/migrations/protocol_goal_tags.sql` | Coluna `goal_tags` |
-| `src/pages/ProtocolCatalog.tsx` | Nova pagina catalogo 9x9x9 |
-| `src/App.tsx` | Rota `/protocol-catalog` |
-| `src/components/AppSidebar.tsx` | Link no submenu Treinos |
-| `src/components/smart-treino/StepMacroRules.tsx` | Filtro por objetivo/modalidade |
+| `supabase/functions/modify-workout/index.ts` | Fix auth: `getClaims` → `getUser` |
+| `src/pages/SmartTreinoBuilder.tsx` | Buscar atletas de `athletes` + `alunos` |
+| `src/pages/ProtocolCatalog.tsx` | Fix query limit + RLS |
+| `src/pages/GenerateWorkout.tsx` | Seletor de periodização como contexto |
+| Migration SQL | RLS SELECT para `smart_treino_protocols` |
 
