@@ -44,6 +44,15 @@ const Register = () => {
       return;
     }
 
+    if (formData.password.length < 6) {
+      toast({
+        title: "Senha fraca",
+        description: "A senha deve ter pelo menos 6 caracteres",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -62,7 +71,18 @@ const Register = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific error codes
+        if (error.message?.includes('already registered') || (error as any).code === 'user_already_exists') {
+          toast({
+            title: "Email já cadastrado",
+            description: "Este email já possui uma conta. Faça login ou use outro email.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
 
       if (data.user) {
         // Insert role into user_roles table
@@ -101,6 +121,8 @@ const Register = () => {
             ? "Bem-vindo, Professor! Você já pode gerenciar seus alunos."
             : "Bem-vindo! Acesse seus treinos na interface do aluno.",
         });
+
+        navigate(formData.accountType === 'professor' ? '/gerenciamento-alunos' : '/student-interface');
       }
     } catch (error: any) {
       console.error('Erro no cadastro:', error);
