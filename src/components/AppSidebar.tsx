@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, 
   Dumbbell, 
@@ -13,7 +13,8 @@ import {
   BarChart3,
   Target,
   TrendingUp,
-  Zap
+  Zap,
+  LogOut
 } from "lucide-react";
 
 import {
