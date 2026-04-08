@@ -63,7 +63,7 @@ const Login = () => {
           title: "Login realizado com sucesso!",
           description: `Bem-vindo!`,
         });
-        // Redirecionamento é feito automaticamente pelo App.tsx
+        navigate('/dashboard');
       }
     } catch (error: any) {
       console.error('Erro no login:', error);
