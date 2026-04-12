@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PageLayout } from '@/components/shared/PageLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { WorkoutAIService } from '@/services/workoutAIService';
-import { Sparkles, ArrowLeft, Loader2, FileText } from 'lucide-react';
+import { Sparkles, ArrowLeft, Loader2, FileText, Upload, Database } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Aluno } from '@/services/alunosService';
 
@@ -20,11 +20,14 @@ interface SavedPeriodization {
   status: string;
 }
 
+type PeriodizationSource = 'none' | 'saved' | 'upload';
+
 export default function GenerateWorkout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const aluno = location.state?.aluno as Aluno | undefined;
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(false);
   const [objetivo, setObjetivo] = useState(aluno?.objetivo || '');
@@ -34,8 +37,11 @@ export default function GenerateWorkout() {
   const [restricoes, setRestricoes] = useState(aluno?.restricoes_medicas || '');
   const [periodizations, setPeriodizations] = useState<SavedPeriodization[]>([]);
   const [selectedPeriodization, setSelectedPeriodization] = useState('');
+  const [periodizationSource, setPeriodizationSource] = useState<PeriodizationSource>('none');
+  const [uploadedPeriodization, setUploadedPeriodization] = useState<string>('');
+  const [uploadFileName, setUploadFileName] = useState('');
 
-  // Load saved periodizations
+  // Load saved periodizations from SmartPeriodizer
   useEffect(() => {
     const loadPeriodizations = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -53,6 +59,31 @@ export default function GenerateWorkout() {
     loadPeriodizations();
   }, []);
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['application/json', 'text/plain', 'text/csv', 'application/pdf'];
+    if (!allowedTypes.includes(file.type) && !file.name.endsWith('.txt') && !file.name.endsWith('.json') && !file.name.endsWith('.csv')) {
+      toast({
+        variant: 'destructive',
+        title: 'Formato não suportado',
+        description: 'Use arquivos .json, .txt ou .csv com os dados da periodização'
+      });
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      setUploadedPeriodization(text);
+      setUploadFileName(file.name);
+      setPeriodizationSource('upload');
+      toast({ title: 'Arquivo carregado', description: `${file.name} importado com sucesso` });
+    } catch {
+      toast({ variant: 'destructive', title: 'Erro ao ler arquivo', description: 'Não foi possível processar o arquivo' });
+    }
+  };
+
   if (!aluno) {
     return (
       <PageLayout title="Erro">
@@ -68,6 +99,19 @@ export default function GenerateWorkout() {
     );
   }
 
+  const buildPeriodizationContext = (): string => {
+    if (periodizationSource === 'saved' && selectedPeriodization) {
+      const period = periodizations.find(p => p.id === selectedPeriodization);
+      if (period) {
+        return `\n\n--- PERIODIZAÇÃO IMPORTADA (SmartPeriodizer) ---\nPlano: ${period.plan_name}\nModelo: ${period.model_id}\nCustomizações: ${JSON.stringify(period.customizations || {})}\n--- FIM DA PERIODIZAÇÃO ---`;
+      }
+    }
+    if (periodizationSource === 'upload' && uploadedPeriodization) {
+      return `\n\n--- PERIODIZAÇÃO IMPORTADA (Upload: ${uploadFileName}) ---\n${uploadedPeriodization.substring(0, 3000)}\n--- FIM DA PERIODIZAÇÃO ---`;
+    }
+    return '';
+  };
+
   const handleGenerate = async () => {
     if (!objetivo || !nivel || !frequencia) {
       toast({
@@ -80,21 +124,14 @@ export default function GenerateWorkout() {
 
     setLoading(true);
     try {
-      // Build periodization context if selected
-      let periodizationContext = '';
-      if (selectedPeriodization) {
-        const period = periodizations.find(p => p.id === selectedPeriodization);
-        if (period) {
-          periodizationContext = `\nContexto da Periodização Ativa: ${period.plan_name}\nCustomizações: ${JSON.stringify(period.customizations || {})}`;
-        }
-      }
+      const periodizationContext = buildPeriodizationContext();
 
       const plan = await WorkoutAIService.generateWorkout({
         studentId: aluno.id,
         objetivo,
         nivel,
         frequenciaSemanal: parseInt(frequencia),
-        restricoes: restricoes + periodizationContext,
+        restricoes: (restricoes || '') + periodizationContext,
         ambiente
       });
 
@@ -136,27 +173,89 @@ export default function GenerateWorkout() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Periodização */}
-            {periodizations.length > 0 && (
-              <div className="space-y-2 p-4 rounded-lg border border-primary/20 bg-primary/5">
-                <Label htmlFor="periodizacao" className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  Importar Periodização (opcional)
-                </Label>
+            {/* Importar Periodização */}
+            <div className="space-y-3 p-4 rounded-lg border border-primary/20 bg-primary/5">
+              <Label className="flex items-center gap-2 text-base font-semibold">
+                <FileText className="h-4 w-4 text-primary" />
+                Importar Periodização (opcional)
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Importe uma periodização do SmartPeriodizer ou faça upload de um arquivo para guiar a geração do treino
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <Button
+                  type="button"
+                  variant={periodizationSource === 'none' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => { setPeriodizationSource('none'); setSelectedPeriodization(''); setUploadedPeriodization(''); }}
+                >
+                  Sem periodização
+                </Button>
+                <Button
+                  type="button"
+                  variant={periodizationSource === 'saved' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPeriodizationSource('saved')}
+                  disabled={periodizations.length === 0}
+                >
+                  <Database className="mr-1 h-3 w-3" />
+                  SmartPeriodizer {periodizations.length === 0 && '(vazio)'}
+                </Button>
+                <Button
+                  type="button"
+                  variant={periodizationSource === 'upload' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => { setPeriodizationSource('upload'); fileInputRef.current?.click(); }}
+                >
+                  <Upload className="mr-1 h-3 w-3" />
+                  Upload Arquivo
+                </Button>
+              </div>
+
+              {periodizationSource === 'saved' && (
                 <Select value={selectedPeriodization} onValueChange={setSelectedPeriodization}>
-                  <SelectTrigger id="periodizacao">
+                  <SelectTrigger>
                     <SelectValue placeholder="Selecionar periodização salva..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Sem periodização</SelectItem>
                     {periodizations.map(p => (
                       <SelectItem key={p.id} value={p.id}>{p.plan_name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">O contexto da periodização será usado para guiar a geração do treino</p>
-              </div>
-            )}
+              )}
+
+              {periodizationSource === 'upload' && uploadFileName && (
+                <div className="flex items-center gap-2 p-2 rounded bg-muted/50 text-sm">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <span className="truncate">{uploadFileName}</span>
+                  <Button variant="ghost" size="sm" className="ml-auto h-6 text-xs" onClick={() => { setUploadedPeriodization(''); setUploadFileName(''); setPeriodizationSource('none'); }}>
+                    Remover
+                  </Button>
+                </div>
+              )}
+
+              {periodizationSource === 'upload' && !uploadFileName && (
+                <div
+                  className="border-2 border-dashed border-primary/30 rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Clique ou arraste um arquivo (.json, .txt, .csv)
+                  </p>
+                </div>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,.txt,.csv"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+            </div>
 
             {/* Objetivo */}
             <div className="space-y-2">

@@ -66,12 +66,12 @@ export function WorkoutDisplayTemplate({ plan }: WorkoutDisplayTemplateProps) {
 
       {/* Dias de Treino */}
       <Tabs defaultValue="dia-1" className="w-full">
-        <TabsList className="grid w-full grid-cols-7 bg-card">
+        <TabsList className={`grid w-full bg-card`} style={{ gridTemplateColumns: `repeat(${plan.estrutura_semanal.length}, minmax(0, 1fr))` }}>
           {plan.estrutura_semanal.map((day, index) => (
             <TabsTrigger
               key={index}
               value={`dia-${index + 1}`}
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm"
             >
               {day.dia}
             </TabsTrigger>

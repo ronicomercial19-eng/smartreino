@@ -282,6 +282,36 @@ export type Database = {
           },
         ]
       }
+      api_access_logs: {
+        Row: {
+          api_key_hash: string | null
+          athlete_id: string | null
+          created_at: string | null
+          endpoint: string
+          id: string
+          request_metadata: Json | null
+          response_status: number | null
+        }
+        Insert: {
+          api_key_hash?: string | null
+          athlete_id?: string | null
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          request_metadata?: Json | null
+          response_status?: number | null
+        }
+        Update: {
+          api_key_hash?: string | null
+          athlete_id?: string | null
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          request_metadata?: Json | null
+          response_status?: number | null
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           appointment_type: string | null
@@ -383,6 +413,7 @@ export type Database = {
       }
       athlete_periodizations: {
         Row: {
+          annual_plan_id: string | null
           assigned_at: string | null
           assigned_by: string | null
           athlete_id: string | null
@@ -395,6 +426,7 @@ export type Database = {
           status: string | null
         }
         Insert: {
+          annual_plan_id?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
           athlete_id?: string | null
@@ -407,6 +439,7 @@ export type Database = {
           status?: string | null
         }
         Update: {
+          annual_plan_id?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
           athlete_id?: string | null
@@ -419,6 +452,13 @@ export type Database = {
           status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "athlete_periodizations_annual_plan_id_fkey"
+            columns: ["annual_plan_id"]
+            isOneToOne: false
+            referencedRelation: "periodization_annual_plans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "athlete_periodizations_athlete_id_fkey"
             columns: ["athlete_id"]
