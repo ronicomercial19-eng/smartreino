@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,7 +30,7 @@ export function WorkoutAIChat({ workoutPlanId, currentPlan, onPlanUpdated }: Wor
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Olá! 👋 Sou seu assistente IA de treinos. Posso ajudar você a modificar este treino em tempo real. Exemplos:\n\n• 'Aumentar carga do agachamento em 5kg'\n• 'Adicionar abdominais no dia 1'\n• 'Reduzir descanso para 60s'\n• 'Trocar supino por flexão'",
+      content: "Olá! 👋 Sou seu assistente IA de treinos. Posso ajudar você a modificar este treino em tempo real. Exemplos:\n\n• **Aumentar carga** do agachamento em 5kg\n• **Adicionar abdominais** no dia 1\n• **Reduzir descanso** para 60s\n• **Trocar supino** por flexão\n• **Aplicar Drop Set** no supino",
       timestamp: new Date()
     }
   ]);
@@ -66,7 +67,6 @@ export function WorkoutAIChat({ workoutPlanId, currentPlan, onPlanUpdated }: Wor
       };
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Apply changes immediately — no manual confirmation needed
       if (data.updatedPlan) {
         onPlanUpdated(data.updatedPlan);
         toast({ title: "✅ Treino atualizado", description: "As modificações foram aplicadas em tempo real." });
@@ -84,7 +84,7 @@ export function WorkoutAIChat({ workoutPlanId, currentPlan, onPlanUpdated }: Wor
   };
 
   return (
-    <Card className="glass border-primary/30">
+    <Card className="border-primary/30">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Sparkles className="h-5 w-5 text-primary" />
@@ -97,7 +97,13 @@ export function WorkoutAIChat({ workoutPlanId, currentPlan, onPlanUpdated }: Wor
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[80%] rounded-lg p-3 ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  {msg.role === "assistant" ? (
+                    <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  )}
                   <span className="text-xs opacity-70 mt-1 block">{msg.timestamp.toLocaleTimeString()}</span>
                 </div>
               </div>
