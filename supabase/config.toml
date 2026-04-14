@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.seed-protocols]
 verify_jwt = false
+
+[functions.ai-coach-chat]
+verify_jwt = false

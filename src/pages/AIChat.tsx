@@ -1,14 +1,14 @@
 
 import { PageLayout } from "@/components/shared/PageLayout";
-import ContextualAIChat from "@/components/ContextualAIChat";
+import RealTimeAIChat from "@/components/RealTimeAIChat";
 
 const AIChat = () => {
   return (
     <PageLayout
-      title="🤖 Chat Contextual com IA"
-      subtitle="Assistente inteligente que analiza seus dados e oferece sugestões personalizadas"
+      title="🤖 Coach IA em Tempo Real"
+      subtitle="Assistente inteligente com streaming — treinos, nutrição e análise personalizada"
     >
-      <ContextualAIChat />
+      <RealTimeAIChat />
     </PageLayout>
   );
 };
