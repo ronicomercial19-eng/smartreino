@@ -73,6 +73,56 @@ export type Database = {
           },
         ]
       }
+      aluno_score_composite: {
+        Row: {
+          active_sources: string[]
+          aluno_id: string
+          churn_risk: string
+          last_calculated_at: string
+          score_fitpro: number
+          score_manual: number
+          score_normalized: number
+          score_periodizer: number
+          score_wearables: number
+          stagnation_flag: boolean
+          updated_at: string
+        }
+        Insert: {
+          active_sources?: string[]
+          aluno_id: string
+          churn_risk?: string
+          last_calculated_at?: string
+          score_fitpro?: number
+          score_manual?: number
+          score_normalized?: number
+          score_periodizer?: number
+          score_wearables?: number
+          stagnation_flag?: boolean
+          updated_at?: string
+        }
+        Update: {
+          active_sources?: string[]
+          aluno_id?: string
+          churn_risk?: string
+          last_calculated_at?: string
+          score_fitpro?: number
+          score_manual?: number
+          score_normalized?: number
+          score_periodizer?: number
+          score_wearables?: number
+          stagnation_flag?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aluno_score_composite_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alunos: {
         Row: {
           altura_cm: number | null
@@ -1769,6 +1819,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      library_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          external_id: string
+          id: string
+          name: string
+          payload: Json
+          player_url: string | null
+          slug: string | null
+          subcategory: string | null
+          synced_at: string
+          thumbnail_url: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          external_id: string
+          id?: string
+          name: string
+          payload?: Json
+          player_url?: string | null
+          slug?: string | null
+          subcategory?: string | null
+          synced_at?: string
+          thumbnail_url?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          external_id?: string
+          id?: string
+          name?: string
+          payload?: Json
+          player_url?: string | null
+          slug?: string | null
+          subcategory?: string | null
+          synced_at?: string
+          thumbnail_url?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       link_de_video: {
         Row: {
@@ -3549,6 +3647,44 @@ export type Database = {
         }
         Relationships: []
       }
+      source_sync_logs: {
+        Row: {
+          aluno_id: string
+          error: string | null
+          id: string
+          payload: Json
+          processed: boolean
+          source: string
+          synced_at: string
+        }
+        Insert: {
+          aluno_id: string
+          error?: string | null
+          id?: string
+          payload?: Json
+          processed?: boolean
+          source: string
+          synced_at?: string
+        }
+        Update: {
+          aluno_id?: string
+          error?: string | null
+          id?: string
+          payload?: Json
+          processed?: boolean
+          source?: string
+          synced_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_sync_logs_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       strength_records: {
         Row: {
           created_at: string
@@ -3845,6 +3981,69 @@ export type Database = {
         }
         Relationships: []
       }
+      student_library_assignments: {
+        Row: {
+          access_url: string | null
+          assigned_at: string
+          assigned_by: string | null
+          athlete_id: string
+          content_ref: string
+          content_title: string | null
+          content_type: string
+          created_at: string
+          download_url: string | null
+          id: string
+          notes: string | null
+          player_url: string | null
+          thumbnail_url: string | null
+        }
+        Insert: {
+          access_url?: string | null
+          assigned_at?: string
+          assigned_by?: string | null
+          athlete_id: string
+          content_ref: string
+          content_title?: string | null
+          content_type: string
+          created_at?: string
+          download_url?: string | null
+          id?: string
+          notes?: string | null
+          player_url?: string | null
+          thumbnail_url?: string | null
+        }
+        Update: {
+          access_url?: string | null
+          assigned_at?: string
+          assigned_by?: string | null
+          athlete_id?: string
+          content_ref?: string
+          content_title?: string | null
+          content_type?: string
+          created_at?: string
+          download_url?: string | null
+          id?: string
+          notes?: string | null
+          player_url?: string | null
+          thumbnail_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_library_assignments_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_library_assignments_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_measurements: {
         Row: {
           altura_cm: number | null
@@ -4059,6 +4258,7 @@ export type Database = {
       }
       student_training_assignments: {
         Row: {
+          content_type: string | null
           created_at: string | null
           created_by: string
           end_date: string | null
@@ -4066,6 +4266,8 @@ export type Database = {
           html_file_url: string | null
           id: string
           is_active: boolean | null
+          periodization_file_url: string | null
+          periodization_html: string | null
           start_date: string
           student_id: string
           training_data: Json
@@ -4075,6 +4277,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          content_type?: string | null
           created_at?: string | null
           created_by: string
           end_date?: string | null
@@ -4082,6 +4285,8 @@ export type Database = {
           html_file_url?: string | null
           id?: string
           is_active?: boolean | null
+          periodization_file_url?: string | null
+          periodization_html?: string | null
           start_date?: string
           student_id: string
           training_data?: Json
@@ -4091,6 +4296,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          content_type?: string | null
           created_at?: string | null
           created_by?: string
           end_date?: string | null
@@ -4098,6 +4304,8 @@ export type Database = {
           html_file_url?: string | null
           id?: string
           is_active?: boolean | null
+          periodization_file_url?: string | null
+          periodization_html?: string | null
           start_date?: string
           student_id?: string
           training_data?: Json
@@ -4347,6 +4555,33 @@ export type Database = {
         }
         Relationships: []
       }
+      templates: {
+        Row: {
+          content: Json | null
+          created_at: string
+          created_by: string | null
+          id: string
+          type: string | null
+          usage_count: number | null
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          type?: string | null
+          usage_count?: number | null
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          type?: string | null
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
       training_phases: {
         Row: {
           created_at: string | null
@@ -4567,6 +4802,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_assessments: {
+        Row: {
+          created_at: string
+          file_url: string
+          id: string
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_url: string
+          id?: string
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_url?: string
+          id?: string
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_credits: {
         Row: {
           created_at: string | null
@@ -4594,6 +4853,30 @@ export type Database = {
           total_credits?: number | null
           updated_at?: string | null
           user_email?: string
+        }
+        Relationships: []
+      }
+      user_interactions: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json | null
+          type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          type?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -5307,11 +5590,14 @@ export type Database = {
           id: string
           load_percentage: string | null
           notes: string | null
+          observations: Json | null
+          override_locked: boolean | null
           reps_range: string
           rest_seconds: number
           rpe_target: number | null
           sets: number
           tempo: string | null
+          training_day: number | null
         }
         Insert: {
           created_at?: string | null
@@ -5321,11 +5607,14 @@ export type Database = {
           id?: string
           load_percentage?: string | null
           notes?: string | null
+          observations?: Json | null
+          override_locked?: boolean | null
           reps_range: string
           rest_seconds: number
           rpe_target?: number | null
           sets: number
           tempo?: string | null
+          training_day?: number | null
         }
         Update: {
           created_at?: string | null
@@ -5335,11 +5624,14 @@ export type Database = {
           id?: string
           load_percentage?: string | null
           notes?: string | null
+          observations?: Json | null
+          override_locked?: boolean | null
           reps_range?: string
           rest_seconds?: number
           rpe_target?: number | null
           sets?: number
           tempo?: string | null
+          training_day?: number | null
         }
         Relationships: [
           {
@@ -6455,6 +6747,10 @@ export type Database = {
           periodization_model_id: string
           title: string
         }[]
+      }
+      recalculate_composite_score: {
+        Args: { p_aluno_id: string }
+        Returns: undefined
       }
       salvar_avaliacao: {
         Args: { p_dados: Json; p_estudante_id: string }
