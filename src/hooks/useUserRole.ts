@@ -29,28 +29,31 @@ export function useUserRole(userId: string | null | undefined): UseUserRoleRetur
     }
 
     try {
+      // Auto-repair: ensure profile + role exist for this user (handles legacy accounts)
+      const { data: ensured, error: ensureError } = await supabase.rpc(
+        'ensure_current_user_profile' as any
+      );
+
+      if (!ensureError && Array.isArray(ensured) && ensured[0]?.role) {
+        setRole(ensured[0].role as AppRole);
+        return;
+      }
+
+      // Fallback: direct role lookup
       const { data, error } = await supabase.rpc('get_user_role', {
         _user_id: userId,
       });
 
       if (error) {
         console.error('Erro ao buscar role:', error);
-        // Fallback: check profiles table
         const { data: profileData } = await supabase
           .from('profiles' as any)
           .select('role')
           .eq('user_id', userId)
           .single();
-
-        if (profileData) {
-          setRole((profileData as any).role as AppRole);
-        } else {
-          setRole('user');
-        }
+        setRole(((profileData as any)?.role as AppRole) || 'user');
       } else {
-        // Map 'user' role to 'student' for simplicity (regular users = students)
-        const mappedRole = (data as string) || 'user';
-        setRole(mappedRole as AppRole);
+        setRole(((data as string) || 'user') as AppRole);
       }
     } catch (err) {
       console.error('Erro inesperado ao buscar role:', err);

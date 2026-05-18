@@ -251,7 +251,12 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={async () => {
-                    await supabase.auth.signOut();
+                    try {
+                      await supabase.auth.signOut({ scope: 'local' });
+                    } catch (e) {
+                      console.warn('signOut warning:', e);
+                    }
+                    try { localStorage.clear(); } catch {}
                     window.location.href = '/login';
                   }}
                   className="text-destructive hover:text-destructive hover:bg-destructive/10"
