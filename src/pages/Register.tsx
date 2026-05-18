@@ -73,12 +73,17 @@ const Register = () => {
 
       if (error) {
         // Handle specific error codes
-        if (error.message?.includes('already registered') || (error as any).code === 'user_already_exists') {
+        const alreadyExists =
+          error.message?.toLowerCase().includes('already registered') ||
+          error.message?.toLowerCase().includes('user already') ||
+          (error as any).code === 'user_already_exists' ||
+          (error as any).status === 422;
+        if (alreadyExists) {
           toast({
             title: "Email já cadastrado",
-            description: "Este email já possui uma conta. Faça login ou use outro email.",
-            variant: "destructive",
+            description: "Redirecionando para o login. Use 'Esqueci minha senha' se necessário.",
           });
+          setTimeout(() => navigate('/login'), 1200);
           return;
         }
         throw error;
