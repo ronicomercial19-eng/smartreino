@@ -28,6 +28,7 @@ export function useUserRole(userId: string | null | undefined): UseUserRoleRetur
       return;
     }
 
+    setLoading(true);
     try {
       // Auto-repair: ensure profile + role exist for this user (handles legacy accounts)
       const { data: ensured, error: ensureError } = await supabase.rpc(
