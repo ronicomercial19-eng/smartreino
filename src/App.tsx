@@ -182,6 +182,11 @@ function AppRoutes() {
       {/* Student interface */}
       <Route path="/student-interface" element={<StudentInterface />} />
 
+      {/* Treino do Dia (NINE) */}
+      <Route path="/treino-hoje" element={<TreinoHoje />} />
+      <Route path="/treino-hoje/:id" element={<TreinoHoje />} />
+
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
