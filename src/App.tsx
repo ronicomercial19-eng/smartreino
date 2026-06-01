@@ -37,6 +37,8 @@ import StudentAnalytics from "./pages/StudentAnalytics";
 import AdvancedStatistics from "./pages/AdvancedStatistics";
 import SmartTreinoBuilder from "./pages/SmartTreinoBuilder";
 import ProtocolCatalog from "./pages/ProtocolCatalog";
+import TreinoHoje from "./pages/TreinoHoje";
+import { SovereignBootstrap } from "./components/auth/SovereignBootstrap";
 
 const queryClient = new QueryClient();
 
