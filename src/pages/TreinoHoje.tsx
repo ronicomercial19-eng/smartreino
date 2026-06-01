@@ -1,7 +1,7 @@
 import { useParams, useSearchParams } from "react-router-dom";
 import { useTreinoDoDia } from "@/hooks/useTreinoDoDia";
 import { TreinoDoDiaView } from "@/components/workout/TreinoDoDiaView";
-import AppLayout from "@/components/AppLayout";
+import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 
