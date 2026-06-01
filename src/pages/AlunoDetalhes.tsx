@@ -248,8 +248,14 @@ export default function AlunoDetalhes() {
           <CardContent>
             <div className="text-center py-8 text-muted-foreground">
               <p>Nenhum treino associado ainda</p>
-              <div className="flex gap-3 justify-center mt-4">
-                <Button onClick={() => navigate('/generate-workout', { state: { aluno } })}>
+              <div className="flex flex-wrap gap-3 justify-center mt-4">
+                <Button
+                  onClick={() => navigate(`/treino-hoje/${aluno.id}`)}
+                  className="bg-brand-orange hover:bg-brand-orange/90"
+                >
+                  Prescrever Treino de Hoje
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/generate-workout', { state: { aluno } })}>
                   Gerar Primeiro Treino
                 </Button>
                 <Button variant="outline" onClick={() => navigate(`/student-analytics/${aluno.id}`)}>

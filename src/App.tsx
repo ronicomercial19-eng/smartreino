@@ -37,6 +37,8 @@ import StudentAnalytics from "./pages/StudentAnalytics";
 import AdvancedStatistics from "./pages/AdvancedStatistics";
 import SmartTreinoBuilder from "./pages/SmartTreinoBuilder";
 import ProtocolCatalog from "./pages/ProtocolCatalog";
+import TreinoHoje from "./pages/TreinoHoje";
+import { SovereignBootstrap } from "./components/auth/SovereignBootstrap";
 
 const queryClient = new QueryClient();
 
@@ -180,6 +182,11 @@ function AppRoutes() {
       {/* Student interface */}
       <Route path="/student-interface" element={<StudentInterface />} />
 
+      {/* Treino do Dia (NINE) */}
+      <Route path="/treino-hoje" element={<TreinoHoje />} />
+      <Route path="/treino-hoje/:id" element={<TreinoHoje />} />
+
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -192,7 +199,9 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AppRoutes />
+          <SovereignBootstrap>
+            <AppRoutes />
+          </SovereignBootstrap>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

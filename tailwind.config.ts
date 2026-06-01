@@ -21,10 +21,15 @@ export default {
     extend: {
       fontFamily: {
         'sans': ['Inter', 'system-ui', 'sans-serif'],
-        'display': ['Montserrat', 'system-ui', 'sans-serif'],
-        'heading': ['Montserrat', 'system-ui', 'sans-serif'],
+        'display': ['Syne', 'Montserrat', 'system-ui', 'sans-serif'],
+        'heading': ['Syne', 'Montserrat', 'system-ui', 'sans-serif'],
+        'mono': ['"DM Mono"', 'ui-monospace', 'monospace'],
       },
       colors: {
+        brand: {
+          DEFAULT: '#E8571A',
+          orange: '#E8571A',
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      activation_events: {
+        Row: {
+          completed_at: string | null
+          event_key: string
+          id: number
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          event_key: string
+          id?: number
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          event_key?: string
+          id?: number
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_chat_messages: {
         Row: {
           content: string
@@ -37,6 +61,63 @@ export type Database = {
           id?: string
           metadata?: Json | null
           role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_context_snapshots: {
+        Row: {
+          captured_at: string
+          context: Json
+          created_at: string
+          id: string
+          sync_score: number | null
+          user_id: string
+        }
+        Insert: {
+          captured_at?: string
+          context?: Json
+          created_at?: string
+          id?: string
+          sync_score?: number | null
+          user_id: string
+        }
+        Update: {
+          captured_at?: string
+          context?: Json
+          created_at?: string
+          id?: string
+          sync_score?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_insights: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          generated_at: string
+          id: string
+          payload: Json
+          type: string
+          user_id: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          generated_at?: string
+          id?: string
+          payload?: Json
+          type: string
+          user_id: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          generated_at?: string
+          id?: string
+          payload?: Json
+          type?: string
           user_id?: string
         }
         Relationships: []
@@ -88,8 +169,22 @@ export type Database = {
             foreignKeyName: "aluno_periodizacao_aluno_id_fkey"
             columns: ["aluno_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aluno_periodizacao_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aluno_periodizacao_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
           {
             foreignKeyName: "aluno_periodizacao_periodizacao_id_fkey"
@@ -396,14 +491,61 @@ export type Database = {
         }
         Relationships: []
       }
+      api_connectors: {
+        Row: {
+          auth_mode: string
+          config: Json
+          created_at: string
+          endpoint: string | null
+          id: string
+          iframe_url: string | null
+          key: string
+          permissions: string[]
+          provider: string
+          secret_ref: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          auth_mode?: string
+          config?: Json
+          created_at?: string
+          endpoint?: string | null
+          id?: string
+          iframe_url?: string | null
+          key: string
+          permissions?: string[]
+          provider: string
+          secret_ref?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          auth_mode?: string
+          config?: Json
+          created_at?: string
+          endpoint?: string | null
+          id?: string
+          iframe_url?: string | null
+          key?: string
+          permissions?: string[]
+          provider?: string
+          secret_ref?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           appointment_type: string | null
+          confirmed_at: string | null
           created_at: string | null
           description: string | null
           duration: number | null
           id: string
           location: string | null
+          notes: string | null
           recurrence_pattern: Json | null
           scheduled_at: string
           status: Database["public"]["Enums"]["appointment_status"] | null
@@ -414,11 +556,13 @@ export type Database = {
         }
         Insert: {
           appointment_type?: string | null
+          confirmed_at?: string | null
           created_at?: string | null
           description?: string | null
           duration?: number | null
           id?: string
           location?: string | null
+          notes?: string | null
           recurrence_pattern?: Json | null
           scheduled_at: string
           status?: Database["public"]["Enums"]["appointment_status"] | null
@@ -429,11 +573,13 @@ export type Database = {
         }
         Update: {
           appointment_type?: string | null
+          confirmed_at?: string | null
           created_at?: string | null
           description?: string | null
           duration?: number | null
           id?: string
           location?: string | null
+          notes?: string | null
           recurrence_pattern?: Json | null
           scheduled_at?: string
           status?: Database["public"]["Enums"]["appointment_status"] | null
@@ -461,8 +607,22 @@ export type Database = {
             foreignKeyName: "appointments_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
         ]
       }
@@ -504,8 +664,22 @@ export type Database = {
             foreignKeyName: "athlete_auth_link_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: true
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_auth_link_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: true
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_auth_link_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: true
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
         ]
       }
@@ -575,8 +749,22 @@ export type Database = {
             foreignKeyName: "athlete_periodizations_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_periodizations_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_periodizations_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
         ]
       }
@@ -604,6 +792,7 @@ export type Database = {
           name: string
           nivel: string | null
           objetivo: string | null
+          onboarding_completed_at: string | null
           password_changed: boolean | null
           perfil_classificado: Json | null
           peso_kg: number | null
@@ -645,6 +834,7 @@ export type Database = {
           name: string
           nivel?: string | null
           objetivo?: string | null
+          onboarding_completed_at?: string | null
           password_changed?: boolean | null
           perfil_classificado?: Json | null
           peso_kg?: number | null
@@ -686,6 +876,7 @@ export type Database = {
           name?: string
           nivel?: string | null
           objetivo?: string | null
+          onboarding_completed_at?: string | null
           password_changed?: boolean | null
           perfil_classificado?: Json | null
           peso_kg?: number | null
@@ -1211,7 +1402,236 @@ export type Database = {
             foreignKeyName: "avaliacoes_unificadas_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_unificadas_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_unificadas_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
+          },
+        ]
+      }
+      bio_activity_logs: {
+        Row: {
+          calories: number | null
+          created_at: string
+          distance_m: number | null
+          id: string
+          recorded_at: string
+          source: string | null
+          steps: number | null
+          user_id: string
+        }
+        Insert: {
+          calories?: number | null
+          created_at?: string
+          distance_m?: number | null
+          id?: string
+          recorded_at?: string
+          source?: string | null
+          steps?: number | null
+          user_id: string
+        }
+        Update: {
+          calories?: number | null
+          created_at?: string
+          distance_m?: number | null
+          id?: string
+          recorded_at?: string
+          source?: string | null
+          steps?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      bio_heart_rate_logs: {
+        Row: {
+          bpm: number
+          context: string | null
+          created_at: string
+          id: string
+          recorded_at: string
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          bpm: number
+          context?: string | null
+          created_at?: string
+          id?: string
+          recorded_at?: string
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          bpm?: number
+          context?: string | null
+          created_at?: string
+          id?: string
+          recorded_at?: string
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      bio_hrv_logs: {
+        Row: {
+          created_at: string
+          hrv_ms: number
+          id: string
+          metadata: Json | null
+          recorded_at: string
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hrv_ms: number
+          id?: string
+          metadata?: Json | null
+          recorded_at?: string
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hrv_ms?: number
+          id?: string
+          metadata?: Json | null
+          recorded_at?: string
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      bio_recovery_state: {
+        Row: {
+          created_at: string
+          evaluated_at: string
+          id: string
+          metadata: Json | null
+          nervous_system: string | null
+          recovery_score: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          evaluated_at?: string
+          id?: string
+          metadata?: Json | null
+          nervous_system?: string | null
+          recovery_score?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          evaluated_at?: string
+          id?: string
+          metadata?: Json | null
+          nervous_system?: string | null
+          recovery_score?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      bio_sleep_logs: {
+        Row: {
+          created_at: string
+          deep_min: number | null
+          duration_min: number | null
+          id: string
+          quality_score: number | null
+          rem_min: number | null
+          sleep_date: string
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deep_min?: number | null
+          duration_min?: number | null
+          id?: string
+          quality_score?: number | null
+          rem_min?: number | null
+          sleep_date: string
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deep_min?: number | null
+          duration_min?: number | null
+          id?: string
+          quality_score?: number | null
+          rem_min?: number | null
+          sleep_date?: string
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      biohacker_protocols: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          difficulty: string
+          duration_min: number
+          hero_image: string | null
+          id: string
+          metadata: Json
+          name: string
+          skill_id: string | null
+          status: string
+          steps: Json
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          difficulty?: string
+          duration_min?: number
+          hero_image?: string | null
+          id?: string
+          metadata?: Json
+          name: string
+          skill_id?: string | null
+          status?: string
+          steps?: Json
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          difficulty?: string
+          duration_min?: number
+          hero_image?: string | null
+          id?: string
+          metadata?: Json
+          name?: string
+          skill_id?: string | null
+          status?: string
+          steps?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "biohacker_protocols_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
             referencedColumns: ["id"]
           },
         ]
@@ -1642,6 +2062,351 @@ export type Database = {
           video_url?: string | null
         }
         Relationships: []
+      }
+      fitpro_connections: {
+        Row: {
+          api_key_hash: string
+          api_key_prefix: string
+          created_at: string
+          created_by: string | null
+          id: string
+          last_sync_at: string | null
+          name: string
+          professor_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          api_key_hash: string
+          api_key_prefix: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_sync_at?: string | null
+          name: string
+          professor_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          api_key_hash?: string
+          api_key_prefix?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_sync_at?: string | null
+          name?: string
+          professor_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fitpro_events: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          event_type: string
+          fitpro_professor_id: string | null
+          fitpro_student_id: string | null
+          id: string
+          module: string
+          payload: Json | null
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type: string
+          fitpro_professor_id?: string | null
+          fitpro_student_id?: string | null
+          id?: string
+          module?: string
+          payload?: Json | null
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: string
+          fitpro_professor_id?: string | null
+          fitpro_student_id?: string | null
+          id?: string
+          module?: string
+          payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fitpro_events_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "fitpro_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fitpro_healthflix_assignments: {
+        Row: {
+          assigned_at: string
+          category: string | null
+          completed_at: string | null
+          created_at: string
+          fitpro_professor_id: string | null
+          fitpro_student_id: string
+          healthflix_content_id: string
+          id: string
+          progress_percent: number
+          source: string
+          status: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string
+          category?: string | null
+          completed_at?: string | null
+          created_at?: string
+          fitpro_professor_id?: string | null
+          fitpro_student_id: string
+          healthflix_content_id: string
+          id?: string
+          progress_percent?: number
+          source?: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string
+          category?: string | null
+          completed_at?: string | null
+          created_at?: string
+          fitpro_professor_id?: string | null
+          fitpro_student_id?: string
+          healthflix_content_id?: string
+          id?: string
+          progress_percent?: number
+          source?: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fitpro_healthflix_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          fitpro_student_id: string
+          healthflix_content_id: string
+          id: string
+          last_event_at: string
+          progress_percent: number
+          started_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          fitpro_student_id: string
+          healthflix_content_id: string
+          id?: string
+          last_event_at?: string
+          progress_percent?: number
+          started_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          fitpro_student_id?: string
+          healthflix_content_id?: string
+          id?: string
+          last_event_at?: string
+          progress_percent?: number
+          started_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fitpro_smartperiodizer_events: {
+        Row: {
+          created_at: string
+          delivered: boolean
+          entity_id: string | null
+          entity_type: string | null
+          event_type: string
+          fitpro_professor_id: string | null
+          fitpro_student_id: string
+          id: string
+          payload: Json | null
+        }
+        Insert: {
+          created_at?: string
+          delivered?: boolean
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type: string
+          fitpro_professor_id?: string | null
+          fitpro_student_id: string
+          id?: string
+          payload?: Json | null
+        }
+        Update: {
+          created_at?: string
+          delivered?: boolean
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: string
+          fitpro_professor_id?: string | null
+          fitpro_student_id?: string
+          id?: string
+          payload?: Json | null
+        }
+        Relationships: []
+      }
+      fitpro_smartperiodizer_periodizations: {
+        Row: {
+          adherence_level: number | null
+          created_at: string
+          current_cycle: string | null
+          current_phase: string | null
+          cycle_week: number | null
+          fatigue_level: number | null
+          fitpro_professor_id: string | null
+          fitpro_student_id: string
+          goal: string | null
+          id: string
+          intensity_level: string | null
+          payload: Json | null
+          recovery_status: string | null
+          smartperiodizer_periodization_id: string | null
+          status: string
+          training_level: string | null
+          updated_at: string
+          volume_level: string | null
+        }
+        Insert: {
+          adherence_level?: number | null
+          created_at?: string
+          current_cycle?: string | null
+          current_phase?: string | null
+          cycle_week?: number | null
+          fatigue_level?: number | null
+          fitpro_professor_id?: string | null
+          fitpro_student_id: string
+          goal?: string | null
+          id?: string
+          intensity_level?: string | null
+          payload?: Json | null
+          recovery_status?: string | null
+          smartperiodizer_periodization_id?: string | null
+          status?: string
+          training_level?: string | null
+          updated_at?: string
+          volume_level?: string | null
+        }
+        Update: {
+          adherence_level?: number | null
+          created_at?: string
+          current_cycle?: string | null
+          current_phase?: string | null
+          cycle_week?: number | null
+          fatigue_level?: number | null
+          fitpro_professor_id?: string | null
+          fitpro_student_id?: string
+          goal?: string | null
+          id?: string
+          intensity_level?: string | null
+          payload?: Json | null
+          recovery_status?: string | null
+          smartperiodizer_periodization_id?: string | null
+          status?: string
+          training_level?: string | null
+          updated_at?: string
+          volume_level?: string | null
+        }
+        Relationships: []
+      }
+      fitpro_student_map: {
+        Row: {
+          athlete_id: string | null
+          connection_id: string | null
+          context: Json | null
+          created_at: string
+          fitpro_professor_id: string | null
+          fitpro_student_id: string
+          id: string
+          last_seen_at: string | null
+        }
+        Insert: {
+          athlete_id?: string | null
+          connection_id?: string | null
+          context?: Json | null
+          created_at?: string
+          fitpro_professor_id?: string | null
+          fitpro_student_id: string
+          id?: string
+          last_seen_at?: string | null
+        }
+        Update: {
+          athlete_id?: string | null
+          connection_id?: string | null
+          context?: Json | null
+          created_at?: string
+          fitpro_professor_id?: string | null
+          fitpro_student_id?: string
+          id?: string
+          last_seen_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fitpro_student_map_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fitpro_student_map_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_students_overview"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "fitpro_student_map_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fitpro_student_map_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fitpro_student_map_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "fitpro_student_map_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "fitpro_connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       generated_workout_plans: {
         Row: {
@@ -2189,6 +2954,84 @@ export type Database = {
         }
         Relationships: []
       }
+      monetization_events: {
+        Row: {
+          context: string | null
+          created_at: string | null
+          event_type: string
+          id: number
+          metadata: Json | null
+          plan_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string | null
+          event_type: string
+          id?: number
+          metadata?: Json | null
+          plan_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          context?: string | null
+          created_at?: string | null
+          event_type?: string
+          id?: number
+          metadata?: Json | null
+          plan_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      monetization_offers: {
+        Row: {
+          category: string
+          checkout_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          iframe_url: string | null
+          metadata: Json
+          name: string
+          plan_id: string | null
+          priority: number
+          status: string
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          checkout_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          iframe_url?: string | null
+          metadata?: Json
+          name: string
+          plan_id?: string | null
+          priority?: number
+          status?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          checkout_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          iframe_url?: string | null
+          metadata?: Json
+          name?: string
+          plan_id?: string | null
+          priority?: number
+          status?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ninefit_checkins: {
         Row: {
           alimentacao: number | null
@@ -2432,10 +3275,48 @@ export type Database = {
             foreignKeyName: "nutrition_logs_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nutrition_logs_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "nutrition_logs_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
+          },
         ]
+      }
+      onboarding_progress: {
+        Row: {
+          completed_steps: string[]
+          current_step: string
+          data: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_steps?: string[]
+          current_step?: string
+          data?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_steps?: string[]
+          current_step?: string
+          data?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       payments: {
         Row: {
@@ -2594,8 +3475,22 @@ export type Database = {
             foreignKeyName: "periodization_annual_plans_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodization_annual_plans_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodization_annual_plans_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
         ]
       }
@@ -2930,6 +3825,54 @@ export type Database = {
         }
         Relationships: []
       }
+      physio_modules: {
+        Row: {
+          category: string
+          connector_key: string | null
+          created_at: string
+          cta_label: string
+          cta_route: string | null
+          description: string | null
+          display_order: number
+          hero_image: string | null
+          id: string
+          key: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          connector_key?: string | null
+          created_at?: string
+          cta_label?: string
+          cta_route?: string | null
+          description?: string | null
+          display_order?: number
+          hero_image?: string | null
+          id?: string
+          key: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          connector_key?: string | null
+          created_at?: string
+          cta_label?: string
+          cta_route?: string | null
+          description?: string | null
+          display_order?: number
+          hero_image?: string | null
+          id?: string
+          key?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       planos: {
         Row: {
           ativo: boolean | null
@@ -3153,8 +4096,22 @@ export type Database = {
             foreignKeyName: "fk_plans_athlete"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_plans_athlete"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_plans_athlete"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
           {
             foreignKeyName: "fk_plans_periodization"
@@ -3217,6 +4174,36 @@ export type Database = {
         }
         Relationships: []
       }
+      proactive_events: {
+        Row: {
+          created_at: string
+          dismissed_at: string | null
+          fired_at: string
+          id: string
+          metadata: Json | null
+          trigger_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dismissed_at?: string | null
+          fired_at?: string
+          id?: string
+          metadata?: Json | null
+          trigger_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dismissed_at?: string | null
+          fired_at?: string
+          id?: string
+          metadata?: Json | null
+          trigger_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           created_at: string | null
@@ -3256,6 +4243,27 @@ export type Database = {
           stock_quantity?: number | null
           type?: Database["public"]["Enums"]["product_type"]
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      profile_history: {
+        Row: {
+          id: string
+          snapshot: Json
+          snapshot_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          snapshot: Json
+          snapshot_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          snapshot?: Json
+          snapshot_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -3317,6 +4325,7 @@ export type Database = {
           created_at: string | null
           date_of_birth: string | null
           email: string
+          first_access_completed: boolean
           first_name: string | null
           full_name: string | null
           id: string
@@ -3336,6 +4345,7 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           email: string
+          first_access_completed?: boolean
           first_name?: string | null
           full_name?: string | null
           id?: string
@@ -3355,6 +4365,7 @@ export type Database = {
           created_at?: string | null
           date_of_birth?: string | null
           email?: string
+          first_access_completed?: boolean
           first_name?: string | null
           full_name?: string | null
           id?: string
@@ -3728,6 +4739,45 @@ export type Database = {
           },
         ]
       }
+      ron_long_term_memories: {
+        Row: {
+          content: string
+          created_at: string | null
+          embedding: string | null
+          id: number
+          importance_score: number | null
+          last_accessed: string | null
+          memory_type: string
+          metadata: Json | null
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: number
+          importance_score?: number | null
+          last_accessed?: string | null
+          memory_type: string
+          metadata?: Json | null
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: number
+          importance_score?: number | null
+          last_accessed?: string | null
+          memory_type?: string
+          metadata?: Json | null
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ron_memory: {
         Row: {
           confidence: number | null
@@ -3811,6 +4861,130 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      skill_activations: {
+        Row: {
+          activated_at: string
+          activated_by: string | null
+          active: boolean
+          id: string
+          scope: string
+          skill_id: string
+          target_id: string | null
+        }
+        Insert: {
+          activated_at?: string
+          activated_by?: string | null
+          active?: boolean
+          id?: string
+          scope?: string
+          skill_id: string
+          target_id?: string | null
+        }
+        Update: {
+          activated_at?: string
+          activated_by?: string | null
+          active?: boolean
+          id?: string
+          scope?: string
+          skill_id?: string
+          target_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_activations_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skill_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          skill_id: string
+          user_id: string | null
+          value: number | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          skill_id: string
+          user_id?: string | null
+          value?: number | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          skill_id?: string
+          user_id?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_events_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      skills: {
+        Row: {
+          category: string
+          content: Json
+          created_at: string
+          description: string | null
+          id: string
+          metrics: Json
+          name: string
+          owner_id: string | null
+          slug: string
+          status: string
+          tags: string[]
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          category?: string
+          content?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          metrics?: Json
+          name: string
+          owner_id?: string | null
+          slug: string
+          status?: string
+          tags?: string[]
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          category?: string
+          content?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          metrics?: Json
+          name?: string
+          owner_id?: string | null
+          slug?: string
+          status?: string
+          tags?: string[]
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
       }
       smart_treino_macro_rules: {
         Row: {
@@ -3910,8 +5084,22 @@ export type Database = {
             foreignKeyName: "smart_treino_macro_rules_aluno_id_fkey"
             columns: ["aluno_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_treino_macro_rules_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_treino_macro_rules_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
         ]
       }
@@ -4018,8 +5206,22 @@ export type Database = {
             foreignKeyName: "smart_treino_profiles_aluno_id_fkey"
             columns: ["aluno_id"]
             isOneToOne: true
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_treino_profiles_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_treino_profiles_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
         ]
       }
@@ -4216,8 +5418,22 @@ export type Database = {
             foreignKeyName: "student_activity_history_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_activity_history_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_activity_history_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
           {
             foreignKeyName: "student_activity_history_student_id_fkey"
@@ -4278,8 +5494,22 @@ export type Database = {
             foreignKeyName: "student_anamnesis_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_anamnesis_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_anamnesis_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
           {
             foreignKeyName: "student_anamnesis_student_id_fkey"
@@ -4337,8 +5567,22 @@ export type Database = {
             foreignKeyName: "student_credits_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: true
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_credits_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_credits_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
         ]
       }
@@ -4410,8 +5654,22 @@ export type Database = {
             foreignKeyName: "student_diet_assignments_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_diet_assignments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_diet_assignments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
         ]
       }
@@ -4457,6 +5715,7 @@ export type Database = {
           assigned_at: string
           assigned_by: string | null
           athlete_id: string
+          completed_at: string | null
           content_ref: string
           content_title: string | null
           content_type: string
@@ -4464,14 +5723,19 @@ export type Database = {
           download_url: string | null
           id: string
           notes: string | null
+          payload: Json | null
           player_url: string | null
+          progress_pct: number | null
+          status: string | null
           thumbnail_url: string | null
+          weekly_schedule: Json
         }
         Insert: {
           access_url?: string | null
           assigned_at?: string
           assigned_by?: string | null
           athlete_id: string
+          completed_at?: string | null
           content_ref: string
           content_title?: string | null
           content_type: string
@@ -4479,14 +5743,19 @@ export type Database = {
           download_url?: string | null
           id?: string
           notes?: string | null
+          payload?: Json | null
           player_url?: string | null
+          progress_pct?: number | null
+          status?: string | null
           thumbnail_url?: string | null
+          weekly_schedule?: Json
         }
         Update: {
           access_url?: string | null
           assigned_at?: string
           assigned_by?: string | null
           athlete_id?: string
+          completed_at?: string | null
           content_ref?: string
           content_title?: string | null
           content_type?: string
@@ -4494,8 +5763,12 @@ export type Database = {
           download_url?: string | null
           id?: string
           notes?: string | null
+          payload?: Json | null
           player_url?: string | null
+          progress_pct?: number | null
+          status?: string | null
           thumbnail_url?: string | null
+          weekly_schedule?: Json
         }
         Relationships: [
           {
@@ -4516,8 +5789,22 @@ export type Database = {
             foreignKeyName: "student_library_assignments_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_library_assignments_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_library_assignments_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
         ]
       }
@@ -4598,8 +5885,22 @@ export type Database = {
             foreignKeyName: "student_measurements_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_measurements_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_measurements_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
           {
             foreignKeyName: "student_measurements_student_id_fkey"
@@ -4693,8 +5994,22 @@ export type Database = {
             foreignKeyName: "student_photos_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_photos_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_photos_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
           {
             foreignKeyName: "student_photos_student_id_fkey"
@@ -4824,8 +6139,22 @@ export type Database = {
             foreignKeyName: "student_training_assignments_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_training_assignments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_training_assignments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
         ]
       }
@@ -4921,6 +6250,42 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          features: Json | null
+          id: string
+          is_recommended: boolean | null
+          name: string
+          price_monthly: number | null
+          price_yearly: number | null
+          tagline: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          features?: Json | null
+          id: string
+          is_recommended?: boolean | null
+          name: string
+          price_monthly?: number | null
+          price_yearly?: number | null
+          tagline?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          features?: Json | null
+          id?: string
+          is_recommended?: boolean | null
+          name?: string
+          price_monthly?: number | null
+          price_yearly?: number | null
+          tagline?: string | null
+        }
+        Relationships: []
+      }
       super_sets: {
         Row: {
           created_at: string | null
@@ -4990,6 +6355,42 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sync_score_logs: {
+        Row: {
+          consistency_pct: number | null
+          created_at: string | null
+          feedback_text: string | null
+          id: number
+          inferred_state: string | null
+          metadata: Json | null
+          score: number
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          consistency_pct?: number | null
+          created_at?: string | null
+          feedback_text?: string | null
+          id?: number
+          inferred_state?: string | null
+          metadata?: Json | null
+          score: number
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          consistency_pct?: number | null
+          created_at?: string | null
+          feedback_text?: string | null
+          id?: number
+          inferred_state?: string | null
+          metadata?: Json | null
+          score?: number
+          source?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -5472,8 +6873,22 @@ export type Database = {
             foreignKeyName: "user_memory_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_memory_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_memory_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
         ]
       }
@@ -5518,7 +6933,10 @@ export type Database = {
       }
       user_plans: {
         Row: {
+          classes_per_month: number | null
           created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
           expires_at: string | null
           features: Json | null
           id: string
@@ -5530,7 +6948,10 @@ export type Database = {
           user_email: string
         }
         Insert: {
+          classes_per_month?: number | null
           created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
           expires_at?: string | null
           features?: Json | null
           id?: string
@@ -5542,7 +6963,10 @@ export type Database = {
           user_email: string
         }
         Update: {
+          classes_per_month?: number | null
           created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
           expires_at?: string | null
           features?: Json | null
           id?: string
@@ -5963,8 +7387,22 @@ export type Database = {
             foreignKeyName: "vacation_requests_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_requests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_requests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
         ]
       }
@@ -6124,8 +7562,22 @@ export type Database = {
             foreignKeyName: "workout_executions_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_executions_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_executions_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
         ]
       }
@@ -6552,8 +8004,22 @@ export type Database = {
             foreignKeyName: "workout_progress_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_progress_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_progress_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
           {
             foreignKeyName: "workout_progress_workout_id_fkey"
@@ -6887,10 +8353,86 @@ export type Database = {
             foreignKeyName: "athlete_periodizations_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_periodizations_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "athlete_periodizations_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
+          },
         ]
+      }
+      v_athletes: {
+        Row: {
+          coach_id: string | null
+          email: string | null
+          id: string | null
+          level: number | null
+          name: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          status: Database["public"]["Enums"]["user_status"] | null
+          sync_score: number | null
+          total_xp: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      v_avaliacoes: {
+        Row: {
+          agua_corporal: number | null
+          altura: number | null
+          aluno_id: string | null
+          athlete_id: string | null
+          avaliacao_exames: string | null
+          avaliador_cref: string | null
+          avaliador_nome: string | null
+          circunferencia_braco: number | null
+          circunferencia_cintura: number | null
+          circunferencia_coxa: number | null
+          circunferencia_panturrilha: number | null
+          circunferencia_peitoral: number | null
+          circunferencia_quadril: number | null
+          created_at: string | null
+          data_avaliacao: string | null
+          flags_inteligentes: Json | null
+          gordura_corporal: number | null
+          id: string | null
+          imc: number | null
+          massa_gorda: number | null
+          massa_magra: number | null
+          massa_muscular: number | null
+          observacoes: string | null
+          origem: string | null
+          peso: number | null
+          rm1_empurrar_perna: number | null
+          rm1_empurrar_superior: number | null
+          rm1_puxar_costas: number | null
+          rm1_puxar_inferior: number | null
+          rml_abs: number | null
+          rml_agachamento: number | null
+          rml_elevacao_p: number | null
+          rml_flexao: number | null
+          rml_pull: number | null
+          score_cardio: number | null
+          score_core: number | null
+          score_forca: number | null
+          score_global: number | null
+          score_mobilidade: number | null
+          score_resistencia: number | null
+          taxa_metabolica: number | null
+          updated_at: string | null
+        }
+        Relationships: []
       }
       v_exercises_canonical: {
         Row: {
@@ -7164,6 +8706,23 @@ export type Database = {
         }
         Relationships: []
       }
+      v_unified_users: {
+        Row: {
+          athlete_id: string | null
+          coach_id: string | null
+          email: string | null
+          experience_level: string | null
+          full_name: string | null
+          onboarding_completed_at: string | null
+          password_changed: boolean | null
+          primary_goal: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          status: Database["public"]["Enums"]["user_status"] | null
+          training_environment: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       v_workout_progression: {
         Row: {
           athlete_id: string | null
@@ -7199,8 +8758,22 @@ export type Database = {
             foreignKeyName: "workout_executions_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_executions_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_executions_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
         ]
       }
@@ -7303,8 +8876,22 @@ export type Database = {
             foreignKeyName: "avaliacoes_unificadas_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_unificadas_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_unificadas_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
         ]
       }
@@ -7354,8 +8941,22 @@ export type Database = {
             foreignKeyName: "workout_progress_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_progress_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
             referencedRelation: "v_students_canonical"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_progress_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
           {
             foreignKeyName: "workout_progress_workout_id_fkey"
@@ -7368,6 +8969,15 @@ export type Database = {
       }
     }
     Functions: {
+      _selecionar_exercicios_bloco: {
+        Args: {
+          p_aluno_id: string
+          p_dias_anti_repeticao?: number
+          p_grupos: string[]
+          p_qtd: number
+        }
+        Returns: Json
+      }
       calcular_periodizacao_correspondencia: {
         Args: { estudante: string }
         Returns: {
@@ -7388,6 +8998,8 @@ export type Database = {
         }
         Returns: number
       }
+      complete_first_access: { Args: never; Returns: undefined }
+      complete_onboarding: { Args: { p_payload?: Json }; Returns: undefined }
       create_athlete_auth_user: {
         Args: {
           p_athlete_id: string
@@ -7465,11 +9077,20 @@ export type Database = {
           title: string
         }[]
       }
+      prescrever_treino: {
+        Args: { p_aluno_id?: string; p_data?: string }
+        Returns: Json
+      }
+      prescrever_treino_html: {
+        Args: { p_aluno_id?: string; p_data?: string }
+        Returns: string
+      }
       recalc_user_stats: { Args: { p_aluno_id: string }; Returns: undefined }
       recalculate_composite_score: {
         Args: { p_aluno_id: string }
         Returns: undefined
       }
+      reconcile_appointments_for_user: { Args: never; Returns: undefined }
       salvar_avaliacao: {
         Args: { p_dados: Json; p_estudante_id: string }
         Returns: {
