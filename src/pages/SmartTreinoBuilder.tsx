@@ -59,31 +59,36 @@ export default function SmartTreinoBuilder() {
   const [generatedResult, setGeneratedResult] = useState<GeneratedStructure | null>(null);
   const [savedRulesId, setSavedRulesId] = useState<string | null>(null);
 
-  // Load user + athletes from both tables
+  // Load user + alunos from canonical view (vw_alunos_canonical)
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        setUserId(session.user.id);
-        
-        // Fetch from athletes table
-        const { data: athletesData } = await (supabase as any)
-          .from("athletes")
-          .select("id, name")
-          .eq("coach_id", session.user.id);
-        
-        // Fetch from alunos table
-        const { data: alunosData } = await (supabase as any)
-          .from("alunos")
-          .select("id, nome")
-          .eq("professor_id", session.user.id);
-        
-        // Unify both sources
-        const unified = [
-          ...(athletesData || []).map((a: any) => ({ id: a.id, name: a.name, source: 'athlete' })),
-          ...(alunosData || []).map((a: any) => ({ id: a.id, name: a.nome, source: 'aluno' })),
-        ];
-        setAthletes(unified);
+      if (!session?.user) return;
+      setUserId(session.user.id);
+
+      const { data: canonical, error } = await (supabase as any)
+        .from("vw_alunos_canonical")
+        .select("id, athlete_id, objetivo, nivel, status");
+
+      if (error) {
+        console.error("[SmartTreinoBuilder] vw_alunos_canonical error:", error);
+        toast({
+          title: "Erro ao carregar alunos",
+          description: error.message,
+          variant: "destructive",
+        });
+        setAthletes([]);
+        return;
       }
+
+      const unified = (canonical ?? []).map((a: any) => ({
+        id: a.athlete_id ?? a.id,          // prefer internal uuid for technical flow
+        name: a.id,                        // canonical id label
+        source: a.athlete_id ? "athlete" : "fitpro",
+        objetivo: a.objetivo,
+        nivel: a.nivel,
+        status: a.status,
+      }));
+      setAthletes(unified);
     });
   }, []);
 

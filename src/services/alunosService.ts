@@ -1,16 +1,17 @@
 /**
- * Serviço completo para gerenciamento de alunos
- * Utiliza a tabela 'alunos' com RLS
- * REGRA: sempre usar getSession() para auth (nunca getUser())
+ * Serviço de alunos — fonte canônica `vw_alunos_canonical`
+ * Listagem usa a view canônica (FitPro + SmartPeriodizer).
+ * Criação/edição/exclusão continuam em `public.alunos` como fallback administrativo.
  */
 
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Aluno {
-  id: string;
-  professor_id: string;
-  nome: string;
-  email: string;
+  id: string;                       // id canônico (fitpro_student_id quando aplicável)
+  athlete_id?: string | null;       // vínculo interno UUID quando existir
+  professor_id?: string | null;
+  nome?: string;
+  email?: string;
   telefone?: string;
   genero?: string;
   data_nascimento?: string;
@@ -23,8 +24,18 @@ export interface Aluno {
   observacoes?: string;
   frequencia_semanal?: number;
   status: 'ativo' | 'inativo' | 'suspenso';
-  data_cadastro: string;
-  ultima_atualizacao: string;
+  data_cadastro?: string;
+  ultima_atualizacao?: string;
+
+  // Campos canônicos extras
+  fase_atual?: string;
+  volume_level?: string;
+  intensity_level?: string;
+  recovery_status?: string;
+  adherence_level?: number;
+  fatigue_level?: number;
+
+  // Campos estendidos de treino (usados pelo FormularioAluno)
   tempo_disponivel_min?: number;
   historico_lesoes?: string;
   foco_muscular?: string;
@@ -38,9 +49,11 @@ export interface Aluno {
   meta_tempo_meses?: number;
 }
 
-export type NovoAlunoInput = Omit<Aluno, 'id' | 'professor_id' | 'data_cadastro' | 'ultima_atualizacao' | 'status'>;
+export type NovoAlunoInput = Omit<
+  Aluno,
+  'id' | 'athlete_id' | 'professor_id' | 'data_cadastro' | 'ultima_atualizacao' | 'status'
+>;
 
-/** Helper: get current user id from local session */
 async function getAuthUserId(): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user?.id) {
@@ -49,44 +62,71 @@ async function getAuthUserId(): Promise<string> {
   return session.user.id;
 }
 
+// Map status from canonical view (active/inactive) to app status (ativo/inativo/suspenso)
+function mapStatus(s?: string | null): 'ativo' | 'inativo' | 'suspenso' {
+  if (!s) return 'ativo';
+  const v = s.toLowerCase();
+  if (v === 'active' || v === 'ativo') return 'ativo';
+  if (v === 'suspended' || v === 'suspenso') return 'suspenso';
+  return 'inativo';
+}
+
+const db = supabase as any;
+
 export class AlunosService {
+  // ============================================
+  // LISTAR — fonte canônica
+  // ============================================
   static async listarAlunos(): Promise<Aluno[]> {
-    await getAuthUserId(); // ensure auth
+    await getAuthUserId();
 
-    const { data, error } = await supabase
-      .from('alunos')
-      .select('*')
-      .eq('status', 'ativo')
-      .order('nome', { ascending: true });
+    const { data, error } = await db
+      .from('vw_alunos_canonical')
+      .select('*');
 
-    if (error) throw new Error(`Erro ao listar alunos: ${error.message}`);
-    return (data ?? []) as Aluno[];
+    if (error) {
+      console.error('[AlunosService] vw_alunos_canonical error:', error);
+      throw new Error(`Erro ao listar alunos: ${error.message}`);
+    }
+
+    return (data ?? []).map((row: any) => ({
+      id: row.id,
+      athlete_id: row.athlete_id ?? null,
+      professor_id: row.professor_id ?? null,
+      nome: row.id, // sem nome na view canônica — exibimos id
+      email: '',
+      objetivo: row.objetivo ?? 'Não definido',
+      nivel_experiencia: row.nivel ?? 'intermediario',
+      status: mapStatus(row.status),
+      fase_atual: row.fase_atual,
+      volume_level: row.volume_level,
+      intensity_level: row.intensity_level,
+      recovery_status: row.recovery_status,
+      adherence_level: row.adherence_level,
+      fatigue_level: row.fatigue_level,
+    })) as Aluno[];
   }
 
   static async buscarAlunoPorId(id: string): Promise<Aluno | null> {
     await getAuthUserId();
-
     const { data, error } = await supabase
       .from('alunos')
       .select('*')
       .eq('id', id)
-      .single();
-
-    if (error) throw new Error(`Erro ao buscar aluno: ${error.message}`);
-    return data as Aluno;
+      .maybeSingle();
+    if (error) return null;
+    return data as Aluno | null;
   }
 
   static async criarAluno(aluno: NovoAlunoInput): Promise<Aluno> {
     const userId = await getAuthUserId();
-
-    // Generate placeholder email if not provided
     const email = aluno.email?.trim()
       ? aluno.email.trim()
-      : `${aluno.nome.toLowerCase().replace(/[^a-z0-9]/g, '.')}.${Date.now()}@smartreino.app`;
+      : `${(aluno.nome ?? 'aluno').toLowerCase().replace(/[^a-z0-9]/g, '.')}.${Date.now()}@smartreino.app`;
 
     const payload = {
       professor_id: userId,
-      nome: aluno.nome.trim(),
+      nome: (aluno.nome ?? '').trim(),
       email,
       objetivo: aluno.objetivo || 'hipertrofia',
       telefone: aluno.telefone || null,
@@ -99,21 +139,8 @@ export class AlunosService {
       observacoes: aluno.observacoes || null,
       frequencia_semanal: aluno.frequencia_semanal || null,
       genero: aluno.genero || null,
-      tempo_disponivel_min: aluno.tempo_disponivel_min || null,
-      historico_lesoes: aluno.historico_lesoes || null,
-      foco_muscular: aluno.foco_muscular || null,
-      condicionamento_cardio: aluno.condicionamento_cardio || null,
-      experiencia_pesos_livres: aluno.experiencia_pesos_livres || null,
-      preferencia_intensidade: aluno.preferencia_intensidade || null,
-      preferencia_cardio: aluno.preferencia_cardio || null,
-      preferencia_equipamento: aluno.preferencia_equipamento || null,
-      treina_sozinho: aluno.treina_sozinho ?? null,
-      horario_preferido: aluno.horario_preferido || null,
-      meta_tempo_meses: aluno.meta_tempo_meses || null,
       status: 'ativo' as const,
     };
-
-    console.log('[AlunosService] criarAluno payload:', { userId, nome: payload.nome, email: payload.email });
 
     const { data, error } = await supabase
       .from('alunos')
@@ -122,74 +149,65 @@ export class AlunosService {
       .single();
 
     if (error) {
-      console.error('[AlunosService] Insert error:', error);
-      if (error.code === '23505') {
-        throw new Error('Aluno já cadastrado com este email.');
-      }
-      if (error.message?.includes('row-level security')) {
-        throw new Error('Permissão negada. Verifique se você tem papel de professor.');
-      }
+      if (error.code === '23505') throw new Error('Aluno já cadastrado com este email.');
       throw new Error(`Erro ao cadastrar aluno: ${error.message}`);
     }
-
-    console.log('[AlunosService] Aluno criado:', data.id);
     return data as Aluno;
   }
 
   static async atualizarAluno(id: string, updates: Partial<NovoAlunoInput>): Promise<Aluno> {
     await getAuthUserId();
-
     const { data, error } = await supabase
       .from('alunos')
       .update(updates)
       .eq('id', id)
       .select()
       .single();
-
     if (error) throw new Error(`Erro ao atualizar aluno: ${error.message}`);
     return data as Aluno;
   }
 
   static async excluirAluno(id: string): Promise<void> {
     await getAuthUserId();
-
     const { error } = await supabase
       .from('alunos')
       .update({ status: 'inativo' })
       .eq('id', id);
-
     if (error) throw new Error(`Erro ao excluir aluno: ${error.message}`);
   }
 
   static async reativarAluno(id: string): Promise<void> {
     await getAuthUserId();
-
     const { error } = await supabase
       .from('alunos')
       .update({ status: 'ativo' })
       .eq('id', id);
-
     if (error) throw new Error(`Erro ao reativar aluno: ${error.message}`);
   }
 
+  // ============================================
+  // ESTATÍSTICAS — também da view canônica
+  // ============================================
   static async obterEstatisticas() {
-    const userId = await getAuthUserId();
+    await getAuthUserId();
 
-    const { data, error } = await supabase
-      .from('alunos')
-      .select('status, objetivo, nivel_experiencia')
-      .eq('professor_id', userId);
+    const { data, error } = await db
+      .from('vw_alunos_canonical')
+      .select('status, objetivo, nivel');
 
-    if (error) throw new Error(`Erro ao obter estatísticas: ${error.message}`);
+    if (error) {
+      console.error('[AlunosService] obterEstatisticas error:', error);
+      return { total: 0, ativos: 0, inativos: 0, porObjetivo: {} as Record<string, number> };
+    }
 
-    const allData = data ?? [];
-    const total = allData.length;
-    const ativos = allData.filter(a => a.status === 'ativo').length;
-    const porObjetivo = allData.reduce((acc, a) => {
-      if (a.objetivo) acc[a.objetivo] = (acc[a.objetivo] || 0) + 1;
+    const all = (data ?? []) as any[];
+    const total = all.length;
+    const ativos = all.filter(a => mapStatus(a.status) === 'ativo').length;
+    const porObjetivo = all.reduce((acc: Record<string, number>, a: any) => {
+      const k = a.objetivo || 'Não definido';
+      acc[k] = (acc[k] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>);
-
+    }, {});
     return { total, ativos, inativos: total - ativos, porObjetivo };
   }
 }

@@ -1,5 +1,6 @@
 /**
- * Tabela para exibição de alunos com ações
+ * Tabela de alunos — fonte canônica (vw_alunos_canonical)
+ * Colunas: ID, Objetivo, Nível, Status
  */
 
 import { useState } from 'react';
@@ -7,10 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Edit, Trash2, Send, Eye } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { FormularioAluno } from './FormularioAluno';
+import { MoreVertical, Trash2, Send, Eye } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { EnviarTreinoDialog } from './EnviarTreinoDialog';
 import { type Aluno } from '@/services/alunosService';
 import { useNavigate } from 'react-router-dom';
@@ -21,15 +23,10 @@ interface TabelaAlunosProps {
   onAtualizar: () => void;
 }
 
-export function TabelaAlunos({ alunos, onExcluir, onAtualizar }: TabelaAlunosProps) {
+export function TabelaAlunos({ alunos, onExcluir }: TabelaAlunosProps) {
   const navigate = useNavigate();
-  const [alunoEditando, setAlunoEditando] = useState<Aluno | null>(null);
   const [alunoExcluindo, setAlunoExcluindo] = useState<string | null>(null);
   const [alunoEnviandoTreino, setAlunoEnviandoTreino] = useState<Aluno | null>(null);
-
-  const handleEditar = (aluno: Aluno) => {
-    setAlunoEditando(aluno);
-  };
 
   const handleExcluir = () => {
     if (alunoExcluindo) {
@@ -39,13 +36,18 @@ export function TabelaAlunos({ alunos, onExcluir, onAtualizar }: TabelaAlunosPro
   };
 
   const handleVisualizar = (aluno: Aluno) => {
-    navigate(`/aluno/${aluno.id}`);
+    navigate(`/aluno/${aluno.athlete_id ?? aluno.id}`);
   };
 
   if (alunos.length === 0) {
     return (
       <div className="text-center py-12 border rounded-lg">
-        <p className="text-muted-foreground">Nenhum aluno cadastrado</p>
+        <p className="text-muted-foreground">
+          Nenhum aluno encontrado na fonte canônica (vw_alunos_canonical).
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          Verifique a sincronização FitPro ↔ SmartTreino.
+        </p>
       </div>
     );
   }
@@ -56,10 +58,7 @@ export function TabelaAlunos({ alunos, onExcluir, onAtualizar }: TabelaAlunosPro
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Idade</TableHead>
-              <TableHead>Peso (kg)</TableHead>
+              <TableHead>ID do Aluno</TableHead>
               <TableHead>Objetivo</TableHead>
               <TableHead>Nível</TableHead>
               <TableHead>Status</TableHead>
@@ -67,36 +66,18 @@ export function TabelaAlunos({ alunos, onExcluir, onAtualizar }: TabelaAlunosPro
             </TableRow>
           </TableHeader>
           <TableBody>
-            {alunos.map((aluno) => {
-              const calcularIdade = (dataNascimento?: string) => {
-                if (!dataNascimento) return 'N/A';
-                const hoje = new Date();
-                const nascimento = new Date(dataNascimento);
-                let idade = hoje.getFullYear() - nascimento.getFullYear();
-                const mes = hoje.getMonth() - nascimento.getMonth();
-                if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
-                  idade--;
-                }
-                return idade;
-              };
-
-              return (
-                <TableRow key={aluno.id}>
-                  <TableCell className="font-medium">{aluno.nome}</TableCell>
-                  <TableCell>{aluno.email}</TableCell>
-                  <TableCell>{calcularIdade(aluno.data_nascimento)}</TableCell>
-                  <TableCell>{aluno.peso_atual ? `${aluno.peso_atual} kg` : 'N/A'}</TableCell>
-                  <TableCell>{aluno.objetivo}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {aluno.nivel_experiencia || 'N/A'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={aluno.status === 'ativo' ? 'default' : 'secondary'}>
-                      {aluno.status}
-                    </Badge>
-                  </TableCell>
+            {alunos.map((aluno) => (
+              <TableRow key={aluno.id}>
+                <TableCell className="font-mono text-xs">{aluno.id}</TableCell>
+                <TableCell>{aluno.objetivo}</TableCell>
+                <TableCell>
+                  <Badge variant="outline">{aluno.nivel_experiencia || 'N/A'}</Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={aluno.status === 'ativo' ? 'default' : 'secondary'}>
+                    {aluno.status}
+                  </Badge>
+                </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -105,19 +86,21 @@ export function TabelaAlunos({ alunos, onExcluir, onAtualizar }: TabelaAlunosPro
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="bg-background z-50">
-                      <DropdownMenuItem onClick={() => handleVisualizar(aluno)}>
+                      <DropdownMenuItem
+                        onClick={() => handleVisualizar(aluno)}
+                        disabled={!aluno.athlete_id && !aluno.id}
+                      >
                         <Eye className="h-4 w-4 mr-2" />
                         Visualizar
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setAlunoEnviandoTreino(aluno)}>
+                      <DropdownMenuItem
+                        onClick={() => setAlunoEnviandoTreino(aluno)}
+                        disabled={!aluno.athlete_id}
+                      >
                         <Send className="h-4 w-4 mr-2" />
                         Enviar Treino
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleEditar(aluno)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => setAlunoExcluindo(aluno.id)}
                         className="text-destructive"
                       >
@@ -128,34 +111,11 @@ export function TabelaAlunos({ alunos, onExcluir, onAtualizar }: TabelaAlunosPro
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
-              );
-            })}
+            ))}
           </TableBody>
         </Table>
       </div>
 
-      {/* Dialog de Edição */}
-      <Dialog open={!!alunoEditando} onOpenChange={() => setAlunoEditando(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Editar Aluno</DialogTitle>
-            <DialogDescription>
-              Atualize os dados do aluno
-            </DialogDescription>
-          </DialogHeader>
-          {alunoEditando && (
-            <FormularioAluno 
-              aluno={alunoEditando}
-              onSuccess={() => {
-                setAlunoEditando(null);
-                onAtualizar();
-              }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog de Enviar Treino */}
       {alunoEnviandoTreino && (
         <EnviarTreinoDialog
           aluno={alunoEnviandoTreino}
@@ -164,7 +124,6 @@ export function TabelaAlunos({ alunos, onExcluir, onAtualizar }: TabelaAlunosPro
         />
       )}
 
-      {/* Alert de Exclusão */}
       <AlertDialog open={!!alunoExcluindo} onOpenChange={() => setAlunoExcluindo(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
