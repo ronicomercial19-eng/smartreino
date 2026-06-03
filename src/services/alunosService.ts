@@ -34,6 +34,19 @@ export interface Aluno {
   recovery_status?: string;
   adherence_level?: number;
   fatigue_level?: number;
+
+  // Campos estendidos de treino (usados pelo FormularioAluno)
+  tempo_disponivel_min?: number;
+  historico_lesoes?: string;
+  foco_muscular?: string;
+  condicionamento_cardio?: string;
+  experiencia_pesos_livres?: string;
+  preferencia_intensidade?: string;
+  preferencia_cardio?: string;
+  preferencia_equipamento?: string;
+  treina_sozinho?: boolean;
+  horario_preferido?: string;
+  meta_tempo_meses?: number;
 }
 
 export type NovoAlunoInput = Omit<
