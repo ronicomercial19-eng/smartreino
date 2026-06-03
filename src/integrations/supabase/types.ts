@@ -8799,6 +8799,68 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_alunos_canonical: {
+        Row: {
+          adherence_level: number | null
+          athlete_id: string | null
+          fase_atual: string | null
+          fatigue_level: number | null
+          id: string | null
+          intensity_level: string | null
+          nivel: string | null
+          objetivo: string | null
+          professor_id: string | null
+          recovery_status: string | null
+          status: string | null
+          volume_level: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fitpro_student_map_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fitpro_student_map_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_students_overview"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "fitpro_student_map_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fitpro_student_map_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fitpro_student_map_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
+          },
+        ]
+      }
+      vw_alunos_smarttreino: {
+        Row: {
+          email: string | null
+          nome: string | null
+          objetivo: string | null
+          telefone: string | null
+        }
+        Relationships: []
+      }
       vw_assessments_unified: {
         Row: {
           agua_corporal: number | null
@@ -8888,6 +8950,63 @@ export type Database = {
           },
           {
             foreignKeyName: "avaliacoes_unificadas_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
+          },
+        ]
+      }
+      vw_smarttreino_aluno_ativo: {
+        Row: {
+          adherence_level: number | null
+          athlete_id: string | null
+          current_cycle: string | null
+          current_phase: string | null
+          cycle_week: number | null
+          fatigue_level: number | null
+          fitpro_professor_id: string | null
+          fitpro_student_id: string | null
+          goal: string | null
+          intensity_level: string | null
+          payload: Json | null
+          periodization_id: string | null
+          recovery_status: string | null
+          smartperiodizer_periodization_id: string | null
+          training_level: string | null
+          volume_level: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fitpro_student_map_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fitpro_student_map_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_students_overview"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "fitpro_student_map_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fitpro_student_map_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fitpro_student_map_athlete_id_fkey"
             columns: ["athlete_id"]
             isOneToOne: false
             referencedRelation: "v_unified_users"
@@ -9028,6 +9147,33 @@ export type Database = {
         Returns: {
           modelo_id: string
         }[]
+      }
+      get_aluno_context_smarttreino: {
+        Args: { p_fitpro_student_id: string }
+        Returns: {
+          adherence_level: number | null
+          athlete_id: string | null
+          current_cycle: string | null
+          current_phase: string | null
+          cycle_week: number | null
+          fatigue_level: number | null
+          fitpro_professor_id: string | null
+          fitpro_student_id: string | null
+          goal: string | null
+          intensity_level: string | null
+          payload: Json | null
+          periodization_id: string | null
+          recovery_status: string | null
+          smartperiodizer_periodization_id: string | null
+          training_level: string | null
+          volume_level: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "vw_smarttreino_aluno_ativo"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_user_role: { Args: { _user_id: string }; Returns: string }
       has_role: {
