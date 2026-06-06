@@ -1,0 +1,72 @@
+{
+  "info": {
+    "name": "SmartReino ↔ FitPro",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Integração oficial SmartReino/9FIT com FitPro. Configure as variáveis SMARTREINO_KEY e STUDENT_ID."
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "https://mfrydtrzjxscbkaiwfnw.supabase.co/functions/v1" },
+    { "key": "SMARTREINO_KEY", "value": "" },
+    { "key": "STUDENT_ID", "value": "FITPRO_STUDENT_123" }
+  ],
+  "item": [
+    {
+      "name": "Treino Rápido",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "x-partner-key", "value": "{{SMARTREINO_KEY}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{BASE_URL}}/fitpro-quick-workout", "host": ["{{BASE_URL}}"], "path": ["fitpro-quick-workout"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"student_external_id\": \"{{STUDENT_ID}}\",\n  \"respostas\": { \"tempo_min\": 45, \"foco\": \"membros_inferiores\", \"energia\": \"media\" }\n}"
+        }
+      }
+    },
+    {
+      "name": "Ajuste de Treino (RON)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "x-partner-key", "value": "{{SMARTREINO_KEY}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{BASE_URL}}/fitpro-adjust-workout", "host": ["{{BASE_URL}}"], "path": ["fitpro-adjust-workout"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"student_external_id\": \"{{STUDENT_ID}}\",\n  \"mensagem\": \"tô sem barra hoje, troca pra halter e diminui 10 min\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Treino do Dia (Periodização)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "x-partner-key", "value": "{{SMARTREINO_KEY}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{BASE_URL}}/fitpro-plan-workout", "host": ["{{BASE_URL}}"], "path": ["fitpro-plan-workout"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"student_external_id\": \"{{STUDENT_ID}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Biblioteca 9FIT",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "x-partner-key", "value": "{{SMARTREINO_KEY}}" }],
+        "url": {
+          "raw": "{{BASE_URL}}/library-full?student_external_id={{STUDENT_ID}}",
+          "host": ["{{BASE_URL}}"],
+          "path": ["library-full"],
+          "query": [{ "key": "student_external_id", "value": "{{STUDENT_ID}}" }]
+        }
+      }
+    }
+  ]
+}

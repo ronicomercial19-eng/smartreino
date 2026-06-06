@@ -26,3 +26,15 @@ verify_jwt = false
 
 [functions.ai-coach-chat]
 verify_jwt = false
+
+[functions.fitpro-quick-workout]
+verify_jwt = false
+
+[functions.fitpro-adjust-workout]
+verify_jwt = false
+
+[functions.fitpro-plan-workout]
+verify_jwt = false
+
+[functions.library-full]
+verify_jwt = false
