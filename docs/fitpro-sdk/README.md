@@ -24,6 +24,13 @@ Todas as respostas de treino seguem o shape **4-blocos 9FIT**: `blocos[0]=neural
 ## 2. cURLs (copiar/colar)
 
 ### 2.1 Treino Rápido
+Buscar as 3 perguntas cadastradas para abrir o modal do botão **Treino Rápido**:
+```bash
+curl -H "x-partner-key: $SMARTREINO_KEY" \
+  https://mfrydtrzjxscbkaiwfnw.supabase.co/functions/v1/fitpro-quick-workout
+```
+
+Enviar respostas e receber o treino final já com vídeos 9FIT:
 ```bash
 curl -X POST https://mfrydtrzjxscbkaiwfnw.supabase.co/functions/v1/fitpro-quick-workout \
   -H "x-partner-key: $SMARTREINO_KEY" \
@@ -82,6 +89,7 @@ import { SmartReinoClient } from "./smartreino";
 const sr = new SmartReinoClient({ apiKey: process.env.SMARTREINO_KEY! });
 
 // Treino rápido
+const perguntas = await sr.quickWorkoutQuestions(); // renderizar modal nativo FitPro
 const t = await sr.quickWorkout({
   student_external_id: aluno.fitpro_id,
   respostas: { tempo_min: 45, foco: "superior", energia: "alta" },
@@ -142,7 +150,7 @@ Aba "Biblioteca de Conteúdo" → GET /library-full
 |---|---|---|
 | 400 | `invalid_json` / `student_external_id_required` | Payload inválido |
 | 401 | `no_partner_key` / `invalid_partner_key` | Header `x-partner-key` ausente ou inválido |
-| 404 | `student_not_mapped` | `student_external_id` sem correspondência no SmartReino |
+| 404 | `student_not_found` | aluno não encontrado em `fitpro_student_map`, `alunos`, `athletes` ou `students` |
 | 409 | `no_active_periodization` | Aluno sem periodização → use `cta_url` para redirecionar |
 | 422 | `generation_failed` | Motor de prescrição retornou falha (detalhes em `details`) |
 | 500 | `rpc_error` / `ai_not_configured` | Erro interno (verificar logs) |

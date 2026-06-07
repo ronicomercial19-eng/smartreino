@@ -16,6 +16,16 @@ import {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "GET") {
+    return jsonResponse({
+      success: true,
+      perguntas: [
+        { id: "tempo_min", label: "Quanto tempo você tem hoje?", type: "number", options: [30, 45, 60] },
+        { id: "foco", label: "Qual foco do treino?", type: "select", options: ["superior", "inferior", "core", "full_body", "mobilidade"] },
+        { id: "energia", label: "Como está sua energia?", type: "select", options: ["baixa", "media", "alta"] },
+      ],
+    });
+  }
   if (req.method !== "POST") return jsonResponse({ error: "method_not_allowed" }, 405);
 
   const auth = await requirePartnerKey(req);

@@ -17,6 +17,11 @@ export interface QuickWorkoutInput {
   respostas: { tempo_min: number; foco: string; energia: "baixa" | "media" | "alta" | string };
 }
 
+export interface QuickWorkoutQuestionsResponse {
+  success: true;
+  perguntas: Array<{ id: "tempo_min" | "foco" | "energia"; label: string; type: string; options: Array<string | number> }>;
+}
+
 export interface AdjustWorkoutInput {
   student_external_id: string;
   treino_atual_id?: string;
@@ -109,6 +114,11 @@ export class SmartReinoClient {
   /** Treino rápido (3 perguntas). Usado na aba Train → Treino Rápido. */
   quickWorkout(p: QuickWorkoutInput) {
     return this.req<WorkoutResponse>("/fitpro-quick-workout", { method: "POST", body: JSON.stringify(p) });
+  }
+
+  /** Busca as 3 perguntas cadastradas para o botão Treino Rápido. */
+  quickWorkoutQuestions() {
+    return this.req<QuickWorkoutQuestionsResponse>("/fitpro-quick-workout", { method: "GET" });
   }
 
   /** Ajuste de treino via chat RON (NLP). Usado na aba Ajuste de Treino. */
