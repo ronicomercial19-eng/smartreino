@@ -17,6 +17,11 @@ export interface QuickWorkoutInput {
   respostas: { tempo_min: number; foco: string; energia: "baixa" | "media" | "alta" | string };
 }
 
+export interface QuickWorkoutQuestionsResponse {
+  success: true;
+  perguntas: Array<{ id: "tempo_min" | "foco" | "energia"; label: string; type: string; options: Array<string | number> }>;
+}
+
 export interface AdjustWorkoutInput {
   student_external_id: string;
   treino_atual_id?: string;
@@ -40,25 +45,34 @@ export interface WorkoutResponse {
   success: true;
   treino_id: string | null;
   aluno_id: string;
+  aluno_source?: "fitpro_map" | "alunos" | "athletes" | "students";
+  treino?: unknown;
   blocos: BlocoTreino[];
   duracao_min?: number;
+  perguntas_usadas?: { tempo_min: number; foco: string; energia: string };
   periodizacao?: { fonte: string; objetivo: string; fase_atual: string; semana_atual: number };
   infoproduto_sugerido?: { id: string; titulo: string; thumb: string; cta_url: string } | null;
   contexto?: unknown;
+  delivery?: unknown;
 }
 
 export interface AdjustResponse {
   success: true;
+  treino_id: string | null;
   aluno_id: string;
+  aluno_source?: "fitpro_map" | "alunos" | "athletes" | "students";
   treino_ajustado: { neural: unknown[]; integracao: unknown[]; bloco9: unknown[]; reset: unknown[] };
+  blocos: BlocoTreino[];
   delta: string[];
   mensagem_ron: string;
+  contexto?: unknown;
+  delivery?: unknown;
 }
 
 export interface LibraryResponse {
   success: true;
   biblioteca: {
-    exercicios: Array<{ id: string; nome: string; grupo: string | null; video_url: string | null; thumb: string | null }>;
+    exercicios: Array<{ id: string; nome: string; grupo: string | null; video_url: string | null; player_url: string | null; thumb: string | null }>;
     protocolos_9x9x9: Array<Record<string, unknown>>;
     infoprodutos: Array<{ id: string; titulo: string; categoria: string | null; thumb: string | null; cta_url: string | null }>;
     videos_aulas: Array<{ id: string; titulo: string; categoria: string | null; thumb: string | null; player_url: string | null }>;
@@ -109,6 +123,11 @@ export class SmartReinoClient {
   /** Treino rápido (3 perguntas). Usado na aba Train → Treino Rápido. */
   quickWorkout(p: QuickWorkoutInput) {
     return this.req<WorkoutResponse>("/fitpro-quick-workout", { method: "POST", body: JSON.stringify(p) });
+  }
+
+  /** Busca as 3 perguntas cadastradas para o botão Treino Rápido. */
+  quickWorkoutQuestions() {
+    return this.req<QuickWorkoutQuestionsResponse>("/fitpro-quick-workout", { method: "GET" });
   }
 
   /** Ajuste de treino via chat RON (NLP). Usado na aba Ajuste de Treino. */

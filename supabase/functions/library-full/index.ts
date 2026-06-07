@@ -1,6 +1,6 @@
 // GET /library-full?student_external_id=<ID>
-// Retorna biblioteca 9FIT completa: exercícios, protocolos 9x9x9, infoprodutos, aulas.
-import { admin, corsHeaders, jsonResponse, requirePartnerKey, resolveAlunoId } from "../_shared/partner.ts";
+// Retorna biblioteca 9FIT completa para grid nativo no FitPro.
+import { admin, corsHeaders, jsonResponse, requirePartnerKey, resolveAluno } from "../_shared/partner.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -16,30 +16,34 @@ Deno.serve(async (req) => {
     ?? req.headers.get("x-student-external-id");
 
   const sb = admin();
-  let alunoCtx: any = null;
-  if (externalId) {
-    const alunoId = await resolveAlunoId(externalId);
-    if (alunoId) {
-      const { data } = await sb.from("alunos")
-        .select("id,nome,objetivo,nivel,foco_muscular").eq("id", alunoId).maybeSingle();
-      alunoCtx = data;
-    }
-  }
+  const aluno = externalId ? await resolveAluno(externalId) : null;
+  const alunoCtx = aluno ? {
+    id: aluno.id,
+    source: aluno.source,
+    nome: aluno.nome,
+    objetivo: aluno.objetivo,
+    nivel: aluno.nivel,
+    foco_muscular: aluno.foco_muscular,
+  } : null;
 
-  const [exercisesQ, protocolsQ, libraryQ] = await Promise.all([
-    sb.from("exercise_library").select("*").limit(500),
+  const [protocolsQ, libraryQ] = await Promise.all([
     sb.from("smart_treino_protocols")
       .select("id,pillar,pillar_label,protocol_name,variation_name,variation_focus,block_neural,block_integration,block_9_template,block_reset,rpe_range,goal_tags,recommended_for")
       .limit(1000),
-    sb.from("library_items").select("id,type,name,category,subcategory,thumbnail_url,player_url,payload").limit(500),
+    sb.from("library_items").select("id,type,name,category,subcategory,thumbnail_url,player_url,payload").limit(1000),
   ]);
 
-  const exercicios = (exercisesQ.data ?? []).map((e: any) => ({
-    id: e.id,
-    nome: typeof e.nome === "string" ? e.nome : (e.nome?.pt ?? e.nome?.en ?? e.name ?? ""),
-    grupo: typeof e.categoria === "string" ? e.categoria : (e.categoria?.pt ?? null),
-    video_url: e.video_url ?? e.player_url ?? null,
-    thumb: e.thumbnail_url ?? null,
+  const libraryItems = libraryQ.data ?? [];
+  const exercicios = libraryItems.filter((i: any) => i.type === "exercise").map((i: any) => ({
+    id: i.id,
+    nome: i.name,
+    grupo: i.subcategory ?? i.category ?? null,
+    categoria: i.category,
+    subcategoria: i.subcategory,
+    video_url: i.payload?.videoUrl ?? i.player_url ?? null,
+    player_url: i.player_url ?? i.payload?.playerUrl ?? null,
+    thumb: i.thumbnail_url ?? i.payload?.thumbnailUrl ?? null,
+    assignable: i.payload?.assignable ?? null,
   }));
 
   const protocolos = (protocolsQ.data ?? []).map((p: any) => ({
@@ -55,11 +59,10 @@ Deno.serve(async (req) => {
     recommended_for: p.recommended_for,
   }));
 
-  const libraryItems = libraryQ.data ?? [];
-  const infoprodutos = libraryItems.filter((i: any) => i.type === "infoproduct").map((i: any) => ({
+  const infoprodutos = libraryItems.filter((i: any) => ["infoproduto", "infoproduct", "ebook"].includes(i.type)).map((i: any) => ({
     id: i.id, titulo: i.name, categoria: i.category, thumb: i.thumbnail_url, cta_url: i.player_url, payload: i.payload,
   }));
-  const videos_aulas = libraryItems.filter((i: any) => i.type === "video" || i.type === "class").map((i: any) => ({
+  const videos_aulas = libraryItems.filter((i: any) => ["video", "class", "sistema", "app"].includes(i.type)).map((i: any) => ({
     id: i.id, titulo: i.name, categoria: i.category, thumb: i.thumbnail_url, player_url: i.player_url,
   }));
 
@@ -78,5 +81,9 @@ Deno.serve(async (req) => {
       videos: videos_aulas.length,
     },
     personalizado_para: alunoCtx,
+    grid_nativo_fitpro: {
+      tabs: ["Exercícios", "Protocolos 9x9x9", "Infoprodutos", "Aulas"],
+      card_fields: ["thumb", "nome/titulo", "grupo/categoria", "player_url", "cta_url"],
+    },
   });
 });

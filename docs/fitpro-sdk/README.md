@@ -4,7 +4,7 @@ Material pronto para copiar e colar no FitPro. Toda a integração com SmartRein
 
 - **Base URL:** `https://mfrydtrzjxscbkaiwfnw.supabase.co/functions/v1`
 - **Autenticação:** header `x-partner-key: <SMARTREINO_KEY>` (valor da secret `FITPRO_API_KEY` compartilhada entre os times).
-- **Resolução de aluno:** body/query `student_external_id` OU header `x-student-external-id`. Mapeado internamente via `fitpro_student_map.fitpro_student_id → athlete_id`.
+- **Resolução de aluno:** body/query `student_external_id` OU header `x-student-external-id`. Busca em `fitpro_student_map`, `alunos`, `athletes` e `students`, aceitando UUID existente ou email quando ainda não houver mapping.
 
 ---
 
@@ -24,6 +24,13 @@ Todas as respostas de treino seguem o shape **4-blocos 9FIT**: `blocos[0]=neural
 ## 2. cURLs (copiar/colar)
 
 ### 2.1 Treino Rápido
+Buscar as 3 perguntas cadastradas para abrir o modal do botão **Treino Rápido**:
+```bash
+curl -H "x-partner-key: $SMARTREINO_KEY" \
+  https://mfrydtrzjxscbkaiwfnw.supabase.co/functions/v1/fitpro-quick-workout
+```
+
+Enviar respostas e receber o treino final já com vídeos 9FIT:
 ```bash
 curl -X POST https://mfrydtrzjxscbkaiwfnw.supabase.co/functions/v1/fitpro-quick-workout \
   -H "x-partner-key: $SMARTREINO_KEY" \
@@ -82,6 +89,7 @@ import { SmartReinoClient } from "./smartreino";
 const sr = new SmartReinoClient({ apiKey: process.env.SMARTREINO_KEY! });
 
 // Treino rápido
+const perguntas = await sr.quickWorkoutQuestions(); // renderizar modal nativo FitPro
 const t = await sr.quickWorkout({
   student_external_id: aluno.fitpro_id,
   respostas: { tempo_min: 45, foco: "superior", energia: "alta" },
@@ -116,7 +124,8 @@ renderGrid(lib.biblioteca.exercicios, lib.biblioteca.protocolos_9x9x9, lib.bibli
 ```
 Aba Ajuste → input texto → POST /fitpro-adjust-workout
   → resposta com treino_ajustado + mensagem_ron
-  → grava local → atualiza aba Train
+  → grava local + evento adjusted_workout_delivered
+  → atualiza aba Ajuste e aba Train
 ```
 
 **Loop B — Treino Rápido**
@@ -125,6 +134,7 @@ Aba Train → "Treino Rápido" → 3 perguntas (tempo / foco / energia)
   → POST /fitpro-quick-workout
   → renderizar grid 4-blocos (Neural, Integration, Block 9, Reset)
   → exibir vídeos via player_url + CTA infoproduto_sugerido
+  → evento quick_workout_delivered atualiza aba Train do FitPro
 ```
 
 **Loop C — Biblioteca de Conteúdo (substitui lista atual de exercícios)**
@@ -142,7 +152,7 @@ Aba "Biblioteca de Conteúdo" → GET /library-full
 |---|---|---|
 | 400 | `invalid_json` / `student_external_id_required` | Payload inválido |
 | 401 | `no_partner_key` / `invalid_partner_key` | Header `x-partner-key` ausente ou inválido |
-| 404 | `student_not_mapped` | `student_external_id` sem correspondência no SmartReino |
+| 404 | `student_not_found` | aluno não encontrado em `fitpro_student_map`, `alunos`, `athletes` ou `students` |
 | 409 | `no_active_periodization` | Aluno sem periodização → use `cta_url` para redirecionar |
 | 422 | `generation_failed` | Motor de prescrição retornou falha (detalhes em `details`) |
 | 500 | `rpc_error` / `ai_not_configured` | Erro interno (verificar logs) |
