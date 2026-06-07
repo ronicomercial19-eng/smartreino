@@ -45,25 +45,34 @@ export interface WorkoutResponse {
   success: true;
   treino_id: string | null;
   aluno_id: string;
+  aluno_source?: "fitpro_map" | "alunos" | "athletes" | "students";
+  treino?: unknown;
   blocos: BlocoTreino[];
   duracao_min?: number;
+  perguntas_usadas?: { tempo_min: number; foco: string; energia: string };
   periodizacao?: { fonte: string; objetivo: string; fase_atual: string; semana_atual: number };
   infoproduto_sugerido?: { id: string; titulo: string; thumb: string; cta_url: string } | null;
   contexto?: unknown;
+  delivery?: unknown;
 }
 
 export interface AdjustResponse {
   success: true;
+  treino_id: string | null;
   aluno_id: string;
+  aluno_source?: "fitpro_map" | "alunos" | "athletes" | "students";
   treino_ajustado: { neural: unknown[]; integracao: unknown[]; bloco9: unknown[]; reset: unknown[] };
+  blocos: BlocoTreino[];
   delta: string[];
   mensagem_ron: string;
+  contexto?: unknown;
+  delivery?: unknown;
 }
 
 export interface LibraryResponse {
   success: true;
   biblioteca: {
-    exercicios: Array<{ id: string; nome: string; grupo: string | null; video_url: string | null; thumb: string | null }>;
+    exercicios: Array<{ id: string; nome: string; grupo: string | null; video_url: string | null; player_url: string | null; thumb: string | null }>;
     protocolos_9x9x9: Array<Record<string, unknown>>;
     infoprodutos: Array<{ id: string; titulo: string; categoria: string | null; thumb: string | null; cta_url: string | null }>;
     videos_aulas: Array<{ id: string; titulo: string; categoria: string | null; thumb: string | null; player_url: string | null }>;

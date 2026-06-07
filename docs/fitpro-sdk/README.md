@@ -4,7 +4,7 @@ Material pronto para copiar e colar no FitPro. Toda a integração com SmartRein
 
 - **Base URL:** `https://mfrydtrzjxscbkaiwfnw.supabase.co/functions/v1`
 - **Autenticação:** header `x-partner-key: <SMARTREINO_KEY>` (valor da secret `FITPRO_API_KEY` compartilhada entre os times).
-- **Resolução de aluno:** body/query `student_external_id` OU header `x-student-external-id`. Mapeado internamente via `fitpro_student_map.fitpro_student_id → athlete_id`.
+- **Resolução de aluno:** body/query `student_external_id` OU header `x-student-external-id`. Busca em `fitpro_student_map`, `alunos`, `athletes` e `students`, aceitando UUID existente ou email quando ainda não houver mapping.
 
 ---
 
@@ -124,7 +124,8 @@ renderGrid(lib.biblioteca.exercicios, lib.biblioteca.protocolos_9x9x9, lib.bibli
 ```
 Aba Ajuste → input texto → POST /fitpro-adjust-workout
   → resposta com treino_ajustado + mensagem_ron
-  → grava local → atualiza aba Train
+  → grava local + evento adjusted_workout_delivered
+  → atualiza aba Ajuste e aba Train
 ```
 
 **Loop B — Treino Rápido**
@@ -133,6 +134,7 @@ Aba Train → "Treino Rápido" → 3 perguntas (tempo / foco / energia)
   → POST /fitpro-quick-workout
   → renderizar grid 4-blocos (Neural, Integration, Block 9, Reset)
   → exibir vídeos via player_url + CTA infoproduto_sugerido
+  → evento quick_workout_delivered atualiza aba Train do FitPro
 ```
 
 **Loop C — Biblioteca de Conteúdo (substitui lista atual de exercícios)**
