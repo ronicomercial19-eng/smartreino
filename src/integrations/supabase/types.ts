@@ -815,6 +815,8 @@ export type Database = {
           restricoes: Json | null
           session_duration: string | null
           sessions_per_week: number | null
+          sleep_quality: number | null
+          stress_level: number | null
           sync_score: number | null
           total_xp: number | null
           training_environment: string | null
@@ -856,6 +858,8 @@ export type Database = {
           restricoes?: Json | null
           session_duration?: string | null
           sessions_per_week?: number | null
+          sleep_quality?: number | null
+          stress_level?: number | null
           sync_score?: number | null
           total_xp?: number | null
           training_environment?: string | null
@@ -897,6 +901,8 @@ export type Database = {
           restricoes?: Json | null
           session_duration?: string | null
           sessions_per_week?: number | null
+          sleep_quality?: number | null
+          stress_level?: number | null
           sync_score?: number | null
           total_xp?: number | null
           training_environment?: string | null
@@ -2574,6 +2580,84 @@ export type Database = {
           },
         ]
       }
+      healthflix_progress: {
+        Row: {
+          athlete_id: string | null
+          completed_at: string | null
+          content_id: string
+          content_title: string | null
+          created_at: string
+          fitpro_student_id: string
+          id: string
+          last_event_at: string | null
+          progress_percent: number | null
+          started_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          athlete_id?: string | null
+          completed_at?: string | null
+          content_id: string
+          content_title?: string | null
+          created_at?: string
+          fitpro_student_id: string
+          id?: string
+          last_event_at?: string | null
+          progress_percent?: number | null
+          started_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          athlete_id?: string | null
+          completed_at?: string | null
+          content_id?: string
+          content_title?: string | null
+          created_at?: string
+          fitpro_student_id?: string
+          id?: string
+          last_event_at?: string | null
+          progress_percent?: number | null
+          started_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "healthflix_progress_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "healthflix_progress_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_students_overview"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "healthflix_progress_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "healthflix_progress_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "healthflix_progress_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
+          },
+        ]
+      }
       historico_avaliacoes: {
         Row: {
           agua_corporal: number | null
@@ -2781,6 +2865,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      integration_events_log: {
+        Row: {
+          delivered: boolean | null
+          entity_id: string | null
+          entity_type: string | null
+          event_type: string
+          fitpro_professor_id: string | null
+          fitpro_student_id: string | null
+          id: string
+          payload: Json | null
+          received_at: string
+          source: string
+        }
+        Insert: {
+          delivered?: boolean | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type: string
+          fitpro_professor_id?: string | null
+          fitpro_student_id?: string | null
+          id?: string
+          payload?: Json | null
+          received_at?: string
+          source: string
+        }
+        Update: {
+          delivered?: boolean | null
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: string
+          fitpro_professor_id?: string | null
+          fitpro_student_id?: string | null
+          id?: string
+          payload?: Json | null
+          received_at?: string
+          source?: string
+        }
+        Relationships: []
       }
       library_items: {
         Row: {
@@ -3688,6 +3811,87 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      periodization_plans_remote: {
+        Row: {
+          athlete_id: string
+          created_at: string
+          current_week: number | null
+          external_plan_id: string | null
+          id: string
+          last_synced_at: string | null
+          plan_name: string | null
+          raw_payload: Json | null
+          status: string | null
+          total_weeks: number | null
+          updated_at: string
+          waves: Json | null
+        }
+        Insert: {
+          athlete_id: string
+          created_at?: string
+          current_week?: number | null
+          external_plan_id?: string | null
+          id?: string
+          last_synced_at?: string | null
+          plan_name?: string | null
+          raw_payload?: Json | null
+          status?: string | null
+          total_weeks?: number | null
+          updated_at?: string
+          waves?: Json | null
+        }
+        Update: {
+          athlete_id?: string
+          created_at?: string
+          current_week?: number | null
+          external_plan_id?: string | null
+          id?: string
+          last_synced_at?: string | null
+          plan_name?: string | null
+          raw_payload?: Json | null
+          status?: string | null
+          total_weeks?: number | null
+          updated_at?: string
+          waves?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "periodization_plans_remote_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodization_plans_remote_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_students_overview"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "periodization_plans_remote_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodization_plans_remote_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodization_plans_remote_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
           },
         ]
       }
@@ -8506,6 +8710,120 @@ export type Database = {
           score_normalized?: never
           total_xp?: number | null
           workouts_completed?: never
+        }
+        Relationships: []
+      }
+      v_assessment_canonical: {
+        Row: {
+          altura: number | null
+          athlete_id: string | null
+          cardio_bpm_max: number | null
+          cardio_bpm_repouso: number | null
+          cardio_sprint_vel: number | null
+          core_prancha_seg: number | null
+          core_side_plank_dir_seg: number | null
+          core_side_plank_esq_seg: number | null
+          created_at: string | null
+          data_avaliacao: string | null
+          flags_inteligentes: Json | null
+          id: string | null
+          imc: number | null
+          mob_ombro: number | null
+          mob_overhead_squat: number | null
+          mob_quadril: number | null
+          mob_tornozelo: number | null
+          origem: string | null
+          peso: number | null
+          rm1_empurrar_perna: number | null
+          rm1_empurrar_superior: number | null
+          rm1_puxar_costas: number | null
+          rm1_puxar_inferior: number | null
+          rml_abs: number | null
+          rml_agachamento: number | null
+          rml_elevacao_p: number | null
+          rml_flexao: number | null
+          rml_pull: number | null
+          score_cardio: number | null
+          score_core: number | null
+          score_forca: number | null
+          score_global: number | null
+          score_mobilidade: number | null
+          score_resistencia: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          altura?: number | null
+          athlete_id?: never
+          cardio_bpm_max?: number | null
+          cardio_bpm_repouso?: number | null
+          cardio_sprint_vel?: number | null
+          core_prancha_seg?: number | null
+          core_side_plank_dir_seg?: number | null
+          core_side_plank_esq_seg?: number | null
+          created_at?: string | null
+          data_avaliacao?: string | null
+          flags_inteligentes?: Json | null
+          id?: string | null
+          imc?: number | null
+          mob_ombro?: number | null
+          mob_overhead_squat?: number | null
+          mob_quadril?: number | null
+          mob_tornozelo?: number | null
+          origem?: string | null
+          peso?: number | null
+          rm1_empurrar_perna?: number | null
+          rm1_empurrar_superior?: number | null
+          rm1_puxar_costas?: number | null
+          rm1_puxar_inferior?: number | null
+          rml_abs?: number | null
+          rml_agachamento?: number | null
+          rml_elevacao_p?: number | null
+          rml_flexao?: number | null
+          rml_pull?: number | null
+          score_cardio?: number | null
+          score_core?: number | null
+          score_forca?: number | null
+          score_global?: number | null
+          score_mobilidade?: number | null
+          score_resistencia?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          altura?: number | null
+          athlete_id?: never
+          cardio_bpm_max?: number | null
+          cardio_bpm_repouso?: number | null
+          cardio_sprint_vel?: number | null
+          core_prancha_seg?: number | null
+          core_side_plank_dir_seg?: number | null
+          core_side_plank_esq_seg?: number | null
+          created_at?: string | null
+          data_avaliacao?: string | null
+          flags_inteligentes?: Json | null
+          id?: string | null
+          imc?: number | null
+          mob_ombro?: number | null
+          mob_overhead_squat?: number | null
+          mob_quadril?: number | null
+          mob_tornozelo?: number | null
+          origem?: string | null
+          peso?: number | null
+          rm1_empurrar_perna?: number | null
+          rm1_empurrar_superior?: number | null
+          rm1_puxar_costas?: number | null
+          rm1_puxar_inferior?: number | null
+          rml_abs?: number | null
+          rml_agachamento?: number | null
+          rml_elevacao_p?: number | null
+          rml_flexao?: number | null
+          rml_pull?: number | null
+          score_cardio?: number | null
+          score_core?: number | null
+          score_forca?: number | null
+          score_global?: number | null
+          score_mobilidade?: number | null
+          score_resistencia?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
