@@ -1,176 +1,90 @@
-# Entrega: SDK + API SmartReino ↔ FitPro
+# FitPro Train — 4 fluxos sobre o eixo canônico `athlete_id`
 
-Material pronto pra colar no FitPro. 4 endpoints públicos autenticados por `x-partner-key` (FITPRO_API_KEY), cobrindo: treino rápido, ajuste de treino (chat RON), treino por periodização anual e biblioteca de conteúdo 9FIT.
+Padroniza todos os fluxos do módulo Train do FitPro para ler/escrever exclusivamente pelas tabelas/views oficiais do `doc_smartreino.md`, eliminando dependência de `estudante_id`/`aluno_id` legados.
 
-## 1. Edge functions a criar/expor (públicas, `verify_jwt=false`)
+## Princípios (válidos para os 4 fluxos)
 
-Base URL: `https://mfrydtrzjxscbkaiwfnw.supabase.co/functions/v1`
+- Resolução do aluno: sempre `athlete_id` via `vw_athlete_full_profile` (com fallback `resolve_aluno_by_external` quando vier `student_external_id` do FitPro).
+- Periodização ativa: `vw_athlete_periodizacao_ativa` (já existe) — única fonte de fase/semana/dia/categoria.
+- Execução: grava em `workout_executions` (sessão) + `workout_exercises` (itens) ligados por `daily_workout_id`.
+- Vídeos: prioriza `library_items` (type='videos') → fallback `exercises.video_url` / `exercises.gif_url`.
+- Nenhum endpoint lê `estudante_id`, `aluno_id`, `modelos_de_treino.estudante_id`, `estruturas_de_treinamento` direto.
 
-| Endpoint | Função | Uso no FitPro |
-|---|---|---|
-| `POST /fitpro-quick-workout` | Treino rápido (3 perguntas) | Aba **Train → Treino Rápido** |
-| `POST /fitpro-adjust-workout` | Ajuste via RON (NLP) | Aba **Ajuste de Treino** |
-| `POST /fitpro-plan-workout` | Treino do dia baseado na periodização anual | Loop diário do app aluno |
-| `GET  /library-full` | Biblioteca 9FIT (catálogo 9x9x9 + vídeos + infoprodutos) | Aba **Biblioteca de Conteúdo** |
+## Pré-requisitos de banco (migration única)
 
-Autenticação: header `x-partner-key: <FITPRO_API_KEY>` (compartilhada com a conexão `fitpro_connections`). Resolução de aluno: header `x-student-external-id` ou query/body `student_external_id` → mapeado via `fitpro_student_map.fitpro_student_id → athlete_id`.
+1. Criar `fn_award_xp(p_athlete_id uuid, p_amount int, p_reason text)` — atualmente ausente. Insere em `activation_events` + atualiza `aluno_score_composite`/`vw_athlete_status`.
+2. Garantir coluna `workout_exercises.override_locked boolean default false` (já existe — apenas validar).
+3. Conceder/validar GRANTs em `vw_athlete_periodizacao_ativa` e `vw_athlete_full_profile` para `authenticated` e `service_role`.
+4. Função `aplicar_ajuste_treino_dia(p_athlete_id, p_workout_date, p_changes jsonb)` SECURITY DEFINER: aplica diff em `workout_exercises` do `daily_workout_id` do dia e seta `override_locked=true`. Garante isolamento ao dia.
 
-## 2. Contratos de API (copiar/colar)
+## Edge Functions (novas/atualizadas, todas com `x-partner-key`)
 
-### 2.1 Treino Rápido
-```bash
-curl -X POST https://mfrydtrzjxscbkaiwfnw.supabase.co/functions/v1/fitpro-quick-workout \
-  -H "x-partner-key: <API_KEY>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "student_external_id": "<FITPRO_STUDENT_ID>",
-    "respostas": {
-      "tempo_min": 45,
-      "foco": "membros_inferiores",
-      "energia": "media"
-    }
-  }'
-```
-Resposta:
-```json
-{
-  "success": true,
-  "treino_id": "uuid",
-  "duracao_min": 45,
-  "blocos": [
-    {"tipo": "neural", "cor": "#22c55e", "exercicios": [...]},
-    {"tipo": "integration", "cor": "#3b82f6", "exercicios": [...]},
-    {"tipo": "block9", "cor": "#f97316", "exercicios": [...]},
-    {"tipo": "reset", "cor": "#9ca3af", "exercicios": [...]}
-  ],
-  "video_urls": {...},
-  "infoproduto_sugerido": {"id":"...","titulo":"...","cta_url":"..."}
-}
-```
+Reusam `_shared/partner.ts` (`requirePartnerKey`, `resolveAluno`). Todas retornam `{ success, ... }` e emitem evento via `emitFitproWorkoutEvent`.
 
-### 2.2 Ajuste de Treino (RON Chat)
-```bash
-curl -X POST https://mfrydtrzjxscbkaiwfnw.supabase.co/functions/v1/fitpro-adjust-workout \
-  -H "x-partner-key: <API_KEY>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "student_external_id": "<ID>",
-    "treino_atual_id": "uuid",
-    "mensagem": "tô sem barra hoje, troca pra halter e diminui 10 min"
-  }'
-```
-Resposta inclui `treino_ajustado` (mesmo shape do 2.1) + `delta` (lista de mudanças) + `mensagem_ron`.
+### 1. `POST /fitpro-quick-workout` (atualizar)
+- GET → 3 perguntas: `objetivo_dia`, `tempo_min`, `equipamento`.
+- POST → busca `workout_models` filtrando por `level` (de `vw_athlete_full_profile`) + `general_objective` (objetivo_dia) + duração compatível com `tempo_min`; fallback ad-hoc via `exercises` filtrando por `equipment` e `target_muscles`.
+- Persiste `workout_executions { athlete_id, workout_date=today, phase_name='quick', status='in_progress' }` + `workout_exercises` (sem `override_locked`).
+- Ao concluir: cliente chama `/fitpro-complete-workout` → status=completed + `fn_award_xp(athlete_id, 50, 'quick_workout')`.
 
-### 2.3 Treino do Dia (Periodização)
-```bash
-curl -X POST https://mfrydtrzjxscbkaiwfnw.supabase.co/functions/v1/fitpro-plan-workout \
-  -H "x-partner-key: <API_KEY>" \
-  -H "Content-Type: application/json" \
-  -d '{"student_external_id":"<ID>","data":"2026-06-06"}'
-```
-Lê `vw_periodizacao_ativa_aluno` (interna OU `fitpro_smartperiodizer_periodizations`). Se ausente → `409 sem_periodizacao_ativa` com CTA pra cadastrar no SmartPeriodizer + notificação automática ao professor.
+### 2. `POST /fitpro-week-workouts` (novo)
+- Input: `student_external_id`.
+- Lê `planos_de_treino_gerados` (status='active') + `vw_athlete_periodizacao_ativa` → expande semana corrente em 7 dias (D1..D7).
+- Para cada dia retorna `{ date, day_number, phase_name, summary, is_today, status }`.
+- Apenas o dia atual vem com `executable=true` e `daily_workout_id`; demais são preview (resumo de blocos/exercícios sem `daily_workout_id`).
+- Chamada de execução do dia: reusa `/fitpro-plan-workout` existente (que já materializa o `workout_executions` do dia).
 
-### 2.4 Biblioteca de Conteúdo 9FIT
-```bash
-curl -H "x-partner-key: <API_KEY>" \
-  "https://mfrydtrzjxscbkaiwfnw.supabase.co/functions/v1/library-full?student_external_id=<ID>"
-```
-Resposta:
-```json
-{
-  "biblioteca": {
-    "exercicios": [{"id","nome","grupo","video_url","thumb","instrucoes","equipamento","nivel"}],
-    "protocolos_9x9x9": [{"code","pilar","categoria","block_9_template","goal_tags"}],
-    "infoprodutos": [{"id","titulo","cta_url","preco","thumb"}],
-    "videos_aulas": [...]
-  },
-  "personalizado_para": {"aluno":"...","objetivo":"...","nivel":"..."}
-}
+### 3. `GET /fitpro-streaming-feed` (novo)
+- Input: `student_external_id`.
+- Lê `vw_athlete_periodizacao_ativa.current_phase_category` → consulta `library_items` `type='videos' AND category=current_phase_category` ordenado por `synced_at desc`.
+- Fallback: `category='geral'`.
+- Retorna `{ phase_category, items: [{id,name,thumbnail_url,player_url,category,subcategory}] }`.
+
+### 4. `POST /fitpro-adjust-workout` (atualizar) + `POST /fitpro-copilot-adjust` (novo)
+- `fitpro-adjust-workout`: input estruturado `{ student_external_id, changes:[{exercise_id, action:'swap|load|sets|add|remove', payload}] }` → chama `aplicar_ajuste_treino_dia` → retorna treino do dia atualizado. Garante `override_locked=true`. **Nunca toca em planos_de_treino_gerados/weekly_structures.**
+- `fitpro-copilot-adjust`: input `{ student_external_id, command:"trocar agachamento por leg press" }` → Gemini (Lovable AI Gateway) interpreta em JSON `changes[]` no mesmo schema acima → delega para `aplicar_ajuste_treino_dia`. Resposta inclui `interpretation` (o que entendeu) + `treino_atualizado`. Se comando pedir mudança fora do dia atual, retorna `{ error:'planning_required', redirect:'/settings/planejamento' }`.
+
+### 5. `POST /fitpro-complete-workout` (novo, suporte ao 1 e 2)
+- Marca `workout_executions.status='completed'`, preenche `duration_minutes/total_volume_kg/avg_rpe`.
+- Dispara `fn_award_xp(athlete_id, 100, 'workout_completed')` (ou 50 quando `phase_name='quick'`).
+- Emite evento FitPro `workout_completed`.
+
+## SDK & Documentação
+
+- `docs/fitpro-sdk/smartreino.ts`: novos métodos `getWeekWorkouts`, `getStreamingFeed`, `adjustWorkout(changes)`, `copilotAdjust(command)`, `completeWorkout`.
+- `docs/fitpro-sdk/README.md`: documentar contrato + exemplos cURL + regra "ajuste só afeta o dia".
+- Postman collection: adicionar as 4 chamadas novas.
+
+## Auditoria & remoção de leituras legadas
+
+Sweep dos edge functions e `src/services` para garantir que nenhum dos fluxos novos toque `estudante_id`/`aluno_id`/`alunos`/`students` diretamente; toda resolução passa por `vw_athlete_full_profile` (com `resolveAluno` mantendo retrocompat para mapping FitPro).
+
+## Detalhes técnicos
+
+```text
+┌─ FitPro Train ───────────────────────────────────────┐
+│ Quick     → /fitpro-quick-workout (GET 3Q, POST gen) │
+│ Semana    → /fitpro-week-workouts → /fitpro-plan-workout (dia)
+│ Streaming → /fitpro-streaming-feed (library_items)   │
+│ Ajuste    → /fitpro-adjust-workout (structured)      │
+│ Copilot   → /fitpro-copilot-adjust (NLP→structured)  │
+│ Concluir  → /fitpro-complete-workout (XP + event)    │
+└──────────────────────────────────────────────────────┘
+                    ↓ (todos)
+   vw_athlete_full_profile · vw_athlete_periodizacao_ativa
+   planos_de_treino_gerados · workout_executions · workout_exercises
+   library_items · exercises · fn_award_xp
 ```
 
-## 3. SDK TypeScript (drop-in `fitpro-sdk/smartreino.ts`)
+## Entregáveis
 
-```ts
-export interface SmartReinoConfig {
-  apiKey: string;
-  baseUrl?: string;
-}
-export class SmartReinoClient {
-  constructor(private cfg: SmartReinoConfig) {
-    cfg.baseUrl ??= "https://mfrydtrzjxscbkaiwfnw.supabase.co/functions/v1";
-  }
-  private async req(path: string, init: RequestInit = {}) {
-    const r = await fetch(`${this.cfg.baseUrl}${path}`, {
-      ...init,
-      headers: { "x-partner-key": this.cfg.apiKey, "Content-Type": "application/json", ...(init.headers||{}) },
-    });
-    const json = await r.json().catch(()=>({}));
-    if (!r.ok) throw Object.assign(new Error(json?.error||r.statusText), { status: r.status, body: json });
-    return json;
-  }
-  quickWorkout(p:{student_external_id:string; respostas:{tempo_min:number;foco:string;energia:string}}) {
-    return this.req("/fitpro-quick-workout",{method:"POST",body:JSON.stringify(p)});
-  }
-  adjustWorkout(p:{student_external_id:string; treino_atual_id:string; mensagem:string}) {
-    return this.req("/fitpro-adjust-workout",{method:"POST",body:JSON.stringify(p)});
-  }
-  planWorkout(p:{student_external_id:string; data?:string}) {
-    return this.req("/fitpro-plan-workout",{method:"POST",body:JSON.stringify(p)});
-  }
-  library(student_external_id:string) {
-    return this.req(`/library-full?student_external_id=${encodeURIComponent(student_external_id)}`);
-  }
-}
-```
-Uso no FitPro:
-```ts
-const sr = new SmartReinoClient({ apiKey: process.env.SMARTREINO_KEY! });
-const t = await sr.quickWorkout({ student_external_id: aluno.id, respostas:{tempo_min:45,foco:"superior",energia:"alta"} });
-```
+- 1 migration (fn_award_xp, aplicar_ajuste_treino_dia, GRANTs)
+- 4 novas edge functions + 2 atualizações
+- SDK TS + README + Postman atualizados
+- Sem mudanças em UI do app SmartReino (somente backend/SDK para o FitPro consumir)
 
-## 4. Loops de UX no FitPro (especificação)
+## Confirmar antes de implementar
 
-**Loop A — Ajuste de Treino**
-```
-Aba Ajuste → input texto → POST /fitpro-adjust-workout
-  → retorna treino_ajustado → grava local → atualiza aba Train
-```
-
-**Loop B — Treino Rápido**
-```
-Aba Train → "Treino Rápido" → 3 perguntas (tempo/foco/energia)
-  → POST /fitpro-quick-workout → render grid 4 blocos + vídeos + CTA infoproduto
-```
-
-**Loop C — Biblioteca**
-```
-Aba "Biblioteca de Conteúdo" → GET /library-full
-  → grid nativo (exercícios | protocolos 9x9x9 | infoprodutos | aulas)
-  → SUBSTITUI a lista de exercícios atual
-```
-
-## 5. Backend a entregar (lado SmartReino)
-
-1. **Migração:** RPC `resolve_aluno_by_external(p_external_id text)` retornando `aluno_id` via `fitpro_student_map`.
-2. **4 edge functions novas** (`verify_jwt=false`, validam `x-partner-key` contra `fitpro_connections.api_key_hash`):
-   - `fitpro-quick-workout` — chama `prescrever_treino` com perfil derivado das 3 respostas.
-   - `fitpro-adjust-workout` — chama `modify-workout` (SSE convertido em JSON final) com contexto do treino atual.
-   - `fitpro-plan-workout` — lê `vw_periodizacao_ativa_aluno`, deriva microciclo do dia, chama `prescrever_treino` com `p_protocol_code`.
-   - `library-full` — agrega `exercise_library` + `smart_treino_protocols` (729) + `library_items` (infoprodutos) personalizando por `objetivo/nivel` do aluno.
-3. **Catálogo 9x9x9 como biblioteca oficial:** `smart_treino_protocols` exposto via `/library-full` com `video_url`, `thumb`, `instrucoes` (join com `exercise_library`).
-4. **Resposta de erro padronizada:** `{error, code, hint, cta_url?}` (409 para `sem_periodizacao_ativa`).
-
-## 6. Variáveis/segredos
-
-- `FITPRO_API_KEY` (já configurado) — usado como `x-partner-key`.
-- FitPro guarda: `SMARTREINO_KEY`, `SMARTREINO_BASE_URL=https://mfrydtrzjxscbkaiwfnw.supabase.co/functions/v1`.
-
-## 7. Entregáveis finais
-
-- Arquivo `docs/fitpro-sdk/README.md` com este contrato + cURLs.
-- Arquivo `docs/fitpro-sdk/smartreino.ts` (SDK acima).
-- 4 edge functions implementadas e deployadas.
-- 1 migração (RPC `resolve_aluno_by_external` + view enriquecida da biblioteca).
-- Postman collection JSON em `docs/fitpro-sdk/SmartReino.postman_collection.json`.
-
-**Aprovar para eu implementar tudo isso?**
+- OK criar `fn_award_xp` simples (sem alterar tabelas de score existentes além de inserir em `activation_events`)?
+- OK manter `phase_name='quick'` em `workout_executions` quando não há plano ativo?
+- O FitPro envia `student_external_id` (mapping) ou já tem `athlete_id` real? (afeta apenas o resolver — ambos suportados.)

@@ -10837,12 +10837,21 @@ export type Database = {
         Row: {
           assigned_at: string | null
           athlete_id: string | null
+          current_macro: Json | null
+          current_meso: Json | null
+          current_phase: string | null
+          current_phase_category: string | null
+          current_week_index: number | null
           external_id: string | null
           macrocycle: Json | null
           mesocycle: Json | null
           microcycle: Json | null
+          output_json: Json | null
           plan_id: string | null
           plan_name: string | null
+          reps_range: string | null
+          rpe_cap: string | null
+          sets_range: string | null
           source: string | null
           status: string | null
           waves: Json | null
