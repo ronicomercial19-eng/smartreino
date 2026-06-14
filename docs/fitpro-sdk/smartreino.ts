@@ -22,11 +22,43 @@ export interface QuickWorkoutQuestionsResponse {
   perguntas: Array<{ id: "tempo_min" | "foco" | "energia"; label: string; type: string; options: Array<string | number> }>;
 }
 
+export type AdjustAction = "swap" | "load" | "sets" | "add" | "remove";
+export interface AdjustChange {
+  action: AdjustAction;
+  exercise_id?: string;
+  new_exercise_id?: string;
+  load_percentage?: number;
+  sets?: number;
+  reps_range?: string;
+}
 export interface AdjustWorkoutInput {
   student_external_id: string;
+  // Structured (preferred): affects ONLY today's workout_exercises with override_locked=true
+  changes?: AdjustChange[];
+  workout_date?: string; // YYYY-MM-DD (defaults to today)
+  // NLP fallback (legacy)
   treino_atual_id?: string;
   treino_atual?: unknown;
-  mensagem: string;
+  mensagem?: string;
+}
+
+export interface CopilotAdjustInput {
+  student_external_id: string;
+  command: string;
+  workout_date?: string;
+}
+
+export interface WeekWorkoutsInput { student_external_id: string }
+export interface StreamingFeedInput { student_external_id: string }
+export interface CompleteWorkoutInput {
+  student_external_id: string;
+  execution_id?: string;
+  workout_date?: string;
+  duration_minutes?: number;
+  total_volume_kg?: number;
+  avg_rpe?: number;
+  notes?: string;
+  rating?: number;
 }
 
 export interface PlanWorkoutInput {
