@@ -177,6 +177,26 @@ export class SmartReinoClient {
     const q = student_external_id ? `?student_external_id=${encodeURIComponent(student_external_id)}` : "";
     return this.req<LibraryResponse>(`/library-full${q}`, { method: "GET" });
   }
+
+  /** Treinos da Semana — preview D1..D7 da semana corrente. */
+  weekWorkouts(p: WeekWorkoutsInput) {
+    return this.req<any>("/fitpro-week-workouts", { method: "POST", body: JSON.stringify(p) });
+  }
+
+  /** Feed de Streaming/HealthFlix filtrado pela fase atual da periodização. */
+  streamingFeed(p: StreamingFeedInput) {
+    return this.req<any>(`/fitpro-streaming-feed?student_external_id=${encodeURIComponent(p.student_external_id)}`, { method: "GET" });
+  }
+
+  /** Conclui treino + dispara XP (50 quick / 100 plano). */
+  completeWorkout(p: CompleteWorkoutInput) {
+    return this.req<any>("/fitpro-complete-workout", { method: "POST", body: JSON.stringify(p) });
+  }
+
+  /** FitCopilot NLP — interpreta comando e aplica APENAS no dia atual. */
+  copilotAdjust(p: CopilotAdjustInput) {
+    return this.req<any>("/fitpro-copilot-adjust", { method: "POST", body: JSON.stringify(p) });
+  }
 }
 
 export default SmartReinoClient;
