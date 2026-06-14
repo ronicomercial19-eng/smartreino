@@ -1,6 +1,8 @@
 // POST /fitpro-adjust-workout
-// Body: { student_external_id, treino_atual_id?, treino_atual?, mensagem }
-// Returns and delivers the final adjusted workout to FitPro.
+// Two modes:
+//  - Structured: { student_external_id, changes:[{action,exercise_id?,new_exercise_id?,load_percentage?,sets?,reps_range?}], workout_date? }
+//  - NLP fallback: { student_external_id, mensagem }
+// Structured changes affect ONLY the day's workout_exercises (override_locked=true).
 import {
   admin,
   buildWorkoutFromLibrary,
@@ -25,15 +27,42 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { return jsonResponse({ error: "invalid_json" }, 400); }
 
   const externalId = body.student_external_id ?? req.headers.get("x-student-external-id");
-  const mensagem = String(body.mensagem ?? "").trim();
-  if (!externalId || !mensagem) {
-    return jsonResponse({ error: "student_external_id and mensagem required" }, 400);
-  }
+  if (!externalId) return jsonResponse({ error: "student_external_id_required" }, 400);
 
   const aluno = await resolveAluno(externalId);
   if (!aluno) return jsonResponse({ error: "aluno_nao_encontrado", code: "student_not_found" }, 404);
 
   const sb = admin();
+
+  // STRUCTURED PATH: changes[] → RPC aplicar_ajuste_treino_dia (today only)
+  if (Array.isArray(body.changes) && body.changes.length > 0) {
+    const workoutDate: string = body.workout_date ?? new Date().toISOString().slice(0, 10);
+    const { data: applied, error: rpcError } = await sb.rpc("aplicar_ajuste_treino_dia", {
+      p_athlete_id: aluno.id,
+      p_workout_date: workoutDate,
+      p_changes: body.changes,
+    });
+    if (rpcError) return jsonResponse({ error: "apply_failed", detail: rpcError.message }, 500);
+    const execId = (applied as any)?.execution_id ?? null;
+    const { data: updated } = await sb
+      .from("workout_exercises")
+      .select("id, exercise_id, exercise_order, sets, reps_range, load_percentage, override_locked")
+      .eq("daily_workout_id", execId)
+      .order("exercise_order");
+    await emitFitproWorkoutEvent({
+      studentExternalId: aluno.fitpro_student_id ?? externalId,
+      professorExternalId: String(aluno.mapping?.fitpro_professor_id ?? "") || null,
+      treino: { exercises: updated },
+      treinoId: execId,
+      contexto: { source: "fitpro_adjust_structured", workout_date: workoutDate },
+      eventType: "workout_adjusted",
+    });
+    return jsonResponse({ success: true, mode: "structured", execution_id: execId, applied, treino_atualizado: updated });
+  }
+
+  // NLP PATH (legacy / human freeform)
+  const mensagem = String(body.mensagem ?? "").trim();
+  if (!mensagem) return jsonResponse({ error: "changes_or_mensagem_required" }, 400);
   // Carrega treino atual: param explícito > último de historico_treinos_realizados
   let treinoAtual: any = body.treino_atual ?? null;
   if (!treinoAtual && body.treino_atual_id) {

@@ -177,3 +177,30 @@ Importe [`SmartReino.postman_collection.json`](./SmartReino.postman_collection.j
 2. FitPro armazena como secret de ambiente.
 3. Para cada aluno sincronizado, registrar mapping em `fitpro_student_map` (já feito via sync existente).
 4. Pronto. Todos os 4 endpoints já estão deployados em produção.
+
+---
+
+## v2 — FitPro Train (4 fluxos canônicos)
+
+Todos os endpoints abaixo resolvem o aluno via `athlete_id` (vw_athlete_full_profile) — nunca `estudante_id`/`aluno_id` legados.
+
+### 1. Treino Rápido
+`GET  /fitpro-quick-workout` → 3 perguntas (objetivo_dia, tempo_min, equipamento).
+`POST /fitpro-quick-workout` body `{ student_external_id, respostas:{tempo_min,foco,energia} }` → gera sessão ad-hoc com vídeos de `exercises.video_url`/`gif_url`. Persiste em `workout_executions (phase_name='quick')`.
+
+### 2. Treinos da Semana
+`POST /fitpro-week-workouts` body `{ student_external_id }` → retorna `dias[7]`. Apenas o dia atual vem `executable:true` com `daily_workout_id`; demais são preview. Para abrir o treino do dia chame `POST /fitpro-plan-workout`.
+
+### 3. Streaming (HealthFlix contextual)
+`GET /fitpro-streaming-feed?student_external_id=...` → curadoria de `library_items` `type='videos'` filtrada por `vw_athlete_periodizacao_ativa.current_phase_category` (fallback `geral`). Player via `player_url`.
+
+### 4. Ajuste de Treino + FitCopilot
+Estruturado: `POST /fitpro-adjust-workout` body `{ student_external_id, changes:[{action,exercise_id?,new_exercise_id?,load_percentage?,sets?,reps_range?}], workout_date? }` — afeta SOMENTE `workout_exercises` do dia, marca `override_locked=true`.
+
+Linguagem natural: `POST /fitpro-copilot-adjust` body `{ student_external_id, command:"trocar agachamento por leg press" }` — Gemini interpreta → mesmas `changes` → mesma RPC. Se o pedido envolver semana/periodização, retorna `error:"planning_required"` + `redirect:"/settings/planejamento"`.
+
+### 5. Concluir treino + XP
+`POST /fitpro-complete-workout` body `{ student_external_id, execution_id?, workout_date?, duration_minutes?, total_volume_kg?, avg_rpe? }` → marca `status=completed` e chama `fn_award_xp(athlete_id, 50|100, reason)`.
+
+### Regra crítica
+Nenhum dos 4 fluxos toca em `planos_de_treino_gerados`, `weekly_structures` ou `training_phases`. Para mudanças de planejamento o caminho é Settings → Planejamento (SmartPeriodizer).

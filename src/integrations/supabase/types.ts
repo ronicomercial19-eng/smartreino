@@ -11121,6 +11121,10 @@ export type Database = {
         }
         Returns: Json
       }
+      aplicar_ajuste_treino_dia: {
+        Args: { p_athlete_id: string; p_changes: Json; p_workout_date: string }
+        Returns: Json
+      }
       calcular_periodizacao_correspondencia: {
         Args: { estudante: string }
         Returns: {
@@ -11171,19 +11175,24 @@ export type Database = {
           role: string
         }[]
       }
-      fn_award_xp: {
-        Args: {
-          p_amount: number
-          p_athlete_id: string
-          p_metadata?: Json
-          p_source?: string
-        }
-        Returns: {
-          leveled_up: boolean
-          new_level: number
-          new_total_xp: number
-        }[]
-      }
+      fn_award_xp:
+        | {
+            Args: { p_amount: number; p_athlete_id: string; p_reason: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_athlete_id: string
+              p_metadata?: Json
+              p_source?: string
+            }
+            Returns: {
+              leveled_up: boolean
+              new_level: number
+              new_total_xp: number
+            }[]
+          }
       generate_invitation_token: { Args: never; Returns: string }
       gerar_modelo_treino: {
         Args: {

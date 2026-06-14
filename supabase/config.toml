@@ -38,3 +38,15 @@ verify_jwt = false
 
 [functions.library-full]
 verify_jwt = false
+
+[functions.fitpro-week-workouts]
+verify_jwt = false
+
+[functions.fitpro-streaming-feed]
+verify_jwt = false
+
+[functions.fitpro-complete-workout]
+verify_jwt = false
+
+[functions.fitpro-copilot-adjust]
+verify_jwt = false

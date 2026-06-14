@@ -22,11 +22,43 @@ export interface QuickWorkoutQuestionsResponse {
   perguntas: Array<{ id: "tempo_min" | "foco" | "energia"; label: string; type: string; options: Array<string | number> }>;
 }
 
+export type AdjustAction = "swap" | "load" | "sets" | "add" | "remove";
+export interface AdjustChange {
+  action: AdjustAction;
+  exercise_id?: string;
+  new_exercise_id?: string;
+  load_percentage?: number;
+  sets?: number;
+  reps_range?: string;
+}
 export interface AdjustWorkoutInput {
   student_external_id: string;
+  // Structured (preferred): affects ONLY today's workout_exercises with override_locked=true
+  changes?: AdjustChange[];
+  workout_date?: string; // YYYY-MM-DD (defaults to today)
+  // NLP fallback (legacy)
   treino_atual_id?: string;
   treino_atual?: unknown;
-  mensagem: string;
+  mensagem?: string;
+}
+
+export interface CopilotAdjustInput {
+  student_external_id: string;
+  command: string;
+  workout_date?: string;
+}
+
+export interface WeekWorkoutsInput { student_external_id: string }
+export interface StreamingFeedInput { student_external_id: string }
+export interface CompleteWorkoutInput {
+  student_external_id: string;
+  execution_id?: string;
+  workout_date?: string;
+  duration_minutes?: number;
+  total_volume_kg?: number;
+  avg_rpe?: number;
+  notes?: string;
+  rating?: number;
 }
 
 export interface PlanWorkoutInput {
@@ -144,6 +176,26 @@ export class SmartReinoClient {
   library(student_external_id?: string) {
     const q = student_external_id ? `?student_external_id=${encodeURIComponent(student_external_id)}` : "";
     return this.req<LibraryResponse>(`/library-full${q}`, { method: "GET" });
+  }
+
+  /** Treinos da Semana — preview D1..D7 da semana corrente. */
+  weekWorkouts(p: WeekWorkoutsInput) {
+    return this.req<any>("/fitpro-week-workouts", { method: "POST", body: JSON.stringify(p) });
+  }
+
+  /** Feed de Streaming/HealthFlix filtrado pela fase atual da periodização. */
+  streamingFeed(p: StreamingFeedInput) {
+    return this.req<any>(`/fitpro-streaming-feed?student_external_id=${encodeURIComponent(p.student_external_id)}`, { method: "GET" });
+  }
+
+  /** Conclui treino + dispara XP (50 quick / 100 plano). */
+  completeWorkout(p: CompleteWorkoutInput) {
+    return this.req<any>("/fitpro-complete-workout", { method: "POST", body: JSON.stringify(p) });
+  }
+
+  /** FitCopilot NLP — interpreta comando e aplica APENAS no dia atual. */
+  copilotAdjust(p: CopilotAdjustInput) {
+    return this.req<any>("/fitpro-copilot-adjust", { method: "POST", body: JSON.stringify(p) });
   }
 }
 
