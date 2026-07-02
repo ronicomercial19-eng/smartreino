@@ -94,15 +94,21 @@ const PeriodizationUpload = () => {
   const loadAlunos = async () => {
     try {
       setLoadingAlunos(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data, error } = await supabase
-        .from('alunos')
-        .select('id, nome, email, objetivo, nivel_experiencia')
-        .eq('professor_id', user.id)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      const { data, error } = await (supabase as any)
+        .from('vw_alunos_canonical')
+        .select('athlete_id, nome, email, objetivo, nivel')
         .order('nome');
       if (error) throw error;
-      setAlunos(data || []);
+      const mapped = (data || []).map((r: any) => ({
+        id: r.athlete_id,
+        nome: r.nome,
+        email: r.email,
+        objetivo: r.objetivo,
+        nivel_experiencia: r.nivel,
+      }));
+      setAlunos(mapped);
     } catch (error) {
       console.error('Erro ao carregar alunos:', error);
     } finally {
@@ -297,6 +303,15 @@ const PeriodizationUpload = () => {
       toast({
         title: "🎉 Plano Completo Gerado!",
         description: `${data.summary?.total_semanas} semanas · ${data.summary?.total_mesociclos} mesociclos criados.`,
+      });
+
+      // Auto-entrega ao FitPro (fire-and-forget)
+      const { autoDeliverToFitpro } = await import("@/services/autoDeliverFitpro");
+      autoDeliverToFitpro({
+        athleteId: selectedAlunoId,
+        planoId: data.plan?.id,
+        treino: data.plan,
+        contexto: { source: "plano-periodizado", summary: data.summary },
       });
 
       await loadSavedPlans();

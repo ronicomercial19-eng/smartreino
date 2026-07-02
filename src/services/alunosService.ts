@@ -90,11 +90,11 @@ export class AlunosService {
     }
 
     return (data ?? []).map((row: any) => ({
-      id: row.id,
+      id: row.athlete_id ?? row.id,          // usa athlete_id (uuid) como id canônico
       athlete_id: row.athlete_id ?? null,
       professor_id: row.professor_id ?? null,
-      nome: row.id, // sem nome na view canônica — exibimos id
-      email: '',
+      nome: row.nome ?? 'Aluno',
+      email: row.email ?? '',
       objetivo: row.objetivo ?? 'Não definido',
       nivel_experiencia: row.nivel ?? 'intermediario',
       status: mapStatus(row.status),

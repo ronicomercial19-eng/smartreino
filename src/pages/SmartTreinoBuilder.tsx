@@ -67,7 +67,7 @@ export default function SmartTreinoBuilder() {
 
       const { data: canonical, error } = await (supabase as any)
         .from("vw_alunos_canonical")
-        .select("id, athlete_id, objetivo, nivel, status");
+        .select("id, athlete_id, nome, objetivo, nivel, status");
 
       if (error) {
         console.error("[SmartTreinoBuilder] vw_alunos_canonical error:", error);
@@ -81,9 +81,8 @@ export default function SmartTreinoBuilder() {
       }
 
       const unified = (canonical ?? []).map((a: any) => ({
-        id: a.athlete_id ?? a.id,          // prefer internal uuid for technical flow
-        name: a.id,                        // canonical id label
-        source: a.athlete_id ? "athlete" : "fitpro",
+        id: a.athlete_id ?? a.id,          // uuid canônico
+        name: a.nome ?? 'Aluno',           // nome legível
         objetivo: a.objetivo,
         nivel: a.nivel,
         status: a.status,
@@ -155,6 +154,14 @@ export default function SmartTreinoBuilder() {
     await saveCurrentStep();
     const result = await generateSmartTreino(selectedAlunoId, savedRulesId);
     setGeneratedResult(result);
+    // Auto-entrega ao FitPro (fire-and-forget)
+    const { autoDeliverToFitpro } = await import("@/services/autoDeliverFitpro");
+    autoDeliverToFitpro({
+      athleteId: selectedAlunoId,
+      planoId: (result as any)?.id ?? savedRulesId,
+      treino: result,
+      contexto: { source: "smart-treino-builder" },
+    });
     return result;
   };
 
