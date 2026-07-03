@@ -262,13 +262,30 @@ FORMATO DE RESPOSTA JSON (OBRIGATÓRIO):
         .eq('id', studentId);
     }
 
+    // Auto-deliver to FitPro
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/fitpro-deliver-workout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseServiceKey}` },
+        body: JSON.stringify({
+          athlete_id: studentId,
+          plano_id: savedPlan.id,
+          workout_date: new Date().toISOString().slice(0, 10),
+          source: `generate_workout_${planSource}`,
+          treino: { plano_id: savedPlan.id, estrutura: workoutPlan.estrutura_semanal ?? [] },
+        }),
+      });
+    } catch (e) { console.warn('auto-deliver generate-workout warn:', e); }
+
     return new Response(JSON.stringify({
       success: true,
       plan: savedPlan,
-      message: 'Plano de treino gerado com sucesso!'
+      source: planSource,
+      message: `Plano gerado (${planSource === 'catalog' ? 'catálogo' : 'IA'}) com sucesso!`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+
 
   } catch (error) {
     console.error('Error in generate-workout function:', error);
