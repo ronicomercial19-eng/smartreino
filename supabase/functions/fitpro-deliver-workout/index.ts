@@ -1,5 +1,5 @@
 // Delivers a prescribed workout to the FitPro ecosystem via the fitpro-api edge function.
-// Auth: x-api-key (FITPRO_API_KEY secret) against fitpro_connections.api_key_hash.
+// Also writes an audit row to `fitpro_delivery_log` with status/attempt info.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
@@ -12,25 +12,34 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  let logId: string | null = null;
+  let athlete_id: string | null = null;
+  let plano_id: string | null = null;
+  let workout_date: string = new Date().toISOString().slice(0, 10);
+  let source = "unknown";
+  let payloadBody: any = null;
+
   try {
     const FITPRO_API_URL =
       Deno.env.get("FITPRO_API_URL") ||
       `${Deno.env.get("SUPABASE_URL")}/functions/v1/fitpro-api`;
     const FITPRO_API_KEY = Deno.env.get("FITPRO_API_KEY");
-    if (!FITPRO_API_KEY) {
-      return new Response(
-        JSON.stringify({ success: false, error: "FITPRO_API_KEY not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
 
     const body = await req.json();
-    // Aceita ambas assinaturas: nova {athlete_id, plano_id, workout_date} e legada {aluno_id, treino}
-    const athlete_id = body?.athlete_id ?? body?.aluno_id;
-    const plano_id   = body?.plano_id ?? body?.historico_id ?? null;
-    const workout_date = body?.workout_date ?? new Date().toISOString().slice(0, 10);
-    const treino     = body?.treino ?? { auto: true, plano_id, workout_date };
-    const contexto   = body?.contexto;
+    athlete_id = body?.athlete_id ?? body?.aluno_id ?? null;
+    plano_id = body?.plano_id ?? body?.historico_id ?? null;
+    workout_date = body?.workout_date ?? workout_date;
+    source = body?.source ?? "unknown";
+    const treino = body?.treino ?? { auto: true, plano_id, workout_date };
+    const contexto = body?.contexto;
+    // retry re-use of an existing log row
+    const existingLogId = body?.log_id ?? null;
+    payloadBody = { treino, contexto, source };
 
     if (!athlete_id) {
       return new Response(
@@ -39,12 +48,31 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    // Upsert audit log row (pending)
+    if (existingLogId) {
+      logId = existingLogId;
+      await supabase.from("fitpro_delivery_log").update({
+        status: "retrying",
+        attempt_count: (body?.attempt_count ?? 0) + 1,
+        payload: payloadBody,
+      }).eq("id", existingLogId);
+    } else {
+      const { data: logRow } = await supabase.from("fitpro_delivery_log").insert({
+        athlete_id, plano_id, workout_date, source, payload: payloadBody,
+        status: "pending", attempt_count: 1,
+      }).select("id").maybeSingle();
+      logId = logRow?.id ?? null;
+    }
 
-    // Materializa workout_execution do dia (idempotente por athlete_id + workout_date)
+    if (!FITPRO_API_KEY) {
+      await markFailed(supabase, logId, "FITPRO_API_KEY not configured");
+      return new Response(
+        JSON.stringify({ success: false, error: "FITPRO_API_KEY not configured", log_id: logId }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Materializa workout_executions do dia (idempotente por athlete_id + workout_date)
     try {
       const { data: existing } = await supabase
         .from("workout_executions")
@@ -54,18 +82,13 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (!existing) {
         await supabase.from("workout_executions").insert({
-          athlete_id,
-          workout_date,
-          status: "pending",
-          phase_name: "prescribed",
+          athlete_id, workout_date,
+          status: "pending", phase_name: "prescribed",
           notes: plano_id ? `plano:${plano_id}` : null,
         });
       }
-    } catch (e) {
-      console.warn("workout_executions materialize warn:", e);
-    }
+    } catch (e) { console.warn("workout_executions materialize warn:", e); }
 
-    // Resolve FitPro student mapping
     const { data: mapping } = await supabase
       .from("fitpro_student_map")
       .select("fitpro_student_id, fitpro_professor_id, connection_id")
@@ -85,17 +108,13 @@ Deno.serve(async (req) => {
       payload: {
         source: "smartreino",
         delivered_at: new Date().toISOString(),
-        contexto,
-        treino,
+        contexto, treino, delivery_source: source,
       },
     };
 
     const resp = await fetch(`${FITPRO_API_URL}/v1/fitpro/events`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": FITPRO_API_KEY,
-      },
+      headers: { "Content-Type": "application/json", "x-api-key": FITPRO_API_KEY },
       body: JSON.stringify(eventPayload),
     });
 
@@ -104,31 +123,46 @@ Deno.serve(async (req) => {
     try { parsed = JSON.parse(text); } catch { parsed = { raw: text }; }
 
     if (!resp.ok) {
-      console.error("fitpro-api error", resp.status, text);
+      const errMsg = parsed?.error || `FitPro API ${resp.status}`;
+      await markFailed(supabase, logId, errMsg, parsed);
       return new Response(
-        JSON.stringify({
-          success: false,
-          error: parsed?.error || `FitPro API ${resp.status}`,
-          status: resp.status,
-        }),
+        JSON.stringify({ success: false, error: errMsg, status: resp.status, log_id: logId }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
+    if (logId) {
+      await supabase.from("fitpro_delivery_log").update({
+        status: "success", result: parsed, last_error: null, next_retry_at: null,
+      }).eq("id", logId);
+    }
+
     return new Response(
       JSON.stringify({
-        success: true,
-        fitpro_student_id,
-        mapped: !!mapping,
-        fitpro_response: parsed,
+        success: true, log_id: logId, fitpro_student_id,
+        mapped: !!mapping, fitpro_response: parsed,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
-    console.error("fitpro-deliver-workout error", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("fitpro-deliver-workout error", msg);
+    if (logId) await markFailed(supabase, logId, msg);
     return new Response(
-      JSON.stringify({ success: false, error: e instanceof Error ? e.message : String(e) }),
+      JSON.stringify({ success: false, error: msg, log_id: logId }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
+
+async function markFailed(supabase: any, logId: string | null, error: string, result?: any) {
+  if (!logId) return;
+  // exponential backoff: 2^attempt minutes, cap 60m
+  const { data: row } = await supabase.from("fitpro_delivery_log").select("attempt_count").eq("id", logId).maybeSingle();
+  const attempts = row?.attempt_count ?? 1;
+  const backoffMin = Math.min(60, Math.pow(2, attempts));
+  const nextRetry = new Date(Date.now() + backoffMin * 60_000).toISOString();
+  await supabase.from("fitpro_delivery_log").update({
+    status: "failed", last_error: error, result: result ?? null, next_retry_at: nextRetry,
+  }).eq("id", logId);
+}
