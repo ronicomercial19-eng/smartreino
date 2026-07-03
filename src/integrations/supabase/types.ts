@@ -3473,6 +3473,54 @@ export type Database = {
         }
         Relationships: []
       }
+      fitpro_delivery_log: {
+        Row: {
+          athlete_id: string
+          attempt_count: number
+          created_at: string
+          id: string
+          last_error: string | null
+          next_retry_at: string | null
+          payload: Json
+          plano_id: string | null
+          result: Json | null
+          source: string
+          status: string
+          updated_at: string
+          workout_date: string
+        }
+        Insert: {
+          athlete_id: string
+          attempt_count?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          payload?: Json
+          plano_id?: string | null
+          result?: Json | null
+          source?: string
+          status?: string
+          updated_at?: string
+          workout_date?: string
+        }
+        Update: {
+          athlete_id?: string
+          attempt_count?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          payload?: Json
+          plano_id?: string | null
+          result?: Json | null
+          source?: string
+          status?: string
+          updated_at?: string
+          workout_date?: string
+        }
+        Relationships: []
+      }
       fitpro_events: {
         Row: {
           connection_id: string | null
