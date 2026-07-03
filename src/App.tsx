@@ -38,6 +38,7 @@ import AdvancedStatistics from "./pages/AdvancedStatistics";
 import SmartTreinoBuilder from "./pages/SmartTreinoBuilder";
 import ProtocolCatalog from "./pages/ProtocolCatalog";
 import TreinoHoje from "./pages/TreinoHoje";
+import FitproDeliveryStatus from "./pages/FitproDeliveryStatus";
 import { SovereignBootstrap } from "./components/auth/SovereignBootstrap";
 
 const queryClient = new QueryClient();
@@ -152,6 +153,12 @@ function AppRoutes() {
           <ProtocolCatalog />
         </ProtectedRoute>
       } />
+      <Route path="/fitpro-delivery-status" element={
+        <ProtectedRoute allowedRoles={professorOrAdmin} userRole={role} defaultRoute={defaultRoute}>
+          <FitproDeliveryStatus />
+        </ProtectedRoute>
+      } />
+
 
       {/* Admin-only routes */}
       <Route path="/ai-config" element={

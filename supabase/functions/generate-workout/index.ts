@@ -50,6 +50,50 @@ serve(async (req) => {
       throw new Error('Aluno não encontrado');
     }
 
+    const finalObjetivo = objetivo || student.objetivo || 'hipertrofia';
+    const finalNivel = nivel || student.nivel_experiencia || 'iniciante';
+    const finalFreq = frequenciaSemanal || student.frequencia_semanal || 3;
+
+    // ── CATÁLOGO-FIRST ──
+    // Busca modelos compatíveis no workout_models antes de acionar IA.
+    let workoutPlan: any = null;
+    let planSource: 'catalog' | 'ai' = 'ai';
+
+    try {
+      const { data: catalogModels } = await supabase
+        .from('workout_models')
+        .select('*')
+        .ilike('general_objective', `%${finalObjetivo}%`)
+        .ilike('level', `%${finalNivel}%`)
+        .limit(20);
+
+      if (catalogModels && catalogModels.length >= finalFreq) {
+        const picked = catalogModels.slice(0, finalFreq);
+        workoutPlan = {
+          plan_name: `Plano Catálogo — ${finalObjetivo} / ${finalNivel}`,
+          duration_weeks: 4,
+          overview: `Montado a partir de ${picked.length} modelos do catálogo 9x9x9.`,
+          estrutura_semanal: picked.map((m: any, i: number) => ({
+            dia: `Treino ${String.fromCharCode(65 + i)}`,
+            tipo: m.name ?? m.general_objective ?? 'Sessão',
+            modelo_id: m.id,
+            observacao: m.method_description ?? '',
+            exercicios: Array.isArray(m.exercise_fields) ? m.exercise_fields : [],
+          })),
+          general_guidelines: {
+            warmup: 'Aquecimento 5-10 min.',
+            progression: 'Progredir carga quando RIR ≥ 2.',
+            warnings: 'Respeitar restrições médicas.',
+          },
+        };
+        planSource = 'catalog';
+        console.log(`✅ Plano montado do catálogo (${picked.length} modelos)`);
+      }
+    } catch (e) {
+      console.warn('Catalog lookup failed, falling back to AI:', e);
+    }
+
+
     // Build prompt with ALL student data
     const prompt = `Você é um personal trainer experiente. Crie um plano de treino COMPLETO e DETALHADO para o seguinte perfil:
 
@@ -128,50 +172,54 @@ FORMATO DE RESPOSTA JSON (OBRIGATÓRIO):
   }
 }`;
 
-    const aiApiKey = Deno.env.get('LOVABLE_API_KEY');
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${aiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: 'system',
-            content: 'Você é um personal trainer certificado. Responda SEMPRE em JSON válido, em português brasileiro. O campo "estrutura_semanal" DEVE ser um array de objetos com dia, tipo e exercicios. Cada exercício deve ter nome, series, repeticoes, descanso e observacao como strings.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        model: 'google/gemini-3-flash-preview',
-        temperature: 0.7,
-      }),
-    });
+    // Só chama a IA se o catálogo não montou um plano
+    if (!workoutPlan) {
+      const aiApiKey = Deno.env.get('LOVABLE_API_KEY');
+      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${aiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: 'Você é um personal trainer certificado. Responda SEMPRE em JSON válido, em português brasileiro. O campo "estrutura_semanal" DEVE ser um array de objetos com dia, tipo e exercicios. Cada exercício deve ter nome, series, repeticoes, descanso e observacao como strings.'
+            },
+            { role: 'user', content: prompt }
+          ],
+          model: 'google/gemini-2.5-flash',
+          temperature: 0.7,
+        }),
+      });
 
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errText);
-      throw new Error(`Erro na API de IA: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const content = aiData.choices[0].message.content;
-
-    let workoutPlan;
-    try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        workoutPlan = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
+      if (!aiResponse.ok) {
+        const errText = await aiResponse.text();
+        console.error('AI API error:', aiResponse.status, errText);
+        throw new Error(`Erro na API de IA: ${aiResponse.status}`);
       }
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError);
-      console.error('Raw content:', content);
-      throw new Error('Falha ao processar resposta da IA');
+
+      const aiData = await aiResponse.json();
+      const content = aiData.choices[0].message.content;
+
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          workoutPlan = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('No JSON found in response');
+        }
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', parseError);
+        console.error('Raw content:', content);
+        throw new Error('Falha ao processar resposta da IA');
+      }
+      planSource = 'ai';
     }
 
-    const freq = frequenciaSemanal || student.frequencia_semanal || 3;
+    const freq = finalFreq;
+
 
     // Save to planos_treino_aluno (the table StudentInterface reads from)
     const { data: savedPlan, error: saveError } = await supabase
@@ -214,13 +262,30 @@ FORMATO DE RESPOSTA JSON (OBRIGATÓRIO):
         .eq('id', studentId);
     }
 
+    // Auto-deliver to FitPro
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/fitpro-deliver-workout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseServiceKey}` },
+        body: JSON.stringify({
+          athlete_id: studentId,
+          plano_id: savedPlan.id,
+          workout_date: new Date().toISOString().slice(0, 10),
+          source: `generate_workout_${planSource}`,
+          treino: { plano_id: savedPlan.id, estrutura: workoutPlan.estrutura_semanal ?? [] },
+        }),
+      });
+    } catch (e) { console.warn('auto-deliver generate-workout warn:', e); }
+
     return new Response(JSON.stringify({
       success: true,
       plan: savedPlan,
-      message: 'Plano de treino gerado com sucesso!'
+      source: planSource,
+      message: `Plano gerado (${planSource === 'catalog' ? 'catálogo' : 'IA'}) com sucesso!`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+
 
   } catch (error) {
     console.error('Error in generate-workout function:', error);

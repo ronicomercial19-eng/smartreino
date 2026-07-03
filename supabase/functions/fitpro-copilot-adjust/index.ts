@@ -114,6 +114,25 @@ ${JSON.stringify((catalog ?? []).map((e: any) => ({ id: e.id, name: e.name, targ
     eventType: "workout_adjusted",
   });
 
+  // Auto-deliver + audit log via fitpro-deliver-workout
+  try {
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    await fetch(`${SUPABASE_URL}/functions/v1/fitpro-deliver-workout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE}` },
+      body: JSON.stringify({
+        athlete_id: aluno.id,
+        plano_id: exec.id,
+        workout_date: workoutDate,
+        source: "copilot_adjust",
+        treino: { exercises: updated },
+        contexto: { command, intent: parsed.intent ?? null },
+      }),
+    });
+  } catch (e) { console.warn("copilot auto-deliver warn:", e); }
+
+
   return jsonResponse({
     success: true,
     execution_id: exec.id,
