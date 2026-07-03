@@ -50,6 +50,50 @@ serve(async (req) => {
       throw new Error('Aluno não encontrado');
     }
 
+    const finalObjetivo = objetivo || student.objetivo || 'hipertrofia';
+    const finalNivel = nivel || student.nivel_experiencia || 'iniciante';
+    const finalFreq = frequenciaSemanal || student.frequencia_semanal || 3;
+
+    // ── CATÁLOGO-FIRST ──
+    // Busca modelos compatíveis no workout_models antes de acionar IA.
+    let workoutPlan: any = null;
+    let planSource: 'catalog' | 'ai' = 'ai';
+
+    try {
+      const { data: catalogModels } = await supabase
+        .from('workout_models')
+        .select('*')
+        .ilike('general_objective', `%${finalObjetivo}%`)
+        .ilike('level', `%${finalNivel}%`)
+        .limit(20);
+
+      if (catalogModels && catalogModels.length >= finalFreq) {
+        const picked = catalogModels.slice(0, finalFreq);
+        workoutPlan = {
+          plan_name: `Plano Catálogo — ${finalObjetivo} / ${finalNivel}`,
+          duration_weeks: 4,
+          overview: `Montado a partir de ${picked.length} modelos do catálogo 9x9x9.`,
+          estrutura_semanal: picked.map((m: any, i: number) => ({
+            dia: `Treino ${String.fromCharCode(65 + i)}`,
+            tipo: m.name ?? m.general_objective ?? 'Sessão',
+            modelo_id: m.id,
+            observacao: m.method_description ?? '',
+            exercicios: Array.isArray(m.exercise_fields) ? m.exercise_fields : [],
+          })),
+          general_guidelines: {
+            warmup: 'Aquecimento 5-10 min.',
+            progression: 'Progredir carga quando RIR ≥ 2.',
+            warnings: 'Respeitar restrições médicas.',
+          },
+        };
+        planSource = 'catalog';
+        console.log(`✅ Plano montado do catálogo (${picked.length} modelos)`);
+      }
+    } catch (e) {
+      console.warn('Catalog lookup failed, falling back to AI:', e);
+    }
+
+
     // Build prompt with ALL student data
     const prompt = `Você é um personal trainer experiente. Crie um plano de treino COMPLETO e DETALHADO para o seguinte perfil:
 
