@@ -1,90 +1,105 @@
-# FitPro Train — 4 fluxos sobre o eixo canônico `athlete_id`
+# Plano — Auditoria de Entrega FitPro + Correção Auth Geração
 
-Padroniza todos os fluxos do módulo Train do FitPro para ler/escrever exclusivamente pelas tabelas/views oficiais do `doc_smartreino.md`, eliminando dependência de `estudante_id`/`aluno_id` legados.
+## 1. Migração — Auditoria e Retry
 
-## Princípios (válidos para os 4 fluxos)
+Nova tabela `fitpro_delivery_log` (auditoria por `athlete_id`):
 
-- Resolução do aluno: sempre `athlete_id` via `vw_athlete_full_profile` (com fallback `resolve_aluno_by_external` quando vier `student_external_id` do FitPro).
-- Periodização ativa: `vw_athlete_periodizacao_ativa` (já existe) — única fonte de fase/semana/dia/categoria.
-- Execução: grava em `workout_executions` (sessão) + `workout_exercises` (itens) ligados por `daily_workout_id`.
-- Vídeos: prioriza `library_items` (type='videos') → fallback `exercises.video_url` / `exercises.gif_url`.
-- Nenhum endpoint lê `estudante_id`, `aluno_id`, `modelos_de_treino.estudante_id`, `estruturas_de_treinamento` direto.
+- `athlete_id`, `plano_id`, `workout_date`, `payload jsonb`, `result jsonb`
+- `status` (`pending` | `success` | `failed` | `retrying`)
+- `attempt_count int`, `last_error text`, `next_retry_at timestamptz`
+- `source text` (smart_treino_builder | periodization | quick_workout | copilot_adjust | manual_edit)
+- created_at/updated_at + trigger update
+- GRANTs (authenticated SELECT do próprio via join; service_role ALL)
+- RLS: professor lê logs dos próprios atletas; service_role escreve
 
-## Pré-requisitos de banco (migration única)
+## 2. Edge Function `fitpro-deliver-workout` (atualizar)
 
-1. Criar `fn_award_xp(p_athlete_id uuid, p_amount int, p_reason text)` — atualmente ausente. Insere em `activation_events` + atualiza `aluno_score_composite`/`vw_athlete_status`.
-2. Garantir coluna `workout_exercises.override_locked boolean default false` (já existe — apenas validar).
-3. Conceder/validar GRANTs em `vw_athlete_periodizacao_ativa` e `vw_athlete_full_profile` para `authenticated` e `service_role`.
-4. Função `aplicar_ajuste_treino_dia(p_athlete_id, p_workout_date, p_changes jsonb)` SECURITY DEFINER: aplica diff em `workout_exercises` do `daily_workout_id` do dia e seta `override_locked=true`. Garante isolamento ao dia.
+- Antes da chamada externa: `INSERT` em `fitpro_delivery_log` com status `pending`
+- Após resposta: `UPDATE` com `status=success/failed`, `result`, `last_error`
+- Manter idempotência por (athlete_id, workout_date)
 
-## Edge Functions (novas/atualizadas, todas com `x-partner-key`)
+## 3. Nova Edge Function `fitpro-delivery-retry`
 
-Reusam `_shared/partner.ts` (`requirePartnerKey`, `resolveAluno`). Todas retornam `{ success, ... }` e emitem evento via `emitFitproWorkoutEvent`.
+- Cron-like (invocável) que busca `status='failed' AND attempt_count < 5` com backoff exponencial (`next_retry_at <= now()`)
+- Re-invoca `fitpro-deliver-workout` e atualiza log
+- Também pode ser chamada manualmente por linha (via UI)
 
-### 1. `POST /fitpro-quick-workout` (atualizar)
-- GET → 3 perguntas: `objetivo_dia`, `tempo_min`, `equipamento`.
-- POST → busca `workout_models` filtrando por `level` (de `vw_athlete_full_profile`) + `general_objective` (objetivo_dia) + duração compatível com `tempo_min`; fallback ad-hoc via `exercises` filtrando por `equipment` e `target_muscles`.
-- Persiste `workout_executions { athlete_id, workout_date=today, phase_name='quick', status='in_progress' }` + `workout_exercises` (sem `override_locked`).
-- Ao concluir: cliente chama `/fitpro-complete-workout` → status=completed + `fn_award_xp(athlete_id, 50, 'quick_workout')`.
+## 4. Auto-entrega em novos fluxos
 
-### 2. `POST /fitpro-week-workouts` (novo)
-- Input: `student_external_id`.
-- Lê `planos_de_treino_gerados` (status='active') + `vw_athlete_periodizacao_ativa` → expande semana corrente em 7 dias (D1..D7).
-- Para cada dia retorna `{ date, day_number, phase_name, summary, is_today, status }`.
-- Apenas o dia atual vem com `executable=true` e `daily_workout_id`; demais são preview (resumo de blocos/exercícios sem `daily_workout_id`).
-- Chamada de execução do dia: reusa `/fitpro-plan-workout` existente (que já materializa o `workout_executions` do dia).
+Adicionar `autoDeliverToFitpro(...)` (fire-and-forget, já existe) em:
 
-### 3. `GET /fitpro-streaming-feed` (novo)
-- Input: `student_external_id`.
-- Lê `vw_athlete_periodizacao_ativa.current_phase_category` → consulta `library_items` `type='videos' AND category=current_phase_category` ordenado por `synced_at desc`.
-- Fallback: `category='geral'`.
-- Retorna `{ phase_category, items: [{id,name,thumbnail_url,player_url,category,subcategory}] }`.
+- **Smart Treino Builder** — após ajustes salvos (não só na geração inicial). Localizar handlers de save/ajuste em `SmartTreinoBuilder.tsx` e componentes step
+- **FitCopilot ajuste** — `supabase/functions/fitpro-copilot-adjust/index.ts`: no final do handler, chamar `fitpro-deliver-workout` internamente (fetch para própria URL) com `source='copilot_adjust'`
+- **Edição manual de exercício** — qualquer save em `workout_exercises` do dia via componentes de edição de treino (localizar `WorkoutLogger`, `TreinoDoDiaView`)
+- **Treino Rápido** — no fim do fluxo de quick workout (`generate-quick-workout` ou onde salva `phase_name='quick'`), disparar com `source='quick_workout'`
 
-### 4. `POST /fitpro-adjust-workout` (atualizar) + `POST /fitpro-copilot-adjust` (novo)
-- `fitpro-adjust-workout`: input estruturado `{ student_external_id, changes:[{exercise_id, action:'swap|load|sets|add|remove', payload}] }` → chama `aplicar_ajuste_treino_dia` → retorna treino do dia atualizado. Garante `override_locked=true`. **Nunca toca em planos_de_treino_gerados/weekly_structures.**
-- `fitpro-copilot-adjust`: input `{ student_external_id, command:"trocar agachamento por leg press" }` → Gemini (Lovable AI Gateway) interpreta em JSON `changes[]` no mesmo schema acima → delega para `aplicar_ajuste_treino_dia`. Resposta inclui `interpretation` (o que entendeu) + `treino_atualizado`. Se comando pedir mudança fora do dia atual, retorna `{ error:'planning_required', redirect:'/settings/planejamento' }`.
+## 5. UI — Painel de Status de Entrega FitPro
 
-### 5. `POST /fitpro-complete-workout` (novo, suporte ao 1 e 2)
-- Marca `workout_executions.status='completed'`, preenche `duration_minutes/total_volume_kg/avg_rpe`.
-- Dispara `fn_award_xp(athlete_id, 100, 'workout_completed')` (ou 50 quando `phase_name='quick'`).
-- Emite evento FitPro `workout_completed`.
+Nova página `/fitpro-delivery-status` (professor):
 
-## SDK & Documentação
+- Lista últimas entregas: aluno (nome via `vw_alunos_canonical`), data, status badge, tentativas, erro
+- Botão "Retry" por linha → invoca `fitpro-delivery-retry` com id específico
+- Filtro por status/aluno; auto-refresh 30s
+- Indicador global (badge no sidebar) contando entregas `failed`
 
-- `docs/fitpro-sdk/smartreino.ts`: novos métodos `getWeekWorkouts`, `getStreamingFeed`, `adjustWorkout(changes)`, `copilotAdjust(command)`, `completeWorkout`.
-- `docs/fitpro-sdk/README.md`: documentar contrato + exemplos cURL + regra "ajuste só afeta o dia".
-- Postman collection: adicionar as 4 chamadas novas.
+## 6. Correção 401 em `generate-workout` e `generate-full-plan`
 
-## Auditoria & remoção de leituras legadas
+Problema: logs mostram `session_not_found`/`refresh_token_not_found` — o cliente envia token expirado.
 
-Sweep dos edge functions e `src/services` para garantir que nenhum dos fluxos novos toque `estudante_id`/`aluno_id`/`alunos`/`students` diretamente; toda resolução passa por `vw_athlete_full_profile` (com `resolveAluno` mantendo retrocompat para mapping FitPro).
+Fixes:
 
-## Detalhes técnicos
+- **Client wrapper `invokeWithAuth(fnName, body)**` em `src/lib/api/client.ts`:
+  1. `supabase.auth.getSession()` → se sem token, `signOut()` e redirect `/login`
+  2. Se `expires_at` próximo, `refreshSession()` antes
+  3. Chama `fetch` com `Authorization: Bearer ${access_token}` explícito
+  4. Se resposta 401 → tenta `refreshSession()` uma vez, repete; se falhar, redireciona
+- Substituir chamadas atuais em `PeriodizationUpload.tsx`, `smartPeriodizationService.ts`, `workoutAIService.ts`, `SmartReinoQuiz.tsx`, `trainingService.ts` por `invokeWithAuth`
+- Remover chamadas a RPC `ensure_current_user_profile` sem sessão verificada (buscar todas ocorrências e envolver em guard)
 
-```text
-┌─ FitPro Train ───────────────────────────────────────┐
-│ Quick     → /fitpro-quick-workout (GET 3Q, POST gen) │
-│ Semana    → /fitpro-week-workouts → /fitpro-plan-workout (dia)
-│ Streaming → /fitpro-streaming-feed (library_items)   │
-│ Ajuste    → /fitpro-adjust-workout (structured)      │
-│ Copilot   → /fitpro-copilot-adjust (NLP→structured)  │
-│ Concluir  → /fitpro-complete-workout (XP + event)    │
-└──────────────────────────────────────────────────────┘
-                    ↓ (todos)
-   vw_athlete_full_profile · vw_athlete_periodizacao_ativa
-   planos_de_treino_gerados · workout_executions · workout_exercises
-   library_items · exercises · fn_award_xp
-```
+## 7. Catálogo antes de IA (fluxo "Gerar Base com IA")
 
-## Entregáveis
+Ajustar `generate-workout` e `generate-full-plan`:
 
-- 1 migration (fn_award_xp, aplicar_ajuste_treino_dia, GRANTs)
-- 4 novas edge functions + 2 atualizações
-- SDK TS + README + Postman atualizados
-- Sem mudanças em UI do app SmartReino (somente backend/SDK para o FitPro consumir)
+1. Buscar em `workout_models` + `exercises` matches por objetivo/nível/frequência do aluno
+2. Se houver template compatível → montar sessão do catálogo (sem IA)
+3. Se não → fallback para geração via LLM (fluxo atual)
+4. Marcar `source: 'catalog' | 'ai'` no plano salvo
 
-## Confirmar antes de implementar
+## 8. Entrega semanal FitPro Train
 
-- OK criar `fn_award_xp` simples (sem alterar tabelas de score existentes além de inserir em `activation_events`)?
-- OK manter `phase_name='quick'` em `workout_executions` quando não há plano ativo?
-- O FitPro envia `student_external_id` (mapping) ou já tem `athlete_id` real? (afeta apenas o resolver — ambos suportados.)
+Em `fitpro-week-workouts` (ou novo endpoint `fitpro-deliver-week`):
+
+- Ao professor clicar "Gerar todos treinos da semana" → itera 7 dias, chama `fitpro-deliver-workout` por dia, agrega resultado
+- UI: botão em Gestão de Alunos / detalhes do aluno  
+  
+9.  email do admin principal/professor princiopal :    
+-  email: [roni.comercial19@gmail.com](mailto:roni.comercial19@gmail.com)  
+- senha : 54967554
+
+---
+
+## Seção Técnica
+
+**Arquivos novos:**
+
+- `supabase/migrations/<ts>_fitpro_delivery_log.sql`
+- `supabase/functions/fitpro-delivery-retry/index.ts`
+- `supabase/functions/fitpro-deliver-week/index.ts`
+- `src/pages/FitproDeliveryStatus.tsx`
+- `src/lib/api/invokeWithAuth.ts`
+
+**Arquivos alterados:**
+
+- `supabase/functions/fitpro-deliver-workout/index.ts` — logging + retry state
+- `supabase/functions/fitpro-copilot-adjust/index.ts` — chamar deliver ao final
+- `supabase/functions/generate-workout/index.ts` — catálogo-first + logging
+- `supabase/functions/generate-full-plan/index.ts` — catálogo-first
+- `supabase/functions/generate-quick-workout/index.ts` — auto-deliver
+- `src/pages/PeriodizationUpload.tsx`, `src/services/smartPeriodizationService.ts`, `src/services/workoutAIService.ts`, `src/services/domains/training/trainingService.ts`, `src/components/student/SmartReinoQuiz.tsx` — usar `invokeWithAuth`
+- `src/pages/SmartTreinoBuilder.tsx` e componentes step — hook em save de ajustes
+- `src/components/AppSidebar.tsx` — badge status + link
+- `src/App.tsx` — nova rota
+
+**Dependências:** nenhuma nova.
+
+Confirma que posso avançar?  implementar complemente e me entregar funcional prinncipalmente para geraçao de treinos e envios dos treinos . as etapas criticas de funcionamento sao as : 1 (tabela) → 2 (logging) → 6 (auth) → 7 (catálogo) → 4 (auto-entrega) → 8 (semana) → 3 (retry) → 5 (painel) 
