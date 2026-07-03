@@ -172,50 +172,54 @@ FORMATO DE RESPOSTA JSON (OBRIGATÓRIO):
   }
 }`;
 
-    const aiApiKey = Deno.env.get('LOVABLE_API_KEY');
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${aiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: 'system',
-            content: 'Você é um personal trainer certificado. Responda SEMPRE em JSON válido, em português brasileiro. O campo "estrutura_semanal" DEVE ser um array de objetos com dia, tipo e exercicios. Cada exercício deve ter nome, series, repeticoes, descanso e observacao como strings.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        model: 'google/gemini-3-flash-preview',
-        temperature: 0.7,
-      }),
-    });
+    // Só chama a IA se o catálogo não montou um plano
+    if (!workoutPlan) {
+      const aiApiKey = Deno.env.get('LOVABLE_API_KEY');
+      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${aiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: 'Você é um personal trainer certificado. Responda SEMPRE em JSON válido, em português brasileiro. O campo "estrutura_semanal" DEVE ser um array de objetos com dia, tipo e exercicios. Cada exercício deve ter nome, series, repeticoes, descanso e observacao como strings.'
+            },
+            { role: 'user', content: prompt }
+          ],
+          model: 'google/gemini-2.5-flash',
+          temperature: 0.7,
+        }),
+      });
 
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error('AI API error:', aiResponse.status, errText);
-      throw new Error(`Erro na API de IA: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const content = aiData.choices[0].message.content;
-
-    let workoutPlan;
-    try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        workoutPlan = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
+      if (!aiResponse.ok) {
+        const errText = await aiResponse.text();
+        console.error('AI API error:', aiResponse.status, errText);
+        throw new Error(`Erro na API de IA: ${aiResponse.status}`);
       }
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError);
-      console.error('Raw content:', content);
-      throw new Error('Falha ao processar resposta da IA');
+
+      const aiData = await aiResponse.json();
+      const content = aiData.choices[0].message.content;
+
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          workoutPlan = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('No JSON found in response');
+        }
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', parseError);
+        console.error('Raw content:', content);
+        throw new Error('Falha ao processar resposta da IA');
+      }
+      planSource = 'ai';
     }
 
-    const freq = frequenciaSemanal || student.frequencia_semanal || 3;
+    const freq = finalFreq;
+
 
     // Save to planos_treino_aluno (the table StudentInterface reads from)
     const { data: savedPlan, error: saveError } = await supabase
