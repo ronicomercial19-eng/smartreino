@@ -38,6 +38,7 @@ import AdvancedStatistics from "./pages/AdvancedStatistics";
 import SmartTreinoBuilder from "./pages/SmartTreinoBuilder";
 import ProtocolCatalog from "./pages/ProtocolCatalog";
 import TreinoHoje from "./pages/TreinoHoje";
+import FitproDeliveryStatus from "./pages/FitproDeliveryStatus";
 import { SovereignBootstrap } from "./components/auth/SovereignBootstrap";
 
 const queryClient = new QueryClient();
