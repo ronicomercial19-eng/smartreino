@@ -78,8 +78,12 @@ Deno.serve(async (req) => {
               Authorization: `Bearer ${SERVICE}`,
             },
             body: JSON.stringify({
+              athlete_id: result.contexto?.aluno_id ?? result.contexto?.athlete_id,
               aluno_id: result.contexto?.aluno_id,
+              plano_id: result.historico_id,
               historico_id: result.historico_id,
+              workout_date: data ?? new Date().toISOString().slice(0, 10),
+              source: "quick_workout",
               contexto: result.contexto,
               treino: result.treino,
             }),
