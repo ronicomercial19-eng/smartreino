@@ -325,6 +325,22 @@ IMPORTANTE: Gere TODAS as semanas completas com TODOS os dias e exercícios. Nã
       .neq('id', savedPlan.id)
       .eq('status', 'ativo');
 
+    // Auto-deliver to FitPro (fire-and-forget)
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/fitpro-deliver-workout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseServiceKey}` },
+        body: JSON.stringify({
+          athlete_id: studentId,
+          plano_id: savedPlan.id,
+          workout_date: new Date().toISOString().slice(0, 10),
+          source: 'generate_full_plan',
+          treino: { plano_id: savedPlan.id, macrociclo: fullPlan.macrociclo?.nome },
+        }),
+      });
+    } catch (e) { console.warn('auto-deliver full-plan warn:', e); }
+
+
     return new Response(JSON.stringify({
       success: true,
       plan: savedPlan,
