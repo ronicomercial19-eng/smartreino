@@ -153,6 +153,12 @@ function AppRoutes() {
           <ProtocolCatalog />
         </ProtectedRoute>
       } />
+      <Route path="/fitpro-delivery-status" element={
+        <ProtectedRoute allowedRoles={professorOrAdmin} userRole={role} defaultRoute={defaultRoute}>
+          <FitproDeliveryStatus />
+        </ProtectedRoute>
+      } />
+
 
       {/* Admin-only routes */}
       <Route path="/ai-config" element={
