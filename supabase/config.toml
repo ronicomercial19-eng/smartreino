@@ -50,3 +50,13 @@ verify_jwt = false
 
 [functions.fitpro-copilot-adjust]
 verify_jwt = false
+
+[functions.fitpro-deliver-workout]
+verify_jwt = false
+
+[functions.fitpro-delivery-retry]
+verify_jwt = false
+
+[functions.fitpro-deliver-week]
+verify_jwt = false
+
