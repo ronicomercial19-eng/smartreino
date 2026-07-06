@@ -152,15 +152,35 @@ export default function SmartTreinoBuilder() {
   const handleGenerate = async (): Promise<GeneratedStructure> => {
     if (!savedRulesId) throw new Error("Salve as regras primeiro");
     await saveCurrentStep();
-    const result = await generateSmartTreino(selectedAlunoId, savedRulesId);
+
+    // Mapeia objetivo do macro → categoria aceita pela RPC fn_gerar_treino_semana
+    const obj = (rules.macro_objetivo ?? "").toLowerCase();
+    const categoria =
+      obj.includes("força") || obj.includes("forca") ? "Força"
+      : obj.includes("condicion") ? "Condicionamento"
+      : obj.includes("perda") || obj.includes("emagrec") ? "Perda de Peso"
+      : obj.includes("mobil") ? "Mobilidade"
+      : "Hipertrofia";
+    const diasSemana = rules.weekly_frequency ?? 4;
+
+    const result = await generateSmartTreino(selectedAlunoId, savedRulesId, {
+      categoria,
+      diasSemana,
+    });
     setGeneratedResult(result);
-    // Auto-entrega ao FitPro (fire-and-forget)
-    const { autoDeliverToFitpro } = await import("@/services/autoDeliverFitpro");
-    autoDeliverToFitpro({
-      athleteId: selectedAlunoId,
-      planoId: (result as any)?.id ?? savedRulesId,
-      treino: result,
-      contexto: { source: "smart-treino-builder" },
+
+    // Auto-entrega da semana inteira ao FitPro (fire-and-forget)
+    try {
+      (supabase as any).functions.invoke("fitpro-deliver-week", {
+        body: { athlete_id: selectedAlunoId, plano_id: savedRulesId },
+      });
+    } catch (e) {
+      console.warn("[SmartTreinoBuilder] fitpro-deliver-week falhou:", e);
+    }
+
+    toast({
+      title: "Semana de treino gerada",
+      description: `${diasSemana} dias de ${categoria} salvos e enviados ao FitPro.`,
     });
     return result;
   };
