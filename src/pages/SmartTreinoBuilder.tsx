@@ -15,6 +15,8 @@ import {
   getMuscleVolumes,
   saveMuscleVolumes,
   generateSmartTreino,
+  verifyWeekWorkouts,
+  type WeekWorkoutRow,
   MUSCLE_GROUPS,
 } from "@/services/smartTreinoService";
 import { AppSidebar } from "@/components/AppSidebar";
