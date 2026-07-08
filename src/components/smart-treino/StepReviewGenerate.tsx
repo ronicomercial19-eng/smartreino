@@ -20,6 +20,9 @@ interface Props {
   athleteName: string;
   onGenerate: () => Promise<GeneratedStructure>;
   generatedResult: GeneratedStructure | null;
+  previewCategoria?: string;
+  previewDias?: number;
+  weekRows?: { workout_date: string; workout_type: string | null; exercise_count: number }[] | null;
 }
 
 function renderBlocks(session: TrainingSession) {
