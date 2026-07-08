@@ -139,6 +139,16 @@ export default function ProtocolCatalog() {
       <div className="space-y-4">
         {/* Filters */}
         <div className="flex flex-wrap gap-3 items-center">
+          <Select value={selectedAthleteId} onValueChange={setSelectedAthleteId}>
+            <SelectTrigger className="w-[240px]">
+              <SelectValue placeholder="Selecionar aluno..." />
+            </SelectTrigger>
+            <SelectContent>
+              {athletes.map((a) => (
+                <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar protocolo..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
