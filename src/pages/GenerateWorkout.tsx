@@ -41,6 +41,8 @@ export default function GenerateWorkout() {
   const [periodizationSource, setPeriodizationSource] = useState<PeriodizationSource>('none');
   const [uploadedPeriodization, setUploadedPeriodization] = useState<string>('');
   const [uploadFileName, setUploadFileName] = useState('');
+  const [advancedAI, setAdvancedAI] = useState(false);
+  const [weekRows, setWeekRows] = useState<{ workout_date: string; workout_type: string | null; exercise_count: number }[] | null>(null);
 
   // Load saved periodizations from SmartPeriodizer
   useEffect(() => {
