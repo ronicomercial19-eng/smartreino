@@ -121,6 +121,38 @@ export default function FitproDeliveryStatus() {
         <StatCard label="Pendentes" value={logs.filter(l => ["pending","retrying"].includes(l.status)).length} icon={Clock} tone="text-blue-500" />
       </div>
 
+      {weekDeliveries.length > 0 && (
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="w-5 h-5 text-primary" />
+            <h2 className="font-display font-semibold">Últimas entregas semanais</h2>
+          </div>
+          <div className="grid gap-2">
+            {weekDeliveries.map(w => {
+              const key = `week:${w.athleteId}:${w.weekStart}`;
+              const busy = retrying === key;
+              const pct = w.total ? Math.round((w.success / w.total) * 100) : 0;
+              return (
+                <div key={key} className="flex items-center justify-between border border-border/40 rounded p-2 text-sm">
+                  <div className="flex-1">
+                    <div className="font-mono text-xs text-muted-foreground">
+                      Semana {w.weekStart} · athlete {w.athleteId.slice(0, 8)}…
+                    </div>
+                    <div className="text-xs">
+                      {w.success}/{w.total} ok · {w.failed} falhas · {pct}%
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" disabled={busy} onClick={() => retryWeek(w.athleteId, w.weekStart)}>
+                    {busy ? "..." : "Reprocessar semana"}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
