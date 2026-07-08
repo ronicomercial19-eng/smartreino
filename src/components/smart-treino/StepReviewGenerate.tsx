@@ -87,7 +87,7 @@ function renderBlocks(session: TrainingSession) {
   );
 }
 
-export default function StepReviewGenerate({ profile, rules, muscles, athleteName, onGenerate, generatedResult }: Props) {
+export default function StepReviewGenerate({ profile, rules, muscles, athleteName, onGenerate, generatedResult, previewCategoria, previewDias, weekRows }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
