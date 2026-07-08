@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { WorkoutAIService } from '@/services/workoutAIService';
-import { Sparkles, ArrowLeft, Loader2, FileText, Upload, Database } from 'lucide-react';
+import { Sparkles, ArrowLeft, Loader2, FileText, Upload, Database, CheckCircle } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import type { Aluno } from '@/services/alunosService';
 
