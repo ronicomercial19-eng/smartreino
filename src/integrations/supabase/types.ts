@@ -3449,6 +3449,75 @@ export type Database = {
         }
         Relationships: []
       }
+      exercises_backup_pre_goal: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          difficulty_level: string | null
+          equipment: string | null
+          equipment_needed: string | null
+          external_video_id: string | null
+          gif_url: string | null
+          goal: string | null
+          id: string | null
+          image_url: string | null
+          instructions: string | null
+          is_optional: boolean | null
+          muscle_groups: Json | null
+          name: string | null
+          phase: string | null
+          target_muscles: string[] | null
+          updated_at: string | null
+          video_cached_at: string | null
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          difficulty_level?: string | null
+          equipment?: string | null
+          equipment_needed?: string | null
+          external_video_id?: string | null
+          gif_url?: string | null
+          goal?: string | null
+          id?: string | null
+          image_url?: string | null
+          instructions?: string | null
+          is_optional?: boolean | null
+          muscle_groups?: Json | null
+          name?: string | null
+          phase?: string | null
+          target_muscles?: string[] | null
+          updated_at?: string | null
+          video_cached_at?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          difficulty_level?: string | null
+          equipment?: string | null
+          equipment_needed?: string | null
+          external_video_id?: string | null
+          gif_url?: string | null
+          goal?: string | null
+          id?: string | null
+          image_url?: string | null
+          instructions?: string | null
+          is_optional?: boolean | null
+          muscle_groups?: Json | null
+          name?: string | null
+          phase?: string | null
+          target_muscles?: string[] | null
+          updated_at?: string | null
+          video_cached_at?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       fitpro_connections: {
         Row: {
           api_key_hash: string
@@ -3765,6 +3834,82 @@ export type Database = {
           volume_level?: string | null
         }
         Relationships: []
+      }
+      fitpro_smartperiodizer_waves: {
+        Row: {
+          ai_adjustment_note: string | null
+          completed_at: string | null
+          created_at: string
+          duration_weeks: number
+          fitpro_student_id: string
+          focus: string | null
+          id: string
+          progress_pct: number
+          smartperiodizer_periodization_id: string
+          started_at: string | null
+          status: string
+          volume_change_pct: number | null
+          wave_label: string
+          wave_name: string
+          wave_order: number
+        }
+        Insert: {
+          ai_adjustment_note?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_weeks?: number
+          fitpro_student_id: string
+          focus?: string | null
+          id?: string
+          progress_pct?: number
+          smartperiodizer_periodization_id: string
+          started_at?: string | null
+          status?: string
+          volume_change_pct?: number | null
+          wave_label: string
+          wave_name: string
+          wave_order: number
+        }
+        Update: {
+          ai_adjustment_note?: string | null
+          completed_at?: string | null
+          created_at?: string
+          duration_weeks?: number
+          fitpro_student_id?: string
+          focus?: string | null
+          id?: string
+          progress_pct?: number
+          smartperiodizer_periodization_id?: string
+          started_at?: string | null
+          status?: string
+          volume_change_pct?: number | null
+          wave_label?: string
+          wave_name?: string
+          wave_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fitpro_smartperiodizer_waves_smartperiodizer_periodization_fkey"
+            columns: ["smartperiodizer_periodization_id"]
+            isOneToOne: false
+            referencedRelation: "fitpro_smartperiodizer_periodizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fitpro_smartperiodizer_waves_smartperiodizer_periodization_fkey"
+            columns: ["smartperiodizer_periodization_id"]
+            isOneToOne: false
+            referencedRelation: "vw_periodizacao_ativa_aluno"
+            referencedColumns: ["fitpro_periodization_id"]
+          },
+          {
+            foreignKeyName: "fitpro_smartperiodizer_waves_smartperiodizer_periodization_fkey"
+            columns: ["smartperiodizer_periodization_id"]
+            isOneToOne: false
+            referencedRelation: "vw_smarttreino_aluno_ativo"
+            referencedColumns: ["periodization_id"]
+          },
+        ]
       }
       fitpro_student_map: {
         Row: {
@@ -11769,7 +11914,7 @@ export type Database = {
             foreignKeyName: "workout_exercises_exercise_id_fkey"
             columns: ["exercise_id"]
             isOneToOne: false
-            referencedRelation: "exercise_library"
+            referencedRelation: "exercises"
             referencedColumns: ["id"]
           },
         ]
@@ -14316,8 +14461,27 @@ export type Database = {
         Args: { p_amount: number; p_athlete_id: string; p_reason?: string }
         Returns: Json
       }
+      fn_advance_wave: {
+        Args: { p_periodization_id: string }
+        Returns: undefined
+      }
       fn_ajustar_treino_dia: {
         Args: { p_athlete_id: string; p_changes: Json; p_data: string }
+        Returns: Json
+      }
+      fn_aplicar_protocolo_9x9x9: {
+        Args: { p_athlete_id: string; p_data?: string; p_protocol_id: string }
+        Returns: Json
+      }
+      fn_atualizar_perfil_completo: {
+        Args: {
+          p_age?: number
+          p_altura_cm?: number
+          p_athlete_id: string
+          p_avatar_url?: string
+          p_name?: string
+          p_peso_kg?: number
+        }
         Returns: Json
       }
       fn_award_xp:
@@ -14356,6 +14520,10 @@ export type Database = {
         Returns: Json
       }
       fn_forcar_catalogar_planilhas_resiliente: { Args: never; Returns: Json }
+      fn_generate_waves_from_periodization: {
+        Args: { p_periodization_id: string }
+        Returns: undefined
+      }
       fn_gerar_treino_semana: {
         Args: {
           p_athlete_id: string
@@ -14370,6 +14538,11 @@ export type Database = {
         Returns: Json
       }
       fn_get_planejamento_retencao: {
+        Args: { p_athlete_id: string }
+        Returns: Json
+      }
+      fn_get_planning_screen: { Args: { p_student_id: string }; Returns: Json }
+      fn_get_protocolo_arquivos: {
         Args: { p_athlete_id: string }
         Returns: Json
       }
@@ -14399,9 +14572,9 @@ export type Database = {
       fn_treino_rapido: {
         Args: {
           p_athlete_id: string
-          p_equipamento?: string
+          p_local?: string
           p_objetivo?: string
-          p_tempo_min?: number
+          p_tempo_min: number
         }
         Returns: Json
       }
@@ -14576,10 +14749,9 @@ export type Database = {
           success: boolean
         }[]
       }
-      sync_fitpro_planejamento: {
-        Args: { p_athlete_id: string }
-        Returns: string
-      }
+      sync_fitpro_planejamento:
+        | { Args: { p_athlete_id: string }; Returns: string }
+        | { Args: { p_athlete_id: string; p_origin?: string }; Returns: string }
       tem_periodizacao_ativa: { Args: { p_aluno_id: string }; Returns: boolean }
       validate_partner_key: {
         Args: { p_key: string }
