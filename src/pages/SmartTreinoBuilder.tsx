@@ -258,16 +258,28 @@ export default function SmartTreinoBuilder() {
                 {step === 2 && <StepMuscleVolume muscles={muscles} onChange={m => setMuscles(m as MuscleEntry[])} />}
                 {step === 3 && <StepParameters rules={rules} onChange={setRules} />}
                 {step === 4 && <StepDistribution muscles={muscles} onChange={setMuscles} weeklyFrequency={rules.weekly_frequency ?? 4} />}
-                {step === 5 && (
-                  <StepReviewGenerate
-                    profile={profile}
-                    rules={rules}
-                    muscles={muscles}
-                    athleteName={athleteName}
-                    onGenerate={handleGenerate}
-                    generatedResult={generatedResult}
-                  />
-                )}
+                {step === 5 && (() => {
+                  const obj = (rules.macro_objetivo ?? "").toLowerCase();
+                  const previewCategoria =
+                    obj.includes("força") || obj.includes("forca") ? "Força"
+                    : obj.includes("condicion") ? "Condicionamento"
+                    : obj.includes("perda") || obj.includes("emagrec") ? "Perda de Peso"
+                    : obj.includes("mobil") ? "Mobilidade"
+                    : "Hipertrofia";
+                  return (
+                    <StepReviewGenerate
+                      profile={profile}
+                      rules={rules}
+                      muscles={muscles}
+                      athleteName={athleteName}
+                      onGenerate={handleGenerate}
+                      generatedResult={generatedResult}
+                      previewCategoria={previewCategoria}
+                      previewDias={rules.weekly_frequency ?? 4}
+                      weekRows={weekRows}
+                    />
+                  );
+                })()}
 
                 {/* Navigation */}
                 <div className="flex justify-between pt-4">
