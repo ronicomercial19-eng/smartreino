@@ -202,6 +202,7 @@ export default function ProtocolCatalog() {
                                   <div className="grid gap-2 ml-4">
                                     {filteredModels.map((m: Protocol) => {
                                       const b9 = typeof m.block_9_template === 'string' ? JSON.parse(m.block_9_template) : m.block_9_template;
+                                      const isApplying = applyingId === m.id;
                                       return (
                                         <div key={m.id} className="flex items-center justify-between bg-background/50 rounded-md p-2 text-sm border border-border/20">
                                           <div>
@@ -211,6 +212,27 @@ export default function ProtocolCatalog() {
                                             {b9?.sets && <Badge variant="outline" className="text-xs">{b9.sets}×{b9.reps}</Badge>}
                                             {b9?.cadence && <span>⏱ {b9.cadence}</span>}
                                             <span>RPE {m.rpe_range}</span>
+                                            <TooltipProvider>
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <span>
+                                                    <Button
+                                                      size="sm"
+                                                      variant="outline"
+                                                      className="h-7 gap-1"
+                                                      disabled={!selectedAthleteId || isApplying}
+                                                      onClick={() => applyProtocol(m.id)}
+                                                    >
+                                                      {isApplying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                                                      Gerar
+                                                    </Button>
+                                                  </span>
+                                                </TooltipTrigger>
+                                                {!selectedAthleteId && (
+                                                  <TooltipContent>Selecione um aluno antes</TooltipContent>
+                                                )}
+                                              </Tooltip>
+                                            </TooltipProvider>
                                           </div>
                                         </div>
                                       );
