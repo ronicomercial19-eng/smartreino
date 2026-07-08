@@ -172,6 +172,21 @@ export default function SmartTreinoBuilder() {
     });
     setGeneratedResult(result);
 
+    // Verificação D1–D7: confirma gravação em daily_workouts
+    try {
+      const rows = await verifyWeekWorkouts(selectedAlunoId);
+      setWeekRows(rows);
+      if (rows.length === 0) {
+        toast({
+          title: "Nenhum treino gravado",
+          description: `RPC retornou ${JSON.stringify(result)} mas daily_workouts está vazio.`,
+          variant: "destructive",
+        });
+      }
+    } catch (e: any) {
+      console.warn("[SmartTreinoBuilder] verifyWeekWorkouts falhou:", e);
+    }
+
     // Auto-entrega da semana inteira ao FitPro (fire-and-forget)
     try {
       (supabase as any).functions.invoke("fitpro-deliver-week", {
