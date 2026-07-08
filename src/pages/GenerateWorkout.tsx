@@ -411,6 +411,17 @@ export default function GenerateWorkout() {
               </div>
             </div>
 
+            {/* Modo avançado (IA) */}
+            <div className="flex items-center justify-between rounded-lg border border-border/50 p-3">
+              <div className="space-y-0.5">
+                <Label className="text-sm">Modo Avançado (IA)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Padrão: gera a semana pelo catálogo (grava direto em daily_workouts). Ative para usar IA.
+                </p>
+              </div>
+              <Switch checked={advancedAI} onCheckedChange={setAdvancedAI} />
+            </div>
+
             {/* Botão de Gerar */}
             <Button
               onClick={handleGenerate}
@@ -426,10 +437,30 @@ export default function GenerateWorkout() {
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Gerar Treino com IA
+                  {advancedAI ? 'Gerar Treino com IA' : 'Gerar Semana (Catálogo)'}
                 </>
               )}
             </Button>
+
+            {/* D1–D7 verification */}
+            {weekRows && weekRows.length > 0 && (
+              <div className="rounded-lg border border-border/50 p-3 space-y-2">
+                <div className="flex items-center gap-2 text-green-500 text-sm font-medium">
+                  <CheckCircle className="h-4 w-4" />
+                  Semana gravada em daily_workouts ({weekRows.length} dias)
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                  {weekRows.map((r, i) => (
+                    <div key={r.workout_date} className="rounded border border-border/40 p-2 text-xs bg-muted/30">
+                      <div className="font-mono text-muted-foreground">D{i + 1}</div>
+                      <div className="font-medium">{r.workout_date}</div>
+                      <div className="text-muted-foreground">{r.workout_type ?? '—'}</div>
+                      <div className="text-muted-foreground">{r.exercise_count} ex.</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
