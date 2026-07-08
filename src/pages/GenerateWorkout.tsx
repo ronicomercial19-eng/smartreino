@@ -115,6 +115,36 @@ export default function GenerateWorkout() {
     return '';
   };
 
+  const mapObjetivoToCategoria = (obj: string): string => {
+    const o = (obj || '').toLowerCase();
+    if (o.includes('força') || o.includes('forca')) return 'Força';
+    if (o.includes('condicion')) return 'Condicionamento';
+    if (o.includes('emagrec') || o.includes('perda')) return 'Perda de Peso';
+    if (o.includes('mobil') || o.includes('reab')) return 'Mobilidade';
+    return 'Hipertrofia';
+  };
+
+  const verifyWeek = async (athleteId: string) => {
+    const today = new Date();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const { data } = await (supabase as any)
+      .from('daily_workouts')
+      .select('id, workout_date, workout_type, workout_exercises(id)')
+      .eq('athlete_id', athleteId)
+      .gte('workout_date', iso(monday))
+      .lte('workout_date', iso(sunday))
+      .order('workout_date');
+    return (data ?? []).map((r: any) => ({
+      workout_date: r.workout_date,
+      workout_type: r.workout_type,
+      exercise_count: Array.isArray(r.workout_exercises) ? r.workout_exercises.length : 0,
+    }));
+  };
+
   const handleGenerate = async () => {
     if (!objetivo || !nivel || !frequencia) {
       toast({
@@ -126,24 +156,58 @@ export default function GenerateWorkout() {
     }
 
     setLoading(true);
+    setWeekRows(null);
     try {
-      const periodizationContext = buildPeriodizationContext();
+      if (advancedAI) {
+        // Modo avançado — usa IA (edge function paga)
+        const periodizationContext = buildPeriodizationContext();
+        const plan = await WorkoutAIService.generateWorkout({
+          studentId: aluno.id,
+          objetivo,
+          nivel,
+          frequenciaSemanal: parseInt(frequencia),
+          restricoes: (restricoes || '') + periodizationContext,
+          ambiente
+        });
+        toast({ title: 'Treino gerado com IA 🎉', description: 'Plano criado.' });
+        navigate(`/workout-plan/${plan.id}`);
+        return;
+      }
 
-      const plan = await WorkoutAIService.generateWorkout({
-        studentId: aluno.id,
-        objetivo,
-        nivel,
-        frequenciaSemanal: parseInt(frequencia),
-        restricoes: (restricoes || '') + periodizationContext,
-        ambiente
+      // Modo padrão — Catálogo via RPC fn_gerar_treino_semana
+      const categoria = mapObjetivoToCategoria(objetivo);
+      const diasSemana = parseInt(frequencia);
+      const { data, error } = await (supabase as any).rpc('fn_gerar_treino_semana', {
+        p_athlete_id: aluno.id,
+        p_categoria: categoria,
+        p_dias_semana: diasSemana,
       });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      console.log('[GenerateWorkout] RPC payload:', data);
+
+      const rows = await verifyWeek(aluno.id);
+      setWeekRows(rows);
+      if (rows.length === 0) {
+        toast({
+          variant: 'destructive',
+          title: 'Semana não gravada',
+          description: `RPC retornou ${JSON.stringify(data)} mas daily_workouts está vazio.`,
+        });
+        return;
+      }
+
+      // Auto-entrega ao FitPro (fire-and-forget)
+      try {
+        (supabase as any).functions.invoke('fitpro-deliver-week', {
+          body: { athlete_id: aluno.id },
+        });
+      } catch {}
 
       toast({
-        title: 'Treino gerado com sucesso! 🎉',
-        description: 'O plano foi criado e está disponível para visualização'
+        title: 'Semana de treino gerada ✅',
+        description: `${rows.length} dias de ${categoria} salvos em daily_workouts.`,
       });
-
-      navigate(`/workout-plan/${plan.id}`);
     } catch (error) {
       console.error('Error generating workout:', error);
       toast({
