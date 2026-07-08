@@ -61,7 +61,38 @@ export default function FitproDeliveryStatus() {
     load();
   };
 
+  const retryWeek = async (athleteId: string, weekStart: string) => {
+    setRetrying(`week:${athleteId}:${weekStart}`);
+    const { data, error } = await supabase.functions.invoke("fitpro-deliver-week", {
+      body: { athlete_id: athleteId, week_start: weekStart },
+    });
+    setRetrying(null);
+    if (error) return toast.error(error.message);
+    toast.success(`Semana reprocessada: ${data?.delivered ?? 0}/${data?.total ?? 7}`);
+    load();
+  };
+
   const failedCount = logs.filter(l => l.status === "failed").length;
+
+  // Agrupa entregas semanais por (athlete_id + Monday do workout_date)
+  const weekDeliveries = (() => {
+    const weekLogs = logs.filter(l => l.source === "week_deliver");
+    const buckets = new Map<string, { athleteId: string; weekStart: string; total: number; success: number; failed: number; last: string }>();
+    for (const l of weekLogs) {
+      const d = new Date(l.workout_date + "T00:00:00");
+      const monday = new Date(d);
+      monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      const weekStart = monday.toISOString().slice(0, 10);
+      const key = `${l.athlete_id}|${weekStart}`;
+      const b = buckets.get(key) ?? { athleteId: l.athlete_id, weekStart, total: 0, success: 0, failed: 0, last: l.updated_at };
+      b.total += 1;
+      if (l.status === "success") b.success += 1;
+      if (l.status === "failed") b.failed += 1;
+      if (l.updated_at > b.last) b.last = l.updated_at;
+      buckets.set(key, b);
+    }
+    return Array.from(buckets.values()).sort((a, b) => (a.last < b.last ? 1 : -1)).slice(0, 5);
+  })();
 
   return (
     <div className="container mx-auto p-6 space-y-6">
