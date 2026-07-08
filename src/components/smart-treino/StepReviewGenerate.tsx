@@ -139,7 +139,6 @@ export default function StepReviewGenerate({ profile, rules, muscles, athleteNam
               ))}
             </div>
           </div>
-        </CardContent>
           {(previewCategoria || previewDias) && (
             <div className="pt-2 flex flex-wrap items-center gap-2 border-t border-border/40">
               <span className="text-muted-foreground text-xs">Semana a gerar:</span>
