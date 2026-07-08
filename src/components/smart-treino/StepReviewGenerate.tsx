@@ -140,7 +140,39 @@ export default function StepReviewGenerate({ profile, rules, muscles, athleteNam
             </div>
           </div>
         </CardContent>
+          {(previewCategoria || previewDias) && (
+            <div className="pt-2 flex flex-wrap items-center gap-2 border-t border-border/40">
+              <span className="text-muted-foreground text-xs">Semana a gerar:</span>
+              {previewCategoria && <Badge variant="secondary">Categoria: {previewCategoria}</Badge>}
+              {previewDias && <Badge variant="secondary">{previewDias} dias/semana</Badge>}
+            </div>
+          )}
+        </CardContent>
       </Card>
+
+      {/* D1–D7 verification panel */}
+      {weekRows && weekRows.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              Semana gravada em daily_workouts ({weekRows.length} dias)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+              {weekRows.map((r, i) => (
+                <div key={r.workout_date} className="rounded border p-2 text-xs bg-muted/30">
+                  <div className="font-mono text-muted-foreground">D{i + 1}</div>
+                  <div className="font-medium">{r.workout_date}</div>
+                  <div className="text-muted-foreground">{r.workout_type ?? "—"}</div>
+                  <div className="text-muted-foreground">{r.exercise_count} ex.</div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Generate button */}
       {!generatedResult && (
