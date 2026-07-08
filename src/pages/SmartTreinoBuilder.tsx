@@ -60,6 +60,7 @@ export default function SmartTreinoBuilder() {
   const [muscles, setMuscles] = useState<MuscleEntry[]>([]);
   const [generatedResult, setGeneratedResult] = useState<GeneratedStructure | null>(null);
   const [savedRulesId, setSavedRulesId] = useState<string | null>(null);
+  const [weekRows, setWeekRows] = useState<WeekWorkoutRow[] | null>(null);
 
   // Load user + alunos from canonical view (vw_alunos_canonical)
   useEffect(() => {
