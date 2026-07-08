@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { RefreshCw, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { RefreshCw, AlertCircle, CheckCircle2, Clock, CalendarDays } from "lucide-react";
 
 interface LogRow {
   id: string;
@@ -61,7 +61,38 @@ export default function FitproDeliveryStatus() {
     load();
   };
 
+  const retryWeek = async (athleteId: string, weekStart: string) => {
+    setRetrying(`week:${athleteId}:${weekStart}`);
+    const { data, error } = await supabase.functions.invoke("fitpro-deliver-week", {
+      body: { athlete_id: athleteId, week_start: weekStart },
+    });
+    setRetrying(null);
+    if (error) return toast.error(error.message);
+    toast.success(`Semana reprocessada: ${data?.delivered ?? 0}/${data?.total ?? 7}`);
+    load();
+  };
+
   const failedCount = logs.filter(l => l.status === "failed").length;
+
+  // Agrupa entregas semanais por (athlete_id + Monday do workout_date)
+  const weekDeliveries = (() => {
+    const weekLogs = logs.filter(l => l.source === "week_deliver");
+    const buckets = new Map<string, { athleteId: string; weekStart: string; total: number; success: number; failed: number; last: string }>();
+    for (const l of weekLogs) {
+      const d = new Date(l.workout_date + "T00:00:00");
+      const monday = new Date(d);
+      monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      const weekStart = monday.toISOString().slice(0, 10);
+      const key = `${l.athlete_id}|${weekStart}`;
+      const b = buckets.get(key) ?? { athleteId: l.athlete_id, weekStart, total: 0, success: 0, failed: 0, last: l.updated_at };
+      b.total += 1;
+      if (l.status === "success") b.success += 1;
+      if (l.status === "failed") b.failed += 1;
+      if (l.updated_at > b.last) b.last = l.updated_at;
+      buckets.set(key, b);
+    }
+    return Array.from(buckets.values()).sort((a, b) => (a.last < b.last ? 1 : -1)).slice(0, 5);
+  })();
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -89,6 +120,38 @@ export default function FitproDeliveryStatus() {
         <StatCard label="Falhas" value={failedCount} icon={AlertCircle} tone="text-red-500" />
         <StatCard label="Pendentes" value={logs.filter(l => ["pending","retrying"].includes(l.status)).length} icon={Clock} tone="text-blue-500" />
       </div>
+
+      {weekDeliveries.length > 0 && (
+        <Card className="p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="w-5 h-5 text-primary" />
+            <h2 className="font-display font-semibold">Últimas entregas semanais</h2>
+          </div>
+          <div className="grid gap-2">
+            {weekDeliveries.map(w => {
+              const key = `week:${w.athleteId}:${w.weekStart}`;
+              const busy = retrying === key;
+              const pct = w.total ? Math.round((w.success / w.total) * 100) : 0;
+              return (
+                <div key={key} className="flex items-center justify-between border border-border/40 rounded p-2 text-sm">
+                  <div className="flex-1">
+                    <div className="font-mono text-xs text-muted-foreground">
+                      Semana {w.weekStart} · athlete {w.athleteId.slice(0, 8)}…
+                    </div>
+                    <div className="text-xs">
+                      {w.success}/{w.total} ok · {w.failed} falhas · {pct}%
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" disabled={busy} onClick={() => retryWeek(w.athleteId, w.weekStart)}>
+                    {busy ? "..." : "Reprocessar semana"}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">

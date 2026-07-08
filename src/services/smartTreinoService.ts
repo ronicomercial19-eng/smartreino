@@ -174,7 +174,7 @@ export async function generateSmartTreino(
   athleteId: string,
   _macroRulesId: string,
   opts?: { categoria?: string; diasSemana?: number }
-): Promise<GeneratedStructure> {
+): Promise<GeneratedStructure & { success?: boolean; categoria?: string; dias_gerados?: number }> {
   const p_categoria = opts?.categoria ?? "Hipertrofia";
   const p_dias_semana = opts?.diasSemana ?? 4;
   const { data, error } = await (supabase as any).rpc("fn_gerar_treino_semana", {
@@ -184,7 +184,39 @@ export async function generateSmartTreino(
   });
   if (error) throw error;
   if (data?.error) throw new Error(data.error);
-  return data as GeneratedStructure;
+  return data as any;
+}
+
+export interface WeekWorkoutRow {
+  id: string;
+  workout_date: string;
+  workout_type: string | null;
+  exercise_count: number;
+}
+
+/** Lê daily_workouts + workout_exercises da semana atual (Seg-Dom). */
+export async function verifyWeekWorkouts(athleteId: string): Promise<WeekWorkoutRow[]> {
+  const today = new Date();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+  const { data, error } = await (supabase as any)
+    .from("daily_workouts")
+    .select("id, workout_date, workout_type, workout_exercises(id)")
+    .eq("athlete_id", athleteId)
+    .gte("workout_date", iso(monday))
+    .lte("workout_date", iso(sunday))
+    .order("workout_date");
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    workout_date: r.workout_date,
+    workout_type: r.workout_type,
+    exercise_count: Array.isArray(r.workout_exercises) ? r.workout_exercises.length : 0,
+  }));
 }
 
 // Constants

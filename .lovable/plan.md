@@ -1,105 +1,65 @@
-# Plano — Auditoria de Entrega FitPro + Correção Auth Geração
+Objetivo: entregar geração de treinos 100% via RPC (banco), sem depender de Edge Function paga. Base = catálogo. IA só em modo avançado. Provas coladas com athlete_id da Fernanda (18fabf10-6ab7-4c09-8c5c-7169516043e2).
 
-## 1. Migração — Auditoria e Retry
+## Bloco 1 — Smart Treino Builder (RPC direta)
 
-Nova tabela `fitpro_delivery_log` (auditoria por `athlete_id`):
+Estado atual: `smartTreinoService.generateSmartTreino` já chama `fn_gerar_treino_semana`. Ajustes:
 
-- `athlete_id`, `plano_id`, `workout_date`, `payload jsonb`, `result jsonb`
-- `status` (`pending` | `success` | `failed` | `retrying`)
-- `attempt_count int`, `last_error text`, `next_retry_at timestamptz`
-- `source text` (smart_treino_builder | periodization | quick_workout | copilot_adjust | manual_edit)
-- created_at/updated_at + trigger update
-- GRANTs (authenticated SELECT do próprio via join; service_role ALL)
-- RLS: professor lê logs dos próprios atletas; service_role escreve
+1. Em `src/pages/SmartTreinoBuilder.tsx` (`handleGenerate`):
+  - Após retorno da RPC, executar SELECT de verificação em `daily_workouts` para o `athlete_id` na semana atual (Seg-Dom) e mostrar lista D1–D7 (data, `workout_type`, contagem de `workout_exercises`) num painel de confirmação inline (usar componentes já existentes, sem novo CSS).
+  - Prévia visível de `categoria` e `dias_semana` derivados em `StepReviewGenerate` antes do clique (badges dentro do card de revisão já existente).
+  - Se `data.success !== true` ou `daily_workouts` vazio → toast destrutivo com payload cru.
+2. Prova: rodar `generateSmartTreino('18fabf10-…','Hipertrofia',4)` e colar `{ success, categoria, dias_gerados }` + `SELECT workout_date, workout_type FROM daily_workouts WHERE athlete_id=… ORDER BY workout_date`.
 
-## 2. Edge Function `fitpro-deliver-workout` (atualizar)
+## Bloco 2 — Catálogo 9×9×9 (botão Gerar)
 
-- Antes da chamada externa: `INSERT` em `fitpro_delivery_log` com status `pending`
-- Após resposta: `UPDATE` com `status=success/failed`, `result`, `last_error`
-- Manter idempotência por (athlete_id, workout_date)
+Em `src/pages/ProtocolCatalog.tsx`:
 
-## 3. Nova Edge Function `fitpro-delivery-retry`
+1. Adicionar `<StudentSelector>` (já existe em `src/components/analytics/StudentSelector.tsx`) no topo da página, guardando `selectedAthleteId` em estado.
+2. Ao lado de cada modelo (linha do model card, dentro do bloco já renderizado) adicionar botão `Gerar` (variant outline sm) que:
+  - Desabilita se `!selectedAthleteId` (tooltip "selecione um aluno antes").
+  - Chama `supabase.rpc('fn_aplicar_protocolo_9x9x9', { p_athlete_id, p_protocol_id: m.id, p_data: hoje })`.
+  - Toast com `daily_workout_id`, `protocol_name`, `pillar`, `workout_type_aplicado`.
+3. Antes de escrever, rodar `SELECT proname, pg_get_function_identity_arguments(oid) FROM pg_proc WHERE proname='fn_aplicar_protocolo_9x9x9'` para confirmar assinatura.
 
-- Cron-like (invocável) que busca `status='failed' AND attempt_count < 5` com backoff exponencial (`next_retry_at <= now()`)
-- Re-invoca `fitpro-deliver-workout` e atualiza log
-- Também pode ser chamada manualmente por linha (via UI)
+Prova: aplicar `1.1.1` na Fernanda e colar payload.
 
-## 4. Auto-entrega em novos fluxos
+## Bloco 3 — Plano Periodizado
 
-Adicionar `autoDeliverToFitpro(...)` (fire-and-forget, já existe) em:
+Não alterar código. Se o 402 aparecer, mostrar toast já existente com a mensagem crua. Nada mais.
 
-- **Smart Treino Builder** — após ajustes salvos (não só na geração inicial). Localizar handlers de save/ajuste em `SmartTreinoBuilder.tsx` e componentes step
-- **FitCopilot ajuste** — `supabase/functions/fitpro-copilot-adjust/index.ts`: no final do handler, chamar `fitpro-deliver-workout` internamente (fetch para própria URL) com `source='copilot_adjust'`
-- **Edição manual de exercício** — qualquer save em `workout_exercises` do dia via componentes de edição de treino (localizar `WorkoutLogger`, `TreinoDoDiaView`)
-- **Treino Rápido** — no fim do fluxo de quick workout (`generate-quick-workout` ou onde salva `phase_name='quick'`), disparar com `source='quick_workout'`
+## Bloco 4 — GenerateWorkout (Catálogo-first)
 
-## 5. UI — Painel de Status de Entrega FitPro
+Reescrever `handleGenerate` em `src/pages/GenerateWorkout.tsx`:
 
-Nova página `/fitpro-delivery-status` (professor):
+1. Padrão (não-avançado): chamar `supabase.rpc('fn_gerar_treino_semana', { p_athlete_id: aluno.id, p_categoria: mapObjetivo(objetivo), p_dias_semana: parseInt(frequencia) })`.
+  - Mapeamento objetivo→categoria já usado no Builder.
+2. Toggle "Modo avançado (usar IA)" (Switch shadcn existente, sem CSS novo). Só se marcado, cai no fluxo `WorkoutAIService.generateWorkout` atual (Edge Function).
+3. Após RPC OK, verificação `SELECT` em `daily_workouts` da semana e navegação para `/meus-treinos?aluno=…` (rota existente) em vez de `/workout-plan/:id` (que dependia de plano legado).
+4. Chamar `fitpro-deliver-week` fire-and-forget.
 
-- Lista últimas entregas: aluno (nome via `vw_alunos_canonical`), data, status badge, tentativas, erro
-- Botão "Retry" por linha → invoca `fitpro-delivery-retry` com id específico
-- Filtro por status/aluno; auto-refresh 30s
-- Indicador global (badge no sidebar) contando entregas `failed`
+Prova: gerar para Fernanda com Hipertrofia/4 dias e colar retorno + linhas de `daily_workouts`.
 
-## 6. Correção 401 em `generate-workout` e `generate-full-plan`
+## Bloco 5 — Página de status `fitpro-deliver-week`
 
-Problema: logs mostram `session_not_found`/`refresh_token_not_found` — o cliente envia token expirado.
+Já existe `FitproDeliveryStatus.tsx`. Estender:
 
-Fixes:
+1. Adicionar card no topo "Última entrega semanal" — lê `fitpro_delivery_log` filtrando por `source='week_deliver'`, agrupa por `athlete_id + week_start` (derivado de `workout_date` da segunda).
+2. Botão "Reprocessar semana" que chama `supabase.functions.invoke('fitpro-deliver-week', { body: { athlete_id, week_start } })`.
+3. Manter todo o resto igual (auto-refresh 30s, retry por linha).
 
-- **Client wrapper `invokeWithAuth(fnName, body)**` em `src/lib/api/client.ts`:
-  1. `supabase.auth.getSession()` → se sem token, `signOut()` e redirect `/login`
-  2. Se `expires_at` próximo, `refreshSession()` antes
-  3. Chama `fetch` com `Authorization: Bearer ${access_token}` explícito
-  4. Se resposta 401 → tenta `refreshSession()` uma vez, repete; se falhar, redireciona
-- Substituir chamadas atuais em `PeriodizationUpload.tsx`, `smartPeriodizationService.ts`, `workoutAIService.ts`, `SmartReinoQuiz.tsx`, `trainingService.ts` por `invokeWithAuth`
-- Remover chamadas a RPC `ensure_current_user_profile` sem sessão verificada (buscar todas ocorrências e envolver em guard)
+## Arquivos alterados
 
-## 7. Catálogo antes de IA (fluxo "Gerar Base com IA")
+- `src/pages/SmartTreinoBuilder.tsx` — prévia + verificação D1–D7
+- `src/components/smart-treino/StepReviewGenerate.tsx` — badges categoria/dias
+- `src/pages/ProtocolCatalog.tsx` — student selector + botão Gerar
+- `src/pages/GenerateWorkout.tsx` — RPC-first + toggle IA avançado
+- `src/pages/FitproDeliveryStatus.tsx` — seção semana + retry
 
-Ajustar `generate-workout` e `generate-full-plan`:
+## Regras obrigatórias
 
-1. Buscar em `workout_models` + `exercises` matches por objetivo/nível/frequência do aluno
-2. Se houver template compatível → montar sessão do catálogo (sem IA)
-3. Se não → fallback para geração via LLM (fluxo atual)
-4. Marcar `source: 'catalog' | 'ai'` no plano salvo
-
-## 8. Entrega semanal FitPro Train
-
-Em `fitpro-week-workouts` (ou novo endpoint `fitpro-deliver-week`):
-
-- Ao professor clicar "Gerar todos treinos da semana" → itera 7 dias, chama `fitpro-deliver-workout` por dia, agrega resultado
-- UI: botão em Gestão de Alunos / detalhes do aluno  
-  
-9.  email do admin principal/professor princiopal :    
--  email: [roni.comercial19@gmail.com](mailto:roni.comercial19@gmail.com)  
-- senha : 54967554
-
----
-
-## Seção Técnica
-
-**Arquivos novos:**
-
-- `supabase/migrations/<ts>_fitpro_delivery_log.sql`
-- `supabase/functions/fitpro-delivery-retry/index.ts`
-- `supabase/functions/fitpro-deliver-week/index.ts`
-- `src/pages/FitproDeliveryStatus.tsx`
-- `src/lib/api/invokeWithAuth.ts`
-
-**Arquivos alterados:**
-
-- `supabase/functions/fitpro-deliver-workout/index.ts` — logging + retry state
-- `supabase/functions/fitpro-copilot-adjust/index.ts` — chamar deliver ao final
-- `supabase/functions/generate-workout/index.ts` — catálogo-first + logging
-- `supabase/functions/generate-full-plan/index.ts` — catálogo-first
-- `supabase/functions/generate-quick-workout/index.ts` — auto-deliver
-- `src/pages/PeriodizationUpload.tsx`, `src/services/smartPeriodizationService.ts`, `src/services/workoutAIService.ts`, `src/services/domains/training/trainingService.ts`, `src/components/student/SmartReinoQuiz.tsx` — usar `invokeWithAuth`
-- `src/pages/SmartTreinoBuilder.tsx` e componentes step — hook em save de ajustes
-- `src/components/AppSidebar.tsx` — badge status + link
-- `src/App.tsx` — nova rota
-
-**Dependências:** nenhuma nova.
-
-Confirma que posso avançar?  implementar complemente e me entregar funcional prinncipalmente para geraçao de treinos e envios dos treinos . as etapas criticas de funcionamento sao as : 1 (tabela) → 2 (logging) → 6 (auth) → 7 (catálogo) → 4 (auto-entrega) → 8 (semana) → 3 (retry) → 5 (painel) 
+- Nenhuma migration/CREATE FUNCTION. Só consumir RPCs existentes (`fn_gerar_treino_semana`, `fn_aplicar_protocolo_9x9x9`).
+- Auditar assinatura das duas RPCs com `pg_proc` antes de chamar.
+- Sem alteração de layout/CSS. Só reutilizar componentes atuais.
+- Provas obrigatórias por bloco antes de dar por pronto.  
+respectivas atualizaçeos do frontend/ design   
+entrega dos treinos semanais para o aluno em semana no fitpro   

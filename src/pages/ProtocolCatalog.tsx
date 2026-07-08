@@ -3,9 +3,13 @@ import { PageLayout } from "@/components/shared/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Search, Dumbbell, Zap, Heart } from "lucide-react";
+import { Search, Dumbbell, Zap, Heart, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface Protocol {
   id: string;
@@ -48,9 +52,13 @@ export default function ProtocolCatalog() {
   const [search, setSearch] = useState("");
   const [goalFilter, setGoalFilter] = useState("");
   const [loading, setLoading] = useState(true);
+  const [athletes, setAthletes] = useState<{ id: string; nome: string }[]>([]);
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string>("");
+  const [applyingId, setApplyingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadProtocols();
+    loadAthletes();
   }, []);
 
   const loadProtocols = async () => {
@@ -64,6 +72,45 @@ export default function ProtocolCatalog() {
     if (error) console.error("Error loading protocols:", error);
     if (data) setProtocols(data as any);
     setLoading(false);
+  };
+
+  const loadAthletes = async () => {
+    const { data } = await (supabase as any)
+      .from("vw_alunos_canonical")
+      .select("id, athlete_id, nome");
+    if (data) {
+      setAthletes(
+        data.map((a: any) => ({ id: a.athlete_id ?? a.id, nome: a.nome ?? "Aluno" }))
+      );
+    }
+  };
+
+  const applyProtocol = async (protocolCode: string) => {
+    if (!selectedAthleteId) return;
+    setApplyingId(protocolCode);
+    try {
+      const hoje = new Date().toISOString().slice(0, 10);
+      const { data, error } = await (supabase as any).rpc("fn_aplicar_protocolo_9x9x9", {
+        p_athlete_id: selectedAthleteId,
+        p_protocol_id: protocolCode,
+        p_data: hoje,
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({
+        title: `Protocolo ${protocolCode} aplicado`,
+        description: `${data?.protocol_name ?? ""} — ${data?.pillar ?? ""} — type: ${data?.workout_type_aplicado ?? "?"}`,
+      });
+      console.log("[applyProtocol] payload:", data);
+      // fire-and-forget deliver
+      (supabase as any).functions.invoke("fitpro-deliver-workout", {
+        body: { athlete_id: selectedAthleteId, workout_date: hoje, source: "protocol_catalog", treino: data },
+      });
+    } catch (e: any) {
+      toast({ title: "Erro ao aplicar protocolo", description: e.message, variant: "destructive" });
+    } finally {
+      setApplyingId(null);
+    }
   };
 
   // Group: pillar → protocol → variation → models
@@ -92,6 +139,16 @@ export default function ProtocolCatalog() {
       <div className="space-y-4">
         {/* Filters */}
         <div className="flex flex-wrap gap-3 items-center">
+          <Select value={selectedAthleteId} onValueChange={setSelectedAthleteId}>
+            <SelectTrigger className="w-[240px]">
+              <SelectValue placeholder="Selecionar aluno..." />
+            </SelectTrigger>
+            <SelectContent>
+              {athletes.map((a) => (
+                <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar protocolo..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
@@ -145,6 +202,7 @@ export default function ProtocolCatalog() {
                                   <div className="grid gap-2 ml-4">
                                     {filteredModels.map((m: Protocol) => {
                                       const b9 = typeof m.block_9_template === 'string' ? JSON.parse(m.block_9_template) : m.block_9_template;
+                                      const isApplying = applyingId === m.id;
                                       return (
                                         <div key={m.id} className="flex items-center justify-between bg-background/50 rounded-md p-2 text-sm border border-border/20">
                                           <div>
@@ -154,6 +212,27 @@ export default function ProtocolCatalog() {
                                             {b9?.sets && <Badge variant="outline" className="text-xs">{b9.sets}×{b9.reps}</Badge>}
                                             {b9?.cadence && <span>⏱ {b9.cadence}</span>}
                                             <span>RPE {m.rpe_range}</span>
+                                            <TooltipProvider>
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <span>
+                                                    <Button
+                                                      size="sm"
+                                                      variant="outline"
+                                                      className="h-7 gap-1"
+                                                      disabled={!selectedAthleteId || isApplying}
+                                                      onClick={() => applyProtocol(m.id)}
+                                                    >
+                                                      {isApplying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                                                      Gerar
+                                                    </Button>
+                                                  </span>
+                                                </TooltipTrigger>
+                                                {!selectedAthleteId && (
+                                                  <TooltipContent>Selecione um aluno antes</TooltipContent>
+                                                )}
+                                              </Tooltip>
+                                            </TooltipProvider>
                                           </div>
                                         </div>
                                       );

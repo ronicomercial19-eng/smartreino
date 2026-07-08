@@ -15,6 +15,8 @@ import {
   getMuscleVolumes,
   saveMuscleVolumes,
   generateSmartTreino,
+  verifyWeekWorkouts,
+  type WeekWorkoutRow,
   MUSCLE_GROUPS,
 } from "@/services/smartTreinoService";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -58,6 +60,7 @@ export default function SmartTreinoBuilder() {
   const [muscles, setMuscles] = useState<MuscleEntry[]>([]);
   const [generatedResult, setGeneratedResult] = useState<GeneratedStructure | null>(null);
   const [savedRulesId, setSavedRulesId] = useState<string | null>(null);
+  const [weekRows, setWeekRows] = useState<WeekWorkoutRow[] | null>(null);
 
   // Load user + alunos from canonical view (vw_alunos_canonical)
   useEffect(() => {
@@ -169,6 +172,21 @@ export default function SmartTreinoBuilder() {
     });
     setGeneratedResult(result);
 
+    // Verificação D1–D7: confirma gravação em daily_workouts
+    try {
+      const rows = await verifyWeekWorkouts(selectedAlunoId);
+      setWeekRows(rows);
+      if (rows.length === 0) {
+        toast({
+          title: "Nenhum treino gravado",
+          description: `RPC retornou ${JSON.stringify(result)} mas daily_workouts está vazio.`,
+          variant: "destructive",
+        });
+      }
+    } catch (e: any) {
+      console.warn("[SmartTreinoBuilder] verifyWeekWorkouts falhou:", e);
+    }
+
     // Auto-entrega da semana inteira ao FitPro (fire-and-forget)
     try {
       (supabase as any).functions.invoke("fitpro-deliver-week", {
@@ -240,16 +258,28 @@ export default function SmartTreinoBuilder() {
                 {step === 2 && <StepMuscleVolume muscles={muscles} onChange={m => setMuscles(m as MuscleEntry[])} />}
                 {step === 3 && <StepParameters rules={rules} onChange={setRules} />}
                 {step === 4 && <StepDistribution muscles={muscles} onChange={setMuscles} weeklyFrequency={rules.weekly_frequency ?? 4} />}
-                {step === 5 && (
-                  <StepReviewGenerate
-                    profile={profile}
-                    rules={rules}
-                    muscles={muscles}
-                    athleteName={athleteName}
-                    onGenerate={handleGenerate}
-                    generatedResult={generatedResult}
-                  />
-                )}
+                {step === 5 && (() => {
+                  const obj = (rules.macro_objetivo ?? "").toLowerCase();
+                  const previewCategoria =
+                    obj.includes("força") || obj.includes("forca") ? "Força"
+                    : obj.includes("condicion") ? "Condicionamento"
+                    : obj.includes("perda") || obj.includes("emagrec") ? "Perda de Peso"
+                    : obj.includes("mobil") ? "Mobilidade"
+                    : "Hipertrofia";
+                  return (
+                    <StepReviewGenerate
+                      profile={profile}
+                      rules={rules}
+                      muscles={muscles}
+                      athleteName={athleteName}
+                      onGenerate={handleGenerate}
+                      generatedResult={generatedResult}
+                      previewCategoria={previewCategoria}
+                      previewDias={rules.weekly_frequency ?? 4}
+                      weekRows={weekRows}
+                    />
+                  );
+                })()}
 
                 {/* Navigation */}
                 <div className="flex justify-between pt-4">
