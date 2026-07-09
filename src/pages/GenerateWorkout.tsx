@@ -157,26 +157,10 @@ export default function GenerateWorkout() {
 
     setLoading(true);
     setWeekRows(null);
-    try {
-      if (advancedAI) {
-        // Modo avançado — usa IA (edge function paga)
-        const periodizationContext = buildPeriodizationContext();
-        const plan = await WorkoutAIService.generateWorkout({
-          studentId: aluno.id,
-          objetivo,
-          nivel,
-          frequenciaSemanal: parseInt(frequencia),
-          restricoes: (restricoes || '') + periodizationContext,
-          ambiente
-        });
-        toast({ title: 'Treino gerado com IA 🎉', description: 'Plano criado.' });
-        navigate(`/workout-plan/${plan.id}`);
-        return;
-      }
+    const categoria = mapObjetivoToCategoria(objetivo);
+    const diasSemana = parseInt(frequencia);
 
-      // Modo padrão — Catálogo via RPC fn_gerar_treino_semana
-      const categoria = mapObjetivoToCategoria(objetivo);
-      const diasSemana = parseInt(frequencia);
+    const runCatalogFallback = async (reason?: string) => {
       const { data, error } = await (supabase as any).rpc('fn_gerar_treino_semana', {
         p_athlete_id: aluno.id,
         p_categoria: categoria,
@@ -196,18 +180,45 @@ export default function GenerateWorkout() {
         });
         return;
       }
-
-      // Auto-entrega ao FitPro (fire-and-forget)
       try {
         (supabase as any).functions.invoke('fitpro-deliver-week', {
           body: { athlete_id: aluno.id },
         });
       } catch {}
-
       toast({
-        title: 'Semana de treino gerada ✅',
-        description: `${rows.length} dias de ${categoria} salvos em daily_workouts.`,
+        title: reason ? 'Fallback catálogo aplicado ⚠️' : 'Semana de treino gerada ✅',
+        description: reason
+          ? `${reason} — gerados ${rows.length} dias de ${categoria} pelo catálogo.`
+          : `${rows.length} dias de ${categoria} salvos em daily_workouts.`,
       });
+    };
+
+    try {
+      if (advancedAI) {
+        try {
+          const periodizationContext = buildPeriodizationContext();
+          const plan = await WorkoutAIService.generateWorkout({
+            studentId: aluno.id,
+            objetivo,
+            nivel,
+            frequenciaSemanal: diasSemana,
+            restricoes: (restricoes || '') + periodizationContext,
+            ambiente
+          });
+          toast({ title: 'Treino gerado com IA 🎉', description: 'Plano criado.' });
+          navigate(`/workout-plan/${plan.id}`);
+          return;
+        } catch (aiErr: any) {
+          const msg = String(aiErr?.message || aiErr || '');
+          const isCreditIssue = /402|cr[eé]dito|insufic|non-2xx/i.test(msg);
+          if (!isCreditIssue) throw aiErr;
+          console.warn('[GenerateWorkout] IA falhou, aplicando fallback catálogo:', msg);
+          await runCatalogFallback('IA indisponível (créditos)');
+          return;
+        }
+      }
+
+      await runCatalogFallback();
     } catch (error) {
       console.error('Error generating workout:', error);
       toast({
