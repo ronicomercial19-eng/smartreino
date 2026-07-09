@@ -277,6 +277,21 @@ export default function SmartTreinoBuilder() {
                       previewCategoria={previewCategoria}
                       previewDias={rules.weekly_frequency ?? 4}
                       weekRows={weekRows}
+                      onRecheck={async () => {
+                        try {
+                          const rows = await verifyWeekWorkouts(selectedAlunoId);
+                          setWeekRows(rows);
+                          toast({
+                            title: rows.length > 0 ? "Checagem OK" : "Sem registros",
+                            description: rows.length > 0
+                              ? `${rows.length} dia(s) em daily_workouts.`
+                              : "Nenhum daily_workout encontrado para a semana atual.",
+                            variant: rows.length > 0 ? "default" : "destructive",
+                          });
+                        } catch (e: any) {
+                          toast({ title: "Erro na checagem", description: e.message, variant: "destructive" });
+                        }
+                      }}
                     />
                   );
                 })()}
