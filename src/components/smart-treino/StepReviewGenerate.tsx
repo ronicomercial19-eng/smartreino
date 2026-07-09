@@ -23,6 +23,7 @@ interface Props {
   previewCategoria?: string;
   previewDias?: number;
   weekRows?: { workout_date: string; workout_type: string | null; exercise_count: number }[] | null;
+  onRecheck?: () => Promise<void> | void;
 }
 
 function renderBlocks(session: TrainingSession) {
