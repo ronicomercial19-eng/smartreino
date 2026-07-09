@@ -23,6 +23,7 @@ interface Props {
   previewCategoria?: string;
   previewDias?: number;
   weekRows?: { workout_date: string; workout_type: string | null; exercise_count: number }[] | null;
+  onRecheck?: () => Promise<void> | void;
 }
 
 function renderBlocks(session: TrainingSession) {
@@ -87,7 +88,7 @@ function renderBlocks(session: TrainingSession) {
   );
 }
 
-export default function StepReviewGenerate({ profile, rules, muscles, athleteName, onGenerate, generatedResult, previewCategoria, previewDias, weekRows }: Props) {
+export default function StepReviewGenerate({ profile, rules, muscles, athleteName, onGenerate, generatedResult, previewCategoria, previewDias, weekRows, onRecheck }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -150,25 +151,38 @@ export default function StepReviewGenerate({ profile, rules, muscles, athleteNam
       </Card>
 
       {/* D1–D7 verification panel */}
-      {weekRows && weekRows.length > 0 && (
+      {(weekRows || onRecheck) && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-base flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              Semana gravada em daily_workouts ({weekRows.length} dias)
+              <CheckCircle className={`h-4 w-4 ${weekRows && weekRows.length > 0 ? "text-green-600" : "text-muted-foreground"}`} />
+              {weekRows && weekRows.length > 0
+                ? `Semana gravada em daily_workouts (${weekRows.length} dias)`
+                : "Checagem D1–D7"}
             </CardTitle>
+            {onRecheck && (
+              <Button variant="outline" size="sm" onClick={() => onRecheck()}>
+                Reexecutar checagem
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-              {weekRows.map((r, i) => (
-                <div key={r.workout_date} className="rounded border p-2 text-xs bg-muted/30">
-                  <div className="font-mono text-muted-foreground">D{i + 1}</div>
-                  <div className="font-medium">{r.workout_date}</div>
-                  <div className="text-muted-foreground">{r.workout_type ?? "—"}</div>
-                  <div className="text-muted-foreground">{r.exercise_count} ex.</div>
-                </div>
-              ))}
-            </div>
+            {weekRows && weekRows.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                {weekRows.map((r, i) => (
+                  <div key={r.workout_date} className="rounded border p-2 text-xs bg-muted/30">
+                    <div className="font-mono text-muted-foreground">D{i + 1}</div>
+                    <div className="font-medium">{r.workout_date}</div>
+                    <div className="text-muted-foreground">{r.workout_type ?? "—"}</div>
+                    <div className="text-muted-foreground">{r.exercise_count} ex.</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Nenhum registro encontrado em <code>daily_workouts</code> para a semana atual. Gere e reexecute para confirmar.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
