@@ -6,6 +6,48 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Resolve um exercise_id real casando target_muscle (texto livre da IA) com exercises.target_muscles (array)
+async function resolveExerciseId(
+  supabaseAdmin: any,
+  targetMuscle: string,
+  movementPattern: string,
+  cache: Map<string, string | null>
+): Promise<string | null> {
+  const key = `${targetMuscle}|${movementPattern}`.toLowerCase();
+  if (cache.has(key)) return cache.get(key)!;
+
+  // 1) tenta casar por target_muscles (array, ilike em cada elemento via contains textual)
+  const { data: byMuscle } = await supabaseAdmin
+    .from("exercises")
+    .select("id, name, target_muscles")
+    .contains("target_muscles", [targetMuscle])
+    .limit(5);
+
+  let chosen: string | null = null;
+  if (byMuscle && byMuscle.length > 0) {
+    chosen = byMuscle[Math.floor(Math.random() * byMuscle.length)].id;
+  } else {
+    // 2) fallback: busca textual no nome pelo padrão de movimento
+    const { data: byName } = await supabaseAdmin
+      .from("exercises")
+      .select("id, name")
+      .ilike("name", `%${movementPattern}%`)
+      .limit(5);
+    if (byName && byName.length > 0) {
+      chosen = byName[Math.floor(Math.random() * byName.length)].id;
+    } else {
+      // 3) último fallback: qualquer exercício com goal/target relacionado ao músculo (menos preciso, mas nunca nulo)
+      const { data: anyMatch } = await supabaseAdmin
+        .from("exercises")
+        .select("id")
+        .limit(1);
+      chosen = anyMatch?.[0]?.id ?? null;
+    }
+  }
+  cache.set(key, chosen);
+  return chosen;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -247,7 +289,96 @@ ${protocolData ? "Use os 4 blocos (neural, integration, block_9, reset) conforme
 
     const result = JSON.parse(toolCall.function.arguments);
 
-    return new Response(JSON.stringify({ success: true, data: result }), {
+    // ── PERSISTÊNCIA: grava daily_workouts + workout_exercises para a semana atual ──
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const today = new Date();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+
+    const exerciseCache = new Map<string, string | null>();
+    let diasGravados = 0;
+
+    // Limpa a semana atual antes de regravar (evita duplicar em re-geração)
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const isoDate = (d: Date) => d.toISOString().slice(0, 10);
+    await supabaseAdmin
+      .from("daily_workouts")
+      .delete()
+      .eq("athlete_id", aluno_id)
+      .gte("workout_date", isoDate(monday))
+      .lte("workout_date", isoDate(sunday))
+      .eq("override_locked", false);
+
+    for (let i = 0; i < result.sessions.length; i++) {
+      const session = result.sessions[i];
+      const workoutDate = new Date(monday);
+      workoutDate.setDate(monday.getDate() + i);
+
+      const { data: dw, error: dwError } = await supabaseAdmin
+        .from("daily_workouts")
+        .insert({
+          athlete_id: aluno_id,
+          workout_date: isoDate(workoutDate),
+          day_number: i + 1,
+          day_name: session.session_name ?? session.session_label,
+          focus_muscles: session.focus_muscles ?? [],
+          workout_type: protocolData ? protocolData.pillar : "smart_treino",
+          override_locked: false,
+        })
+        .select("id")
+        .single();
+
+      if (dwError || !dw) {
+        console.error("daily_workouts insert error:", dwError);
+        continue;
+      }
+
+      // Monta lista de slots a partir de blocks (protocolo) ou slots (padrão)
+      const allSlots: any[] = [];
+      if (session.blocks) {
+        for (const blockName of ["neural", "integration", "block_9", "reset"] as const) {
+          const blockSlots = session.blocks[blockName] ?? [];
+          for (const slot of blockSlots) allSlots.push({ ...slot, _block: blockName });
+        }
+      } else if (session.slots) {
+        for (const slot of session.slots) allSlots.push({ ...slot, _block: "block_9" });
+      }
+
+      let order = 1;
+      for (const slot of allSlots) {
+        const exerciseId = await resolveExerciseId(
+          supabaseAdmin,
+          slot.target_muscle ?? session.focus_muscles?.[0] ?? "geral",
+          slot.movement_pattern ?? "",
+          exerciseCache
+        );
+        if (!exerciseId) continue;
+
+        await supabaseAdmin.from("workout_exercises").insert({
+          daily_workout_id: dw.id,
+          exercise_id: exerciseId,
+          exercise_order: order++,
+          sets: slot.sets ?? 3,
+          reps_range: slot.reps ?? "8-12",
+          rest_seconds: slot.rest_seconds ?? 60,
+          load_percentage: rules.carga_inicial_percent ? String(rules.carga_inicial_percent) : null,
+          tempo: slot.cadence ?? null,
+          rpe_target: rules.rpe_target ? Math.round(rules.rpe_target) : null,
+          notes: slot.notes ?? null,
+          training_day: i + 1,
+          observations: { block: slot._block, movement_pattern: slot.movement_pattern },
+          override_locked: false,
+        });
+      }
+      diasGravados++;
+    }
+
+    return new Response(JSON.stringify({ success: true, data: result, dias_gravados: diasGravados }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
