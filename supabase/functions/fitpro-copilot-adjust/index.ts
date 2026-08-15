@@ -93,7 +93,7 @@ ${JSON.stringify((catalog ?? []).map((e: any) => ({ id: e.id, name: e.name, targ
 
   const { data: applied, error: rpcError } = await sb.rpc("aplicar_ajuste_treino_dia", {
     p_athlete_id: aluno.id,
-    p_workout_date: workoutDate,
+    p_data: workoutDate,
     p_changes: changes,
   });
 
