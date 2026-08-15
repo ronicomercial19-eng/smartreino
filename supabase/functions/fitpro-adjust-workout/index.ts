@@ -39,11 +39,11 @@ Deno.serve(async (req) => {
     const workoutDate: string = body.workout_date ?? new Date().toISOString().slice(0, 10);
     const { data: applied, error: rpcError } = await sb.rpc("aplicar_ajuste_treino_dia", {
       p_athlete_id: aluno.id,
-      p_workout_date: workoutDate,
+      p_data: workoutDate,
       p_changes: body.changes,
     });
     if (rpcError) return jsonResponse({ error: "apply_failed", detail: rpcError.message }, 500);
-    const execId = (applied as any)?.execution_id ?? null;
+    const execId = (applied as any)?.id ?? null;
     const { data: updated } = await sb
       .from("workout_exercises")
       .select("id, exercise_id, exercise_order, sets, reps_range, load_percentage, override_locked")
