@@ -169,22 +169,19 @@ export async function getProtocol(code: string): Promise<SmartTreinoProtocol | n
   return data;
 }
 
-// Generate — via RPC direta em daily_workouts (substitui edge function quebrada)
+// Generate — via edge function generate-smart-treino (usa protocolo real de smart_treino_protocols
+// quando macro_rules.protocol_code está preenchido; persiste em daily_workouts/workout_exercises)
 export async function generateSmartTreino(
   athleteId: string,
-  _macroRulesId: string,
-  opts?: { categoria?: string; diasSemana?: number }
-): Promise<GeneratedStructure & { success?: boolean; categoria?: string; dias_gerados?: number }> {
-  const p_categoria = opts?.categoria ?? "Hipertrofia";
-  const p_dias_semana = opts?.diasSemana ?? 4;
-  const { data, error } = await (supabase as any).rpc("fn_gerar_treino_semana", {
-    p_athlete_id: athleteId,
-    p_categoria,
-    p_dias_semana,
+  macroRulesId: string,
+  _opts?: { categoria?: string; diasSemana?: number }
+): Promise<GeneratedStructure & { success?: boolean; dias_gravados?: number }> {
+  const { data, error } = await supabase.functions.invoke("generate-smart-treino", {
+    body: { aluno_id: athleteId, macro_rules_id: macroRulesId },
   });
   if (error) throw error;
   if (data?.error) throw new Error(data.error);
-  return data as any;
+  return { ...data.data, success: data.success, dias_gravados: data.dias_gravados };
 }
 
 export interface WeekWorkoutRow {
