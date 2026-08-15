@@ -6,7 +6,41 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Resolve um exercise_id real casando target_muscle (texto livre da IA) com exercises.target_muscles (array)
+// Mapa de sinônimos: grupo muscular fino (gerado pela IA) → termos existentes em exercises.target_muscles
+// (a tabela exercises usa categorias amplas em PT-BR, inconsistentes em maiúsculas/minúsculas — ex: só
+// "Membros Inferiores" para quadríceps/isquiotibiais/glúteos/panturrilha, não músculos individuais)
+const MUSCLE_SYNONYMS: Record<string, string[]> = {
+  quadríceps: ["membros inferiores"],
+  quadriceps: ["membros inferiores"],
+  isquiotibiais: ["membros inferiores", "isquiotibiais"],
+  posterior: ["membros inferiores", "isquiotibiais"],
+  glúteos: ["membros inferiores", "glúteos"],
+  gluteos: ["membros inferiores", "glúteos"],
+  panturrilha: ["membros inferiores"],
+  perna: ["membros inferiores"],
+  pernas: ["membros inferiores"],
+  peito: ["peitoral"],
+  peitoral: ["peitoral"],
+  costas: ["dorsais"],
+  dorsais: ["dorsais"],
+  lombar: ["dorsais", "erectores"],
+  ombro: ["ombro", "deltoides"],
+  ombros: ["ombro", "deltoides"],
+  deltoide: ["deltoides", "ombro"],
+  bíceps: ["bíceps"],
+  biceps: ["bíceps"],
+  tríceps: ["tríceps"],
+  triceps: ["tríceps"],
+  core: ["core", "abdômen"],
+  abdômen: ["abdômen", "core"],
+  abdomen: ["abdômen", "core"],
+  trapézio: ["trapézio"],
+  trapezio: ["trapézio"],
+};
+
+// Resolve um exercise_id real casando target_muscle (texto livre da IA) com exercises.target_muscles (array).
+// Busca case-insensitive via RPC fn_search_exercises_by_muscle_term (unnest+ilike) — contains() do
+// supabase-js é exato/case-sensitive e falha contra o vocabulário real da tabela.
 async function resolveExerciseId(
   supabaseAdmin: any,
   targetMuscle: string,
@@ -16,17 +50,22 @@ async function resolveExerciseId(
   const key = `${targetMuscle}|${movementPattern}`.toLowerCase();
   if (cache.has(key)) return cache.get(key)!;
 
-  // 1) tenta casar por target_muscles (array, ilike em cada elemento via contains textual)
-  const { data: byMuscle } = await supabaseAdmin
-    .from("exercises")
-    .select("id, name, target_muscles")
-    .contains("target_muscles", [targetMuscle])
-    .limit(5);
+  const normalized = (targetMuscle || "").toLowerCase().trim();
+  const candidates = [normalized, ...(MUSCLE_SYNONYMS[normalized] ?? [])];
 
   let chosen: string | null = null;
-  if (byMuscle && byMuscle.length > 0) {
-    chosen = byMuscle[Math.floor(Math.random() * byMuscle.length)].id;
-  } else {
+
+  // 1) tenta cada termo candidato via RPC de busca case-insensitive em array
+  for (const term of candidates) {
+    if (!term) continue;
+    const { data } = await supabaseAdmin.rpc("fn_search_exercises_by_muscle_term", { p_term: term, p_limit: 8 });
+    if (data && data.length > 0) {
+      chosen = data[Math.floor(Math.random() * data.length)].id;
+      break;
+    }
+  }
+
+  if (!chosen) {
     // 2) fallback: busca textual no nome pelo padrão de movimento
     const { data: byName } = await supabaseAdmin
       .from("exercises")
@@ -35,15 +74,15 @@ async function resolveExerciseId(
       .limit(5);
     if (byName && byName.length > 0) {
       chosen = byName[Math.floor(Math.random() * byName.length)].id;
-    } else {
-      // 3) último fallback: qualquer exercício com goal/target relacionado ao músculo (menos preciso, mas nunca nulo)
-      const { data: anyMatch } = await supabaseAdmin
-        .from("exercises")
-        .select("id")
-        .limit(1);
-      chosen = anyMatch?.[0]?.id ?? null;
     }
   }
+
+  if (!chosen) {
+    // 3) último fallback: qualquer exercício (nunca deixa o slot sem exercício, mas é o pior caso)
+    const { data: anyMatch } = await supabaseAdmin.from("exercises").select("id").limit(1);
+    chosen = anyMatch?.[0]?.id ?? null;
+  }
+
   cache.set(key, chosen);
   return chosen;
 }
