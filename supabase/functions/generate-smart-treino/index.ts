@@ -7,21 +7,33 @@ const corsHeaders = {
 };
 
 // Mapa de sinônimos: movement_pattern/target_muscle da IA -> termo de busca em exercises.target_muscles
+// Vocabulário real confirmado em exercises.target_muscles (2026-08): glúteos, peitoral, Dorsais, latíssimo,
+// romboides, trapézio, deltoides, Ombro, bíceps, tríceps, isquiotibiais, membros inferiores, core, Abdômen.
+// "quadríceps", "panturrilha" e "dorsal" (singular) NÃO existem no catálogo — mapeados para o termo genérico
+// mais próximo disponível ("membros inferiores") ou deixados para cair no fallback por movement_pattern.
 const MUSCLE_SYNONYMS: Record<string, string[]> = {
-  gluteos: ["glúteo", "gluteo", "glutes"],
-  "glúteos": ["glúteo", "gluteo", "glutes"],
-  quadriceps: ["quadríceps", "quadriceps", "quad"],
-  "quadríceps": ["quadríceps", "quadriceps", "quad"],
-  posterior_coxa: ["posterior de coxa", "isquiotibiais", "hamstring"],
-  panturrilhas: ["panturrilha", "calf"],
-  peito: ["peito", "peitoral", "chest"],
-  dorsais: ["dorsal", "costas", "lat", "back"],
-  ombros: ["ombro", "deltoide", "shoulder"],
-  biceps: ["bíceps", "biceps"],
-  "bíceps": ["bíceps", "biceps"],
-  triceps: ["tríceps", "triceps"],
-  "tríceps": ["tríceps", "triceps"],
-  core: ["core", "abdomen", "abdômen", "abs"],
+  gluteos: ["glúteo"],
+  "glúteos": ["glúteo"],
+  quadriceps: ["membros inferiores"],
+  "quadríceps": ["membros inferiores"],
+  posterior_coxa: ["isquiotibiais", "membros inferiores"],
+  posterior_de_coxa: ["isquiotibiais", "membros inferiores"],
+  panturrilhas: ["membros inferiores"],
+  panturrilha: ["membros inferiores"],
+  peito: ["peitoral"],
+  peitoral: ["peitoral"],
+  dorsais: ["dorsais", "latíssimo", "romboides", "trapézio"],
+  dorsal: ["dorsais", "latíssimo", "romboides", "trapézio"],
+  costas: ["dorsais", "latíssimo", "romboides", "trapézio"],
+  ombros: ["ombro", "deltoides"],
+  ombro: ["ombro", "deltoides"],
+  biceps: ["bíceps"],
+  "bíceps": ["bíceps"],
+  triceps: ["tríceps"],
+  "tríceps": ["tríceps"],
+  core: ["core", "abdômen"],
+  abdomen: ["abdômen", "core"],
+  "abdômen": ["abdômen", "core"],
 };
 
 async function resolveExerciseId(
