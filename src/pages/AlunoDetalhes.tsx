@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Calendar, Dumbbell, Mail, Phone, User, Weight, Ruler, Activity } from 'lucide-react';
+import { ArrowLeft, Calendar, Dumbbell, Mail, Phone, User, Weight, Ruler, Activity, FileCode } from 'lucide-react';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useToast } from '@/hooks/use-toast';
 
@@ -260,6 +260,10 @@ export default function AlunoDetalhes() {
                 </Button>
                 <Button variant="outline" onClick={() => navigate(`/student-analytics/${aluno.id}`)}>
                   Ver Analytics
+                </Button>
+                <Button variant="outline" onClick={() => navigate(`/enviar-treino-html/${aluno.id}`)}>
+                  <FileCode className="mr-2 h-4 w-4" />
+                  Enviar Treino HTML
                 </Button>
               </div>
             </div>
