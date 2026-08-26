@@ -39,6 +39,7 @@ import SmartTreinoBuilder from "./pages/SmartTreinoBuilder";
 import ProtocolCatalog from "./pages/ProtocolCatalog";
 import TreinoHoje from "./pages/TreinoHoje";
 import FitproDeliveryStatus from "./pages/FitproDeliveryStatus";
+import EnviarTreinoHTML from "./pages/EnviarTreinoHTML";
 import { SovereignBootstrap } from "./components/auth/SovereignBootstrap";
 
 const queryClient = new QueryClient();
@@ -156,6 +157,11 @@ function AppRoutes() {
       <Route path="/fitpro-delivery-status" element={
         <ProtectedRoute allowedRoles={professorOrAdmin} userRole={role} defaultRoute={defaultRoute}>
           <FitproDeliveryStatus />
+        </ProtectedRoute>
+      } />
+      <Route path="/enviar-treino-html/:id?" element={
+        <ProtectedRoute allowedRoles={professorOrAdmin} userRole={role} defaultRoute={defaultRoute}>
+          <EnviarTreinoHTML />
         </ProtectedRoute>
       } />
 
