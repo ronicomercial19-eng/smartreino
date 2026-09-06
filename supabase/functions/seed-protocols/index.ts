@@ -187,6 +187,41 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // ── SEGURANÇA: exige que o chamador seja admin/super_admin antes de qualquer delete/reseed.
+    // Antes disso não existia auth nenhuma — qualquer request anônimo apagava os 729 protocolos. ──
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Authorization required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const authClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: userData, error: userErr } = await authClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: roleData } = await supabase.rpc("get_user_role", { p_user_id: userData.user.id }).catch(() => ({ data: null }));
+    if (roleData !== "admin" && roleData !== "super_admin") {
+      return new Response(JSON.stringify({ error: "Admin role required to reseed protocols" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // Confirmação explícita exigida no body para evitar reseed acidental de dado já existente
+    let body: any = {};
+    try { body = await req.json(); } catch (_e) { /* sem body */ }
+    if (body?.confirm !== true) {
+      return new Response(JSON.stringify({ error: "Envie { confirm: true } no body para confirmar o reseed (ação destrutiva: apaga e recria todos os protocolos)." }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // ── fim da correção de segurança ──
+
     // Force re-seed with differentiated templates
     const rows: any[] = [];
     for (const p of PROTOCOLS) {
