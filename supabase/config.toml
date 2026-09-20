@@ -60,3 +60,6 @@ verify_jwt = false
 [functions.fitpro-deliver-week]
 verify_jwt = false
 
+[functions.weekly-training-orchestrator]
+verify_jwt = false
+

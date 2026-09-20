@@ -5,7 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-weekly-training-secret",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -14,7 +14,9 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
+    const schedulerSecret = Deno.env.get("WEEKLY_TRAINING_SCHEDULER_SECRET");
+    const isSchedulerCall = !!schedulerSecret && req.headers.get("x-weekly-training-secret") === schedulerSecret;
+    if (!isSchedulerCall && !authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ success: false, error: "unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -24,12 +26,14 @@ Deno.serve(async (req) => {
     const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    const userClient = createClient(SUPABASE_URL, ANON, { global: { headers: { Authorization: authHeader } } });
-    const { data: userData, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !userData.user) {
-      return new Response(JSON.stringify({ success: false, error: "invalid_token" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!isSchedulerCall) {
+      const userClient = createClient(SUPABASE_URL, ANON, { global: { headers: { Authorization: authHeader! } } });
+      const { data: userData, error: userErr } = await userClient.auth.getUser();
+      if (userErr || !userData.user) {
+        return new Response(JSON.stringify({ success: false, error: "invalid_token" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const body = await req.json().catch(() => ({}));
