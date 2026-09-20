@@ -22,16 +22,26 @@ Deno.serve(async (req) => {
   const { data: athlete } = await admin.from("athletes").select("user_id,coach_id,name").eq("id", rec.athlete_id).maybeSingle();
   if ((role === "professor" || role === "trainer") && athlete?.coach_id !== auth.user.id) return json({ error: "forbidden_athlete" }, 403);
 
+  const { data: existingDelivery } = await admin.from("training_adjustment_deliveries").select("id,status,attempt_count").eq("recommendation_id", id).maybeSingle();
+  if (existingDelivery?.status === "success") return json({ success: true, idempotent: true, recommendation_id: id });
+  const attemptCount = (existingDelivery?.attempt_count ?? 0) + 1;
+  const { data: deliveryLog } = await admin.from("training_adjustment_deliveries").upsert({ recommendation_id: id, athlete_id: rec.athlete_id, week_start: rec.week_start, status: "pending", attempt_count: attemptCount, last_error: null }, { onConflict: "recommendation_id" }).select("id").single();
+
   const delivery = await fetch(`${url}/functions/v1/fitpro-deliver-week`, {
     method: "POST", headers: { "Content-Type": "application/json", "x-weekly-training-secret": Deno.env.get("WEEKLY_TRAINING_SCHEDULER_SECRET")! },
     body: JSON.stringify({ athlete_id: rec.athlete_id, week_start: rec.week_start, source: "lote-4-adjustment-delivery", recommendation_id: rec.id }),
   });
   const deliveryBody = await delivery.json().catch(() => ({}));
-  if (!delivery.ok || deliveryBody?.success === false) return json({ error: "delivery_failed", detail: deliveryBody }, 502);
+  if (!delivery.ok || deliveryBody?.success === false) {
+    const nextRetry = new Date(Date.now() + Math.min(60, 2 ** attemptCount) * 60_000).toISOString();
+    await admin.from("training_adjustment_deliveries").update({ status: "failed", last_error: deliveryBody?.error ?? `HTTP ${delivery.status}`, response: deliveryBody, next_retry_at: nextRetry }).eq("id", deliveryLog?.id ?? "");
+    return json({ error: "delivery_failed", detail: deliveryBody, retry_at: nextRetry }, 502);
+  }
 
   const title = "Ajuste de treino aplicado";
   const message = `Seu treino foi atualizado com base no feedback recente. Semana de ${rec.week_start}.`;
   if (athlete?.user_id) await admin.from("notifications").insert({ user_id: athlete.user_id, title, message, type: "training_adjustment", action_url: "/train", related_table: "training_adjustment_recommendations", related_id: rec.id, event_type: "training_adjustment_applied" });
   if (athlete?.coach_id) await admin.from("notifications").insert({ user_id: athlete.coach_id, title: "Ajuste entregue ao aluno", message: `${athlete.name ?? "Aluno"}: ajuste aplicado e entregue.`, type: "training_adjustment", action_url: "/students", related_table: "training_adjustment_recommendations", related_id: rec.id, event_type: "training_adjustment_delivered" });
+  await admin.from("training_adjustment_deliveries").update({ status: "success", response: deliveryBody, last_error: null, next_retry_at: null }).eq("id", deliveryLog?.id ?? "");
   return json({ success: true, recommendation_id: rec.id, delivery: deliveryBody, notified: { athlete: !!athlete?.user_id, coach: !!athlete?.coach_id } });
 });
