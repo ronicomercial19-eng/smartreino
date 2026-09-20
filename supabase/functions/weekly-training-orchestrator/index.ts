@@ -103,6 +103,8 @@ Deno.serve(async (req) => {
           blocked++;
           await admin.from("training_automation_items").update({ error_message: "critical_feedback_requires_review" }).eq("id", item?.id ?? "");
         } else {
+          const feedbackLoop = await invoke(`${url}/functions/v1/training-feedback-loop`, schedulerSecret, { athlete_id: rule.aluno_id, macro_rules_id: rule.id, week_start: weekStart });
+          if (!feedbackLoop.ok) throw new Error(`feedback_loop_failed:${feedbackLoop.status}`);
           const generation = await invoke(`${url}/functions/v1/generate-smart-treino`, schedulerSecret, { aluno_id: rule.aluno_id, macro_rules_id: rule.id, week_start: weekStart, automation_context: summary });
           if (!generation.ok) throw new Error(`generation_failed:${generation.status}`);
           const delivery = await invoke(`${url}/functions/v1/fitpro-deliver-week`, schedulerSecret, { athlete_id: rule.aluno_id, week_start: weekStart });
