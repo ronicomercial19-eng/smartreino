@@ -6,27 +6,67 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-weekly-training-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Mapa de sinônimos: movement_pattern/target_muscle da IA -> termo de busca em exercises.target_muscles
-// Vocabulário real confirmado em exercises.target_muscles (2026-08): glúteos, peitoral, Dorsais, latíssimo,
-// romboides, trapézio, deltoides, Ombro, bíceps, tríceps, isquiotibiais, membros inferiores, core, Abdômen.
-// "quadríceps", "panturrilha" e "dorsal" (singular) NÃO existem no catálogo — mapeados para o termo genérico
-// mais próximo disponível ("membros inferiores") ou deixados para cair no fallback por movement_pattern.
+// daily_workouts.workout_type tem CHECK CONSTRAINT restrita a estes valores
+// (confirmado 29/09 via pg_get_constraintdef): 'strength','hypertrophy','endurance','power','recovery','quick'.
+const VALID_WORKOUT_TYPES = new Set(["strength", "hypertrophy", "endurance", "power", "recovery", "quick"]);
+const PILLAR_TO_WORKOUT_TYPE: Record<string, string> = {
+  performance: "endurance",
+  estrutural: "hypertrophy",
+  longevidade: "recovery",
+};
+function resolveWorkoutType(pillar?: string | null): string {
+  if (pillar && VALID_WORKOUT_TYPES.has(pillar)) return pillar;
+  if (pillar && PILLAR_TO_WORKOUT_TYPE[pillar]) return PILLAR_TO_WORKOUT_TYPE[pillar];
+  return "hypertrophy";
+}
+
+// Catálogo real confirmado em exercises.target_muscles (29/09): Abômen, bíceps, cardio, Cíclicos, core,
+// deltoides, Dorsais, erectores, glúteos, isquiotibiais, latíssimo, membros inferiores, Ombro, peitoral,
+// romboides, trapézio, tríceps (+ categorias de equipamento: Halteres, Kettlebell, TRX etc — ignoradas aqui).
+// A IA do Smart Treino frequentemente retorna termos COMPOSTOS ("Peitorais / MMSS", "Infraspinatus / Teres
+// Minor", "Coluna Torácica / Ombros") que NÃO batem com nenhum termo do catálogo via ilike simples — bug
+// achado em validação manual 29/09 (slots gerados corretamente pela IA, mas 0 exercícios resolvidos em
+// metade das sessões). Correcção: dividir termos compostos e tentar cada parte; ampliar sinônimos para
+// termos anatômicos em inglês/latim comuns; fallback final garantido por categoria ampla de movimento.
 const MUSCLE_SYNONYMS: Record<string, string[]> = {
   gluteos: ["glúteo"],
   "glúteos": ["glúteo"],
+  "gluteo medio": ["glúteo"],
+  "glúteo médio": ["glúteo"],
   quadriceps: ["membros inferiores"],
   "quadríceps": ["membros inferiores"],
   posterior_coxa: ["isquiotibiais", "membros inferiores"],
   posterior_de_coxa: ["isquiotibiais", "membros inferiores"],
+  "posterior de coxa": ["isquiotibiais", "membros inferiores"],
+  "posteriores": ["isquiotibiais", "membros inferiores"],
   panturrilhas: ["membros inferiores"],
   panturrilha: ["membros inferiores"],
+  "articulacoes inferiores": ["membros inferiores"],
+  "articulações inferiores": ["membros inferiores"],
+  "estabilizadores inferiores": ["membros inferiores"],
+  "membros inferiores (mmii)": ["membros inferiores"],
+  mmii: ["membros inferiores"],
   peito: ["peitoral"],
   peitoral: ["peitoral"],
+  peitorais: ["peitoral"],
+  mmss: ["ombro"],
+  "membros superiores": ["ombro"],
   dorsais: ["dorsais", "latíssimo", "romboides", "trapézio"],
   dorsal: ["dorsais", "latíssimo", "romboides", "trapézio"],
   costas: ["dorsais", "latíssimo", "romboides", "trapézio"],
+  "latissimo do dorso": ["latíssimo"],
+  "latíssimo do dorso": ["latíssimo"],
+  "coluna toracica": ["dorsais", "trapézio"],
+  "coluna torácica": ["dorsais", "trapézio"],
   ombros: ["ombro", "deltoides"],
   ombro: ["ombro", "deltoides"],
+  deltoides: ["deltoides", "ombro"],
+  "serratil": ["ombro", "deltoides"],
+  "serrátil": ["ombro", "deltoides"],
+  "infraspinatus": ["ombro", "deltoides"],
+  "teres minor": ["ombro", "deltoides"],
+  "manguito": ["ombro", "deltoides"],
+  "manguito rotador": ["ombro", "deltoides"],
   biceps: ["bíceps"],
   "bíceps": ["bíceps"],
   triceps: ["tríceps"],
@@ -34,7 +74,47 @@ const MUSCLE_SYNONYMS: Record<string, string[]> = {
   core: ["core", "abdômen"],
   abdomen: ["abdômen", "core"],
   "abdômen": ["abdômen", "core"],
+  "core profundo": ["core", "abdômen"],
+  "transverso do abdome": ["core", "abdômen"],
+  "transverso do abdomen": ["core", "abdômen"],
+  obliquos: ["core", "abdômen"],
+  "oblíquos": ["core", "abdômen"],
+  "snc": ["core"],
+  "pes": ["membros inferiores"],
+  "pés": ["membros inferiores"],
+  lombar: ["erectores", "core"],
+  erectores: ["erectores"],
+  cardio: ["cardio"],
+  mobilidade: ["Mobilidade"],
+  "liberacao miofascial": ["Mobilidade"],
+  "liberação miofascial": ["Mobilidade"],
+  "alongamento": ["Mobilidade"],
+  "respiracao diafragmatica": ["Mobilidade", "core"],
+  "respiração diafragmática": ["Mobilidade", "core"],
+  "psoas": ["membros inferiores", "Mobilidade"],
+  "flexores de quadril": ["membros inferiores", "Mobilidade"],
 };
+
+// Fallback final por categoria ampla: usado quando nada mais resolve, para nunca deixar
+// um slot sem exercício algum. Ordem de tentativa: core -> membros inferiores -> ombro -> peitoral -> dorsais.
+const BROAD_FALLBACK_TERMS = ["core", "membros inferiores", "ombro", "peitoral", "dorsais"];
+
+function splitCompoundTerm(raw: string): string[] {
+  return raw
+    .split(/[\/,]| e |\(|\)/i)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+async function searchTerm(supabase: any, term: string): Promise<string | null> {
+  if (!term) return null;
+  const { data, error } = await supabase.rpc("fn_search_exercises_by_muscle_term", {
+    p_term: `%${term}%`,
+    p_limit: 1,
+  });
+  if (!error && data && data.length > 0) return data[0].id;
+  return null;
+}
 
 async function resolveExerciseId(
   supabase: any,
@@ -46,28 +126,45 @@ async function resolveExerciseId(
   if (cache.has(key)) return cache.get(key)!;
 
   const normalized = (targetMuscle || "").toLowerCase().trim();
-  const terms = MUSCLE_SYNONYMS[normalized] || [normalized];
-
+  // 1) Tenta o termo inteiro no dicionário
+  let candidateTerms = MUSCLE_SYNONYMS[normalized] || [normalized];
   let foundId: string | null = null;
-  for (const term of terms) {
-    if (!term) continue;
-    const { data, error } = await supabase.rpc("fn_search_exercises_by_muscle_term", {
-      p_term: `%${term}%`,
-      p_limit: 1,
-    });
-    if (!error && data && data.length > 0) {
-      foundId = data[0].id;
-      break;
+  for (const term of candidateTerms) {
+    foundId = await searchTerm(supabase, term);
+    if (foundId) break;
+  }
+
+  // 2) Se não achou e o termo é composto ("peitorais / mmss"), tenta cada parte separadamente
+  if (!foundId) {
+    const parts = splitCompoundTerm(normalized);
+    for (const part of parts) {
+      const partTerms = MUSCLE_SYNONYMS[part] || [part];
+      for (const term of partTerms) {
+        foundId = await searchTerm(supabase, term);
+        if (foundId) break;
+      }
+      if (foundId) break;
     }
   }
 
-  // Fallback: tenta pelo próprio movement_pattern como termo
+  // 3) Fallback pelo movement_pattern como termo
   if (!foundId && movementPattern) {
-    const { data, error } = await supabase.rpc("fn_search_exercises_by_muscle_term", {
-      p_term: `%${movementPattern.toLowerCase()}%`,
-      p_limit: 1,
-    });
-    if (!error && data && data.length > 0) foundId = data[0].id;
+    foundId = await searchTerm(supabase, movementPattern.toLowerCase());
+    if (!foundId) {
+      const mpParts = splitCompoundTerm(movementPattern.toLowerCase());
+      for (const part of mpParts) {
+        foundId = await searchTerm(supabase, part);
+        if (foundId) break;
+      }
+    }
+  }
+
+  // 4) Fallback final garantido: categoria ampla, para nunca deixar o slot sem exercício
+  if (!foundId) {
+    for (const broad of BROAD_FALLBACK_TERMS) {
+      foundId = await searchTerm(supabase, broad);
+      if (foundId) break;
+    }
   }
 
   cache.set(key, foundId);
@@ -102,22 +199,38 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "aluno_id and macro_rules_id required" }), { status: 400, headers: corsHeaders });
     }
 
-    // Fetch all data in parallel
+    // Fetch all data in parallel. Profile e Volume usam maybeSingle/select simples —
+    // a AUSÊNCIA de smart_treino_profiles não deve derrubar a geração inteira (29/09:
+    // 9 de 10 atletas ativos nunca tiveram o wizard preenchido pelo professor). Em vez
+    // de falhar com 500, sinalizamos needs_profile=true e devolvemos 200 para que o
+    // orquestrador trate isso como "pendente de preenchimento manual", não como erro.
     const [profileRes, rulesRes, volumeRes, athleteRes] = await Promise.all([
-      supabase.from("smart_treino_profiles").select("*").eq("aluno_id", aluno_id).single(),
+      supabase.from("smart_treino_profiles").select("*").eq("aluno_id", aluno_id).maybeSingle(),
       supabase.from("smart_treino_macro_rules").select("*").eq("id", macro_rules_id).single(),
       supabase.from("smart_treino_muscle_volume").select("*").eq("macro_rules_id", macro_rules_id),
       supabase.from("athletes").select("name, experience_level, goals, injuries, sessions_per_week").eq("id", aluno_id).single(),
     ]);
 
-    if (profileRes.error) throw new Error(`Profile: ${profileRes.error.message}`);
     if (rulesRes.error) throw new Error(`Rules: ${rulesRes.error.message}`);
     if (volumeRes.error) throw new Error(`Volume: ${volumeRes.error.message}`);
+
+    if (!profileRes.data) {
+      // Não é um erro técnico — é um pré-requisito de processo não cumprido.
+      // Retorna 200 com sinalização clara para o orquestrador não contar como "failed"
+      // e sim como "blocked_missing_profile", distinguível no painel.
+      return new Response(JSON.stringify({
+        success: false,
+        needs_profile: true,
+        error: "smart_treino_profiles ausente para este atleta — preencher o wizard Perfil do Atleta antes de gerar",
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const profile = profileRes.data;
     const rules = rulesRes.data;
     const volumes = volumeRes.data;
     const athlete = athleteRes.data;
+
+    const volumeMissing = !volumes || volumes.length === 0;
 
     // Fetch protocol if available
     let protocolData: any = null;
@@ -126,11 +239,15 @@ serve(async (req) => {
       protocolData = data;
     }
 
+    const resolvedWorkoutType = resolveWorkoutType(protocolData?.pillar);
+
     const sessionLabels = ["A", "B", "C", "D", "E", "F"].slice(0, rules.weekly_frequency);
 
-    const volumeSummary = (volumes || []).map((v: any) =>
-      `- ${v.muscle_group}: ${v.weekly_sets} séries/semana ${v.is_emphasis ? "(ÊNFASE)" : ""} | Distribuição: ${JSON.stringify(v.distribution_json)}`
-    ).join("\n");
+    const volumeSummary = volumeMissing
+      ? "ATENÇÃO: nenhum volume semanal por músculo foi cadastrado para este atleta. Use volumes moderados e conservadores como padrão de segurança (8-12 séries/semana por grupo muscular, sem ênfase específica) até que o professor cadastre o volume real."
+      : (volumes || []).map((v: any) =>
+          `- ${v.muscle_group}: ${v.weekly_sets} séries/semana ${v.is_emphasis ? "(ÊNFASE)" : ""} | Distribuição: ${JSON.stringify(v.distribution_json)}`
+        ).join("\n");
 
     // Build protocol context
     let protocolContext = "";
@@ -168,6 +285,9 @@ REGRAS ABSOLUTAS:
 - Nunca criar exercícios específicos — apenas padrões de movimento
 - Cada sessão DEVE ter os 4 blocos
 - Responder APENAS em JSON válido usando tool calling
+- IMPORTANTE: use termos SIMPLES de target_muscle (ex: "peitoral", "dorsais", "core", "glúteos", "ombro",
+  "bíceps", "tríceps", "membros inferiores", "isquiotibiais", "trapézio", "romboides", "latíssimo",
+  "deltoides", "erectores"), evitando termos compostos com "/" ou nomes anatômicos em latim
 
 REGRAS DO MOTOR:
 - IF técnica degrada → bloquear progressão
@@ -331,6 +451,7 @@ ${protocolData ? "Use os 4 blocos (neural, integration, block_9, reset) conforme
     const exerciseCache = new Map<string, string | null>();
     let diasGravados = 0;
     const warnings: string[] = [];
+    if (volumeMissing) warnings.push("Nenhum smart_treino_muscle_volume cadastrado — IA usou volumes conservadores padrão. Recomenda-se cadastrar o volume real no wizard assim que possível.");
 
     for (let i = 0; i < sessions.length; i++) {
       const session = sessions[i];
@@ -374,7 +495,7 @@ ${protocolData ? "Use os 4 blocos (neural, integration, block_9, reset) conforme
           day_number: i + 1,
           day_name: session.session_name ?? session.session_label ?? `Dia ${i + 1}`,
           focus_muscles: focusMuscles,
-          workout_type: protocolData ? protocolData.pillar : "smart_treino",
+          workout_type: resolvedWorkoutType,
           updated_at: new Date().toISOString(),
         }).eq("id", dailyWorkoutId);
       } else {
@@ -384,7 +505,7 @@ ${protocolData ? "Use os 4 blocos (neural, integration, block_9, reset) conforme
           day_number: i + 1,
           day_name: session.session_name ?? session.session_label ?? `Dia ${i + 1}`,
           focus_muscles: focusMuscles,
-          workout_type: protocolData ? protocolData.pillar : "smart_treino",
+          workout_type: resolvedWorkoutType,
         }).select("id").single();
         if (insertErr || !inserted) {
           warnings.push(`Sessão ${session.session_label ?? i + 1}: falha ao criar daily_workout — ${insertErr?.message}`);
@@ -404,7 +525,7 @@ ${protocolData ? "Use os 4 blocos (neural, integration, block_9, reset) conforme
           exerciseCache
         );
         if (!exerciseId) {
-          warnings.push(`Sessão ${session.session_label ?? i + 1}, slot ${order + 1}: nenhum exercício encontrado para "${slot.target_muscle ?? slot.movement_pattern}"`);
+          warnings.push(`Sessão ${session.session_label ?? i + 1}, slot ${order + 1}: nenhum exercício encontrado para "${slot.target_muscle ?? slot.movement_pattern}" (inclusive fallback amplo)`);
           continue;
         }
         rows.push({
@@ -438,6 +559,8 @@ ${protocolData ? "Use os 4 blocos (neural, integration, block_9, reset) conforme
       data: result,
       dias_gravados: diasGravados,
       total_sessoes_geradas: sessions.length,
+      volume_missing: volumeMissing,
+      workout_type_used: resolvedWorkoutType,
       warnings,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
