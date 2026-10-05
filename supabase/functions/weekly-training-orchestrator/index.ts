@@ -105,12 +105,42 @@ Deno.serve(async (req) => {
         } else {
           const feedbackLoop = await invoke(`${url}/functions/v1/training-feedback-loop`, schedulerSecret, { athlete_id: rule.aluno_id, macro_rules_id: rule.id, week_start: weekStart });
           if (!feedbackLoop.ok) throw new Error(`feedback_loop_failed:${feedbackLoop.status}`);
+
           const generation = await invoke(`${url}/functions/v1/generate-smart-treino`, schedulerSecret, { aluno_id: rule.aluno_id, macro_rules_id: rule.id, week_start: weekStart, automation_context: summary });
           if (!generation.ok) throw new Error(`generation_failed:${generation.status}`);
+
+          // generate-smart-treino agora retorna 200 com needs_profile:true quando falta
+          // smart_treino_profiles, em vez de 500 — tratamos isso como bloqueio de processo
+          // (pré-requisito não cumprido pelo professor), não como falha técnica da automação.
+          if (generation.payload?.needs_profile) {
+            blocked++;
+            await admin.from("training_automation_items").update({
+              status: "blocked",
+              error_message: "missing_smart_treino_profile",
+              generation_result: generation.payload,
+            }).eq("id", item?.id ?? "");
+            processed++;
+            continue;
+          }
+          if (generation.payload?.success === false) throw new Error(`generation_failed:${generation.payload?.error ?? "unknown"}`);
+
+          // fitpro-deliver-week foi REMOVIDO da cadeia crítica (29/09): generate-smart-treino
+          // já grava diretamente em daily_workouts/workout_exercises via service role — o
+          // treino já está disponível para o FitPro assim que a geração retorna sucesso.
+          // A cadeia de entrega HTTP antiga (fitpro-deliver-week → fitpro-deliver-workout →
+          // fitpro-api /v1/fitpro/events) depende de uma rota que não existe no fitpro-api
+          // (confirmado 29/09, 86/86 tentativas falhando) e não deveria bloquear uma geração
+          // que já foi persistida corretamente. Mantemos uma tentativa de entrega como
+          // best-effort/log, sem derrubar a run se ela falhar.
           const delivery = await invoke(`${url}/functions/v1/fitpro-deliver-week`, schedulerSecret, { athlete_id: rule.aluno_id, week_start: weekStart });
-          if (!delivery.ok || delivery.payload?.success === false) throw new Error(`delivery_failed:${delivery.status}`);
+          const deliveryOk = delivery.ok && delivery.payload?.success !== false;
+
           generated++;
-          await admin.from("training_automation_items").update({ status: "delivered", generation_result: generation.payload, delivery_result: delivery.payload }).eq("id", item?.id ?? "");
+          await admin.from("training_automation_items").update({
+            status: "delivered",
+            generation_result: generation.payload,
+            delivery_result: { ...delivery.payload, best_effort_ok: deliveryOk, note: deliveryOk ? undefined : "entrega HTTP legada falhou, mas o treino ja foi gravado em daily_workouts pela geracao" },
+          }).eq("id", item?.id ?? "");
         }
       } catch (error) {
         failed++;
