@@ -38,6 +38,12 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    if (smartTreinoContext) {
+      const { data: compatible, error: doseError } = await supabase.rpc("fn_protocol_strength_compatible", { p_protocol_id: smartTreinoContext.protocol_code || "" });
+      if (doseError) throw doseError;
+      if (!compatible) return new Response(JSON.stringify({ success: false, error: "protocolo_modalidade_incompativel", message: "Este protocolo exige distância/duração e não pode gerar séries de musculação." }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // 1. Fetch student data (try athletes first, then alunos)
     let student: any = null;
     const { data: athleteData } = await supabase.from('athletes').select('*').eq('id', studentId).single();
@@ -366,3 +372,4 @@ IMPORTANTE: Gere TODAS as semanas completas com TODOS os dias e exercícios. Nã
     });
   }
 });
+
