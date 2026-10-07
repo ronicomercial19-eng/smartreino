@@ -239,6 +239,12 @@ serve(async (req) => {
       protocolData = data;
     }
 
+    if (protocolData) {
+      const { data: compatible, error: doseError } = await supabase.rpc("fn_protocol_strength_compatible", { p_protocol_id: protocolData.id });
+      if (doseError) throw doseError;
+      if (!compatible) return new Response(JSON.stringify({ error: "protocolo_modalidade_incompativel", message: "Este protocolo usa distância, duração ou estrutura específica. Não pode ser convertido em repetições de musculação." }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const resolvedWorkoutType = resolveWorkoutType(protocolData?.pillar);
 
     const sessionLabels = ["A", "B", "C", "D", "E", "F"].slice(0, rules.weekly_frequency);

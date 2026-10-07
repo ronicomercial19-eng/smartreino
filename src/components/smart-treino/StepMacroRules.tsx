@@ -1,3 +1,4 @@
+import { parseProtocolDose, isStrengthDose } from '../../../supabase/functions/_shared/protocol-dose';
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -121,13 +122,15 @@ export default function StepMacroRules({ rules, onChange }: Props) {
         model_name: proto.model_description,
         macro_objetivo: `${proto.protocol_name} — ${proto.variation_name}: ${proto.model_description}`,
         rpe_target: parseFloat(proto.rpe_range.split("-")[0]) || rules.rpe_target,
-        reps_range: b9.reps || rules.reps_range,
+        reps_range: isStrengthDose(parseProtocolDose(proto.model_description, proto.protocol_id, b9.reps)) ? b9.reps || rules.reps_range : undefined,
       });
     }
   };
 
+  const strengthCompatible = !selectedProtocol || isStrengthDose(parseProtocolDose(selectedProtocol.model_description, selectedProtocol.protocol_id, selectedProtocol.block_9_template?.reps));
   return (
     <div className="space-y-6">
+      {!strengthCompatible && <p role="alert" className="rounded-lg border border-orange-500 p-3 text-sm">Este protocolo usa distância, duração ou uma estrutura específica. A geração de séries e repetições de musculação não pode aplicá-lo. Selecione um protocolo compatível para esse gerador.</p>}
       {/* Protocol Selector (9x9x9) */}
       <Card>
         <CardHeader>
@@ -216,7 +219,7 @@ export default function StepMacroRules({ rules, onChange }: Props) {
               <p className="text-sm text-muted-foreground">{selectedProtocol.model_description}</p>
               <div className="flex gap-2 flex-wrap text-xs">
                 <Badge variant="outline">RPE: {selectedProtocol.rpe_range}</Badge>
-                <Badge variant="outline">Reps: {selectedProtocol.block_9_template?.reps || "variável"}</Badge>
+                <Badge variant="outline">Dose: {selectedProtocol.block_9_template?.reps || "variável"}</Badge>
                 <Badge variant="outline">Cadência: {selectedProtocol.block_9_template?.cadence || "padrão"}</Badge>
               </div>
             </div>
