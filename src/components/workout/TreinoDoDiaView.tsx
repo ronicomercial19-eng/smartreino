@@ -31,10 +31,12 @@ export function TreinoDoDiaView({
   treino,
   isLoading,
   error,
+  viewer = "professor",
 }: {
   treino?: TreinoPrescrito;
   isLoading?: boolean;
   error?: Error | null;
+  viewer?: "professor" | "aluno";
 }) {
   if (isLoading) {
     return (
@@ -72,12 +74,20 @@ export function TreinoDoDiaView({
               <p className="font-display font-bold text-lg">
                 {treino.motivo === "sem_periodizacao_ativa"
                   ? "Sem periodização ativa"
-                  : "Treino indisponível"}
+                  : treino.motivo === "unmatched_prescription_requires_review"
+                    ? viewer === "aluno"
+                      ? "Treino em ajuste"
+                      : "Treino precisa de revisão"
+                    : "Treino indisponível"}
               </p>
               <p className="text-sm text-muted-foreground">
                 {treino.motivo === "sem_periodizacao_ativa"
                   ? "Esse aluno ainda não tem um plano ativo. Gere um agora para começar a prescrever treinos."
-                  : `Motivo: ${treino.motivo}`}
+                  : treino.motivo === "unmatched_prescription_requires_review"
+                    ? viewer === "aluno"
+                      ? "Seu treino de hoje ainda está sendo ajustado pelo seu profissional. Volte em breve."
+                      : "Este treino não pôde ser gerado automaticamente — há uma instrução no protocolo sem exercício correspondente no catálogo. Revise manualmente ou ajuste o protocolo."
+                    : `Motivo: ${treino.motivo}`}
               </p>
             </div>
           </div>
