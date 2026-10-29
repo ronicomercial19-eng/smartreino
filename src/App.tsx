@@ -38,7 +38,6 @@ import AdvancedStatistics from "./pages/AdvancedStatistics";
 import SmartTreinoBuilder from "./pages/SmartTreinoBuilder";
 import ProtocolCatalog from "./pages/ProtocolCatalog";
 import TreinoHoje from "./pages/TreinoHoje";
-import { TreinoDoDiaView } from "./components/workout/TreinoDoDiaView";
 import FitproDeliveryStatus from "./pages/FitproDeliveryStatus";
 import EnviarTreinoHTML from "./pages/EnviarTreinoHTML";
 import { SovereignBootstrap } from "./components/auth/SovereignBootstrap";
@@ -201,7 +200,6 @@ function AppRoutes() {
       <Route path="/treino-hoje/:id" element={<TreinoHoje />} />
 
 
-      <Route path="/__ui-check" element={<div className="p-6 max-w-3xl mx-auto space-y-6"><TreinoDoDiaView treino={{sucesso:false,motivo:"unmatched_prescription_requires_review"}} /><TreinoDoDiaView viewer="aluno" treino={{sucesso:false,motivo:"unmatched_prescription_requires_review"}} /><TreinoDoDiaView treino={{sucesso:false,motivo:"sem_periodizacao_ativa"}} /></div>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
