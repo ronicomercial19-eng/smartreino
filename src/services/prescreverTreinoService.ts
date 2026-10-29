@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface ExercicioPrescrito {
   id: string;
+  workout_exercise_id?: string;
   nome: string;
   grupo_muscular?: string;
   video_url?: string;
@@ -16,6 +17,9 @@ export interface ExercicioPrescrito {
 
 export interface TreinoPrescrito {
   sucesso: boolean;
+  daily_workout_id?: string;
+  updated_at?: string;
+  preserved?: boolean;
   motivo?: string;
   sugestao_cta?: string;
   data?: string;
@@ -53,13 +57,21 @@ const db = supabase as any;
 
 export async function prescreverTreino(
   alunoId?: string,
-  data?: string
+  data?: string,
+  signal?: AbortSignal
 ): Promise<TreinoPrescrito> {
-  const { data: result, error } = await db.rpc("prescrever_treino", {
-    p_aluno_id: alunoId ?? null,
-    p_data: data ?? new Date().toISOString().slice(0, 10),
-  });
-  if (error) throw error;
+  const day = data ?? new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
+  const identity = alunoId ? {data:alunoId,error:null} : await db.rpc('fn_current_athlete_id').abortSignal(signal);
+  if(identity.error) throw identity.error;
+  if(!identity.data) return {sucesso:false,motivo:'aluno_nao_encontrado'};
+  const args={p_aluno_id:identity.data,p_data:day};
+  const saved=await db.rpc('fn_get_saved_prescription',args).abortSignal(signal);
+  if(saved.error) throw saved.error;
+  if(saved.data?.motivo !== 'saved_prescription_not_found') return saved.data as TreinoPrescrito;
+  const {data:result,error}=await db.rpc('prescrever_treino',args).abortSignal(signal);
+  if(error)throw error;
+  // Read again for stable row ids, optimistic timestamp and the doses actually saved.
+  if(result?.sucesso){const current=await db.rpc('fn_get_saved_prescription',args).abortSignal(signal);if(current.error)throw current.error;return {...current.data,preserved:false};}
   return result as TreinoPrescrito;
 }
 
@@ -69,7 +81,7 @@ export async function prescreverTreinoHtml(
 ): Promise<string> {
   const { data: html, error } = await db.rpc("prescrever_treino_html", {
     p_aluno_id: alunoId ?? null,
-    p_data: data ?? new Date().toISOString().slice(0, 10),
+    p_data: data ?? new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date()),
   });
   if (error) throw error;
   return html as string;
