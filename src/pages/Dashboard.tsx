@@ -1,3 +1,4 @@
+import { TrainingSetupInbox } from "@/components/TrainingSetupInbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,7 @@ export default function Dashboard() {
       subtitle="Acompanhe seu progresso e performance dos treinos"
     >
       <div className="space-y-6 animate-fade-in">
+        <TrainingSetupInbox />
 
         {/* Cards de Estatísticas */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -537,7 +537,7 @@ ${protocolData ? "Use os 4 blocos (neural, integration, block_9, reset) conforme
         rows.push({
           daily_workout_id: dailyWorkoutId,
           exercise_id: exerciseId,
-          exercise_order: slot.order ?? order + 1,
+          exercise_order: order + 1,
           sets: slot.sets ?? 3,
           reps_range: slot.reps ?? "8-12",
           rest_seconds: slot.rest_seconds ?? 60,

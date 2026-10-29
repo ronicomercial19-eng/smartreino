@@ -26,7 +26,6 @@ import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PeriodizacaoMissingBanner } from "@/components/workout/PeriodizacaoMissingBanner";
-import { entregarTreinoFitpro } from "@/services/fitproDelivery";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { ExercicioPrescrito, TreinoPrescrito } from "@/services/prescreverTreinoService";
@@ -75,8 +74,10 @@ export default function TreinoHoje() {
     setRevertedIds(new Set());
     setIntensityOverride(null);
     setApplied(false);
-  }, [treino?.historico_id]);
+  }, [treino?.daily_workout_id, treino?.updated_at]);
 
+  const slotKey = (ex: ExercicioPrescrito) => ex.workout_exercise_id || ex.id;
+  const precisaRevisao = treino && !treino.sucesso && /requires_review|invalid_protocol_units|exercise_focus_or_order_review/.test(treino.motivo || "");
   const semPeriodizacao =
     treino && (treino as any).sucesso === false &&
     (treino as any).motivo === "sem_periodizacao_ativa";
@@ -89,12 +90,12 @@ export default function TreinoHoje() {
   }, [treino]);
 
   const effective = (ex: ExercicioPrescrito & { bloco: Bloco }) => {
-    if (revertedIds.has(ex.id)) return ex;
-    const e = edits[ex.id];
+    if (revertedIds.has(slotKey(ex))) return ex;
+    const e = edits[slotKey(ex)];
     return e ? { ...ex, ...e } : ex;
   };
 
-  const changedCount = allExercises.filter((ex) => edits[ex.id] && !revertedIds.has(ex.id)).length;
+  const changedCount = allExercises.filter((ex) => edits[slotKey(ex)] && !revertedIds.has(slotKey(ex))).length;
   const hasEdits = changedCount > 0 || intensityOverride !== null;
 
   const toggleRevert = (id: string) => {
@@ -112,10 +113,10 @@ export default function TreinoHoje() {
   // Trocar exercício: busca alternativas reais do catálogo com o mesmo grupo
   // muscular — não precisa abandonar a prescrição inteira pra trocar um item.
   const openSwapMenu = async (ex: ExercicioPrescrito) => {
-    if (swapOpenId === ex.id) { setSwapOpenId(null); return; }
-    setSwapOpenId(ex.id);
-    if (swapOptions[ex.id]) return;
-    setSwapLoading(ex.id);
+    if (swapOpenId === slotKey(ex)) { setSwapOpenId(null); return; }
+    setSwapOpenId(slotKey(ex));
+    if (swapOptions[slotKey(ex)]) return;
+    setSwapLoading(slotKey(ex));
     try {
       const grupo = ex.grupo_muscular ? [ex.grupo_muscular] : [ex.nome];
       const { data: rows } = await (supabase as any)
@@ -130,7 +131,7 @@ export default function TreinoHoje() {
         grupo_muscular: r.target_muscles?.[0] ?? null,
         matchLabel: "mesmo grupo",
       }));
-      setSwapOptions((prev) => ({ ...prev, [ex.id]: options }));
+      setSwapOptions((prev) => ({ ...prev, [slotKey(ex)]: options }));
     } finally {
       setSwapLoading(null);
     }
@@ -167,7 +168,7 @@ export default function TreinoHoje() {
     if (!treino?.contexto?.aluno_id || !treino.data) return;
     setApplying(true);
     try {
-      const changes: Record<string, any> = {};
+      const changes: Record<string, any> = { _expected_updated_at: treino.updated_at };
       if (intensityOverride) changes.intensidade_override = intensityOverride;
       const exercicios: Record<string, any> = {};
       Object.entries(edits).forEach(([exId, delta]) => {
@@ -182,6 +183,7 @@ export default function TreinoHoje() {
         p_changes: changes,
       });
       if (error) throw error;
+      await refetch();
       setApplied(true);
       toast({ title: "Ajuste salvo", description: "As alterações foram registradas para o dia." });
     } catch (e: any) {
@@ -192,28 +194,17 @@ export default function TreinoHoje() {
   };
 
   const enviarFitpro = async () => {
-    if (!treino?.sucesso || !treino.contexto) return;
+    if(!treino?.sucesso||!treino.daily_workout_id||!treino.contexto||delivering)return;
     setDelivering(true);
-    try {
-      const res: any = await entregarTreinoFitpro({
-        alunoId: treino.contexto.aluno_id,
-        historicoId: treino.historico_id,
-        contexto: treino.contexto,
-        treino: treino.treino,
-      });
-      if (res?.success) {
-        toast({
-          title: "Treino enviado ao FitPro",
-          description: res.mapped ? "Aluno mapeado com sucesso." : "Enviado sem mapeamento — usando aluno_id como referência.",
-        });
-      } else {
-        toast({ title: "Falha ao entregar", description: res?.error ?? "Erro desconhecido", variant: "destructive" });
-      }
-    } catch (e: any) {
-      toast({ title: "Erro de rede", description: e.message, variant: "destructive" });
-    } finally {
-      setDelivering(false);
-    }
+    try{
+      const {data,error}=await (supabase as any).from('daily_workouts')
+        .select('id,prescription_issue,workout_exercises(id)').eq('id',treino.daily_workout_id)
+        .eq('athlete_id',treino.contexto.aluno_id).single();
+      if(error)throw error;
+      if(data.prescription_issue||!data.workout_exercises?.length)throw new Error('Esta prescrição precisa de revisão antes de ser executada.');
+      toast({title:'Treino disponível no FitPro',description:'A sessão está salva no banco compartilhado e disponível para consulta pelo aluno.'});
+    }catch(e:any){toast({title:'Não foi possível confirmar a sessão',description:e.message,variant:'destructive'});}
+    finally{setDelivering(false);}
   };
 
   const intensity = intensityOverride ?? "moderada";
@@ -231,12 +222,12 @@ export default function TreinoHoje() {
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching} className="gap-2">
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-              Re-prescrever
+              Atualizar treino salvo
             </Button>
             {treino?.sucesso && (
               <Button size="sm" onClick={enviarFitpro} disabled={delivering} className="gap-2">
                 <Send className={`h-4 w-4 ${delivering ? "animate-pulse" : ""}`} />
-                Enviar ao FitPro
+                Confirmar no FitPro
               </Button>
             )}
           </div>
@@ -274,8 +265,8 @@ export default function TreinoHoje() {
               <div className="flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
                 <div className="flex-1">
-                  <p className="font-display font-bold text-lg">Treino indisponível</p>
-                  <p className="text-sm text-muted-foreground">Motivo: {treino.motivo}</p>
+                  <p className="font-display font-bold text-lg">{precisaRevisao ? "Treino precisa de revisão" : "Treino indisponível"}</p>
+                  <p className="text-sm text-muted-foreground">{precisaRevisao ? "Há uma inconsistência na prescrição. Revise o catálogo e o protocolo antes de liberar esta sessão." : `Motivo: ${treino.motivo}`}</p>
                 </div>
               </div>
               {treino.sugestao_cta === "gerar_smart_treino" && (
@@ -327,7 +318,7 @@ export default function TreinoHoje() {
                     Ron Coach prescreveu o treino de {treino.contexto!.aluno_nome}
                   </p>
                   <p className="text-[10px] text-muted-foreground leading-tight">
-                    Semana {treino.contexto!.semana_atual} · Fase {treino.contexto!.fase}
+                    Semana {treino.contexto!.semana_atual ?? "não registrada"} · Fase {treino.contexto!.fase}
                     {treino.contexto!.protocolo && ` · ${treino.contexto!.protocolo}`}
                   </p>
                 </div>
@@ -423,11 +414,11 @@ export default function TreinoHoje() {
                   {items.map((ex) => {
                     const exWithBloco = { ...ex, bloco: key };
                     const eff = effective(exWithBloco);
-                    const isChanged = !!edits[ex.id] && !revertedIds.has(ex.id);
-                    const isReverted = revertedIds.has(ex.id);
+                    const isChanged = !!edits[slotKey(ex)] && !revertedIds.has(slotKey(ex));
+                    const isReverted = revertedIds.has(slotKey(ex));
                     return (
                       <div
-                        key={ex.id}
+                        key={slotKey(ex)}
                         className={`rounded-2xl border p-4 transition-colors ${
                           isChanged ? "border-primary/40 bg-primary/[0.05]" : "border-white/10 bg-card"
                         }`}
@@ -447,14 +438,14 @@ export default function TreinoHoje() {
                               onClick={() => openSwapMenu(ex)}
                               aria-label="Trocar exercício"
                               className={`w-7 h-7 rounded-[9px] flex items-center justify-center border transition-colors ${
-                                swapOpenId === ex.id ? "bg-primary/15 border-primary/40 text-primary" : "bg-white/5 border-white/10 text-muted-foreground"
+                                swapOpenId === slotKey(ex) ? "bg-primary/15 border-primary/40 text-primary" : "bg-white/5 border-white/10 text-muted-foreground"
                               }`}
                             >
                               <ArrowLeftRight className="w-3 h-3" />
                             </button>
                             {isChanged && (
                               <button
-                                onClick={() => toggleRevert(ex.id)}
+                                onClick={() => toggleRevert(slotKey(ex))}
                                 className="text-[10px] font-semibold px-2 py-1 rounded-full border flex items-center gap-1 border-white/10 bg-white/5 text-muted-foreground hover:text-primary hover:border-primary/30"
                               >
                                 <Undo2 className="w-2.5 h-2.5" /> desfazer
@@ -462,7 +453,7 @@ export default function TreinoHoje() {
                             )}
                             {isReverted && (
                               <button
-                                onClick={() => toggleRevert(ex.id)}
+                                onClick={() => toggleRevert(slotKey(ex))}
                                 className="text-[10px] font-semibold px-2 py-1 rounded-full border flex items-center gap-1 border-white/10 bg-white/5 text-muted-foreground hover:text-primary hover:border-primary/30"
                               >
                                 <Redo2 className="w-2.5 h-2.5" /> refazer
@@ -471,20 +462,20 @@ export default function TreinoHoje() {
                           </div>
                         </div>
 
-                        {swapOpenId === ex.id && (
+                        {swapOpenId === slotKey(ex) && (
                           <div className="mt-3 space-y-1.5">
-                            {swapLoading === ex.id && (
+                            {swapLoading === slotKey(ex) && (
                               <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 py-1">
                                 <Loader2 className="w-3 h-3 animate-spin" /> Buscando alternativas…
                               </div>
                             )}
-                            {swapOptions[ex.id]?.length === 0 && swapLoading !== ex.id && (
+                            {swapOptions[slotKey(ex)]?.length === 0 && swapLoading !== slotKey(ex) && (
                               <p className="text-[11px] text-muted-foreground py-1">Nenhuma alternativa encontrada pro mesmo grupo.</p>
                             )}
-                            {swapOptions[ex.id]?.map((opt) => (
+                            {swapOptions[slotKey(ex)]?.map((opt) => (
                               <button
                                 key={opt.id}
-                                onClick={() => pickSwap(ex.id, opt)}
+                                onClick={() => pickSwap(slotKey(ex), opt)}
                                 className="w-full text-left px-3 py-2 rounded-xl bg-background border border-white/10 text-xs text-foreground/85 flex items-center justify-between hover:border-primary/30"
                               >
                                 <span>{opt.nome}</span>
@@ -500,7 +491,7 @@ export default function TreinoHoje() {
                               Séries
                               <input
                                 type="number" min={1} max={10} value={eff.series}
-                                onChange={(e) => patch(ex.id, { series: Number(e.target.value) })}
+                                onChange={(e) => patch(slotKey(ex), { series: Number(e.target.value) })}
                                 className="w-full mt-1 bg-transparent border-b border-white/10 py-1 text-sm text-foreground focus:outline-none focus:border-primary"
                               />
                             </label>
@@ -508,7 +499,7 @@ export default function TreinoHoje() {
                               Reps
                               <input
                                 value={eff.reps}
-                                onChange={(e) => patch(ex.id, { reps: e.target.value })}
+                                onChange={(e) => patch(slotKey(ex), { reps: e.target.value })}
                                 className="w-full mt-1 bg-transparent border-b border-white/10 py-1 text-sm text-foreground focus:outline-none focus:border-primary"
                               />
                             </label>
@@ -516,7 +507,7 @@ export default function TreinoHoje() {
                               Descanso
                               <input
                                 value={eff.descanso}
-                                onChange={(e) => patch(ex.id, { descanso: e.target.value })}
+                                onChange={(e) => patch(slotKey(ex), { descanso: e.target.value })}
                                 className="w-full mt-1 bg-transparent border-b border-white/10 py-1 text-sm text-foreground focus:outline-none focus:border-primary"
                               />
                             </label>
@@ -567,12 +558,10 @@ export default function TreinoHoje() {
               </button>
             )}
 
-            {/* Nota de persistência: ajuste é registrado em changes_json, mas uma
-                nova prescrição (Re-prescrever) ainda regera os exercícios do zero
-                a partir do protocolo — correção de fundo planejada em fase separada. */}
+            {/* Doses persistidas na sessão canônica; intensidade é uma orientação. */}
             {hasEdits && (
               <p className="text-[10px] text-muted-foreground/60 text-center px-4">
-                O ajuste fica registrado para hoje. Se o treino for re-prescrito, ele pode ser substituído pela prescrição original do protocolo.
+                Os ajustes são salvos na sessão e preservados ao atualizar a tela. A orientação de intensidade não altera séries, repetições ou RPE automaticamente.
               </p>
             )}
           </>

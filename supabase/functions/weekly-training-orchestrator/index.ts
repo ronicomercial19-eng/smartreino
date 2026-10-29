@@ -34,6 +34,10 @@ async function invoke(url: string, secret: string, body: unknown) {
   return { ok: response.ok, status: response.status, payload };
 }
 
+// Motivos retornados por prescrever_treino que indicam bloqueio estrutural (não um erro de
+// execução): sem sentido insistir nos outros dias da semana, pois o motivo vai se repetir.
+const BLOCKING_MOTIVOS = new Set(["sem_periodizacao_ativa", "protocolo_nao_encontrado", "aluno_nao_encontrado", "protocolo_modalidade_incompativel"]);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -57,12 +61,12 @@ Deno.serve(async (req) => {
     const runKey = `lote-0:${weekStart}`;
 
     const { data: existing } = await admin.from("training_automation_runs").select("*").eq("run_key", runKey).maybeSingle();
-    if (existing?.status === "completed" || existing?.status === "completed_with_errors") {
+    if (existing?.status === "completed" && Number(existing.blocked_athletes??0)===0 && Number(existing.failed_athletes??0)===0) {
       return json({ success: true, idempotent: true, run_id: existing.id, status: existing.status });
     }
 
     const { data: run, error: runError } = await admin.from("training_automation_runs").upsert({
-      run_key: runKey, week_start: weekStart, week_end: weekEnd, status: "running", metadata: { batch: "lote-0" },
+      run_key: runKey, week_start: weekStart, week_end: weekEnd, status: "running", metadata: { batch: "lote-0", engine: "fn_generate_periodized_week" },
     }, { onConflict: "run_key" }).select().single();
     if (runError || !run) throw runError ?? new Error("run_not_created");
 
@@ -82,6 +86,7 @@ Deno.serve(async (req) => {
           admin.from("sync_score_logs").select("score, feedback_text, inferred_state, created_at").eq("user_id", rule.aluno_id).order("created_at", { ascending: false }).limit(12),
           admin.from("workout_executions").select("status, rpe, avg_rpe, rating, notes, workout_date").eq("athlete_id", rule.aluno_id).order("workout_date", { ascending: false }).limit(14),
         ]);
+        if(feedbackResult.error||syncResult.error||executionsResult.error) throw new Error("feedback_context_unavailable");
         const feedback = feedbackResult.data ?? [];
         const sync = syncResult.data ?? [];
         const executions = executionsResult.data ?? [];
@@ -106,41 +111,33 @@ Deno.serve(async (req) => {
           const feedbackLoop = await invoke(`${url}/functions/v1/training-feedback-loop`, schedulerSecret, { athlete_id: rule.aluno_id, macro_rules_id: rule.id, week_start: weekStart });
           if (!feedbackLoop.ok) throw new Error(`feedback_loop_failed:${feedbackLoop.status}`);
 
-          const generation = await invoke(`${url}/functions/v1/generate-smart-treino`, schedulerSecret, { aluno_id: rule.aluno_id, macro_rules_id: rule.id, week_start: weekStart, automation_context: summary });
-          if (!generation.ok) throw new Error(`generation_failed:${generation.status}`);
-
-          // generate-smart-treino agora retorna 200 com needs_profile:true quando falta
-          // smart_treino_profiles, em vez de 500 — tratamos isso como bloqueio de processo
-          // (pré-requisito não cumprido pelo professor), não como falha técnica da automação.
-          if (generation.payload?.needs_profile) {
+          // Share exactly the same frequency, calendar and preservation rules as FitPro.
+          const {data: weekResult,error: weekError}=await admin.rpc("fn_generate_periodized_week",{
+            p_athlete_id:rule.aluno_id,p_week_start:weekStart,
+            p_days_week:Math.max(1,Math.min(rule.weekly_frequency??3,7)),
+          });
+          if(weekError)throw new Error("canonical_week_generation_failed:"+weekError.code);
+          const generation=weekResult??{};
+          const ready=Number(generation.generated??0)+Number(generation.preserved??0);
+          const hasErrors=!generation.success;
+          if(hasErrors||ready===0){
             blocked++;
             await admin.from("training_automation_items").update({
-              status: "blocked",
-              error_message: "missing_smart_treino_profile",
-              generation_result: generation.payload,
-            }).eq("id", item?.id ?? "");
-            processed++;
-            continue;
+              status:"blocked",
+              error_message:ready>0?"partial_week_requires_review":generation.error??"week_requires_review",
+              generation_result:{engine:"fn_generate_periodized_week",...generation},
+              delivery_result:{persisted_directly:true,partial:ready>0},
+            }).eq("id",item?.id??"");
+          }else{
+            generated++;
+            await admin.from("training_automation_items").update({
+              status:"delivered",error_message:null,
+              generation_result:{engine:"fn_generate_periodized_week",...generation},
+              delivery_result:{persisted_directly:true},
+            }).eq("id",item?.id??"");
           }
-          if (generation.payload?.success === false) throw new Error(`generation_failed:${generation.payload?.error ?? "unknown"}`);
-
-          // fitpro-deliver-week foi REMOVIDO da cadeia crítica (29/09): generate-smart-treino
-          // já grava diretamente em daily_workouts/workout_exercises via service role — o
-          // treino já está disponível para o FitPro assim que a geração retorna sucesso.
-          // A cadeia de entrega HTTP antiga (fitpro-deliver-week → fitpro-deliver-workout →
-          // fitpro-api /v1/fitpro/events) depende de uma rota que não existe no fitpro-api
-          // (confirmado 29/09, 86/86 tentativas falhando) e não deveria bloquear uma geração
-          // que já foi persistida corretamente. Mantemos uma tentativa de entrega como
-          // best-effort/log, sem derrubar a run se ela falhar.
-          const delivery = await invoke(`${url}/functions/v1/fitpro-deliver-week`, schedulerSecret, { athlete_id: rule.aluno_id, week_start: weekStart });
-          const deliveryOk = delivery.ok && delivery.payload?.success !== false;
-
-          generated++;
-          await admin.from("training_automation_items").update({
-            status: "delivered",
-            generation_result: generation.payload,
-            delivery_result: { ...delivery.payload, best_effort_ok: deliveryOk, note: deliveryOk ? undefined : "entrega HTTP legada falhou, mas o treino ja foi gravado em daily_workouts pela geracao" },
-          }).eq("id", item?.id ?? "");
+          processed++;
+          continue;
         }
       } catch (error) {
         failed++;
