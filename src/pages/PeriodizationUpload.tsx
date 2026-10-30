@@ -305,14 +305,11 @@ const PeriodizationUpload = () => {
         description: `${data.summary?.total_semanas} semanas · ${data.summary?.total_mesociclos} mesociclos criados.`,
       });
 
-      // Auto-entrega ao FitPro (fire-and-forget)
-      const { autoDeliverToFitpro } = await import("@/services/autoDeliverFitpro");
-      autoDeliverToFitpro({
-        athleteId: selectedAlunoId,
-        planoId: data.plan?.id,
-        treino: data.plan,
-        contexto: { source: "plano-periodizado", summary: data.summary },
-      });
+      try{
+        const {autoDeliverToFitpro}=await import('@/services/autoDeliverFitpro');
+        const delivery=await autoDeliverToFitpro({athleteId:selectedAlunoId,planoId:data.plan?.id});
+        toast({title:delivery.success?'Sessões disponíveis no FitPro':'Plano salvo; entrega parcial',description:delivery.message});
+      }catch(failure){toast({title:'Plano salvo; sessões pendentes no FitPro',description:failure instanceof Error?failure.message:'Revise a periodização ativa antes de entregar.',variant:'destructive'});}
 
       await loadSavedPlans();
     } catch (error: any) {

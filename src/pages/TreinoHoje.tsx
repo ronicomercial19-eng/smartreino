@@ -51,7 +51,7 @@ export default function TreinoHoje() {
   const [delivering, setDelivering] = useState(false);
 
   const { data: treino, isLoading, error, refetch, isFetching } = useTreinoDoDia(alunoId, data);
-  const signals = useRonSignals(alunoId);
+  const signals = useRonSignals(treino?.contexto?.aluno_id);
 
   // Edições locais aplicadas em cima da prescrição (série/reps/descanso por exercício),
   // trocas de exercício, reverts e override de intensidade — tudo client-side até
@@ -177,12 +177,14 @@ export default function TreinoHoje() {
       });
       if (Object.keys(exercicios).length > 0) changes.exercicios = exercicios;
 
-      const { error } = await (supabase as any).rpc("aplicar_ajuste_treino_dia", {
+      const { data:result, error } = await (supabase as any).rpc("aplicar_ajuste_treino_dia", {
         p_athlete_id: treino.contexto.aluno_id,
         p_data: treino.data,
         p_changes: changes,
       });
       if (error) throw error;
+      if(result?.success!==true)throw new Error("O ajuste não foi confirmado pelo servidor.");
+      window.dispatchEvent(new Event("9fit:workout-updated"));
       await refetch();
       setApplied(true);
       toast({ title: "Ajuste salvo", description: "As alterações foram registradas para o dia." });

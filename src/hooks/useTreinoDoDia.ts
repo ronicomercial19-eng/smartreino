@@ -1,3 +1,4 @@
+import { supabase } from '@/integrations/supabase/client';
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -28,6 +29,15 @@ export function useTreinoDoDia(alunoId?: string, data?: string, enabled = true) 
       });
     }
   }, [query.data?.daily_workout_id,query.data?.preserved]);
+
+  useEffect(()=>{
+    const athlete=query.data?.contexto?.aluno_id;
+    if(!user||!athlete)return;
+    const refresh=()=>{void query.refetch();};
+    const channel=supabase.channel(`smart-prescription-${athlete}`).on('postgres_changes',{event:'*',schema:'public',table:'daily_workouts',filter:`athlete_id=eq.${athlete}`},refresh).subscribe();
+    window.addEventListener('9fit:workout-updated',refresh);
+    return()=>{void supabase.removeChannel(channel);window.removeEventListener('9fit:workout-updated',refresh);};
+  },[user?.id,query.data?.contexto?.aluno_id,alunoId,data]);
 
   return query;
 }
