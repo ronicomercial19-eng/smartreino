@@ -61,7 +61,7 @@ export async function prescreverTreino(
   signal?: AbortSignal
 ): Promise<TreinoPrescrito> {
   const day = data ?? new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
-  const identity = alunoId ? {data:alunoId,error:null} : await db.rpc('fn_current_athlete_id').abortSignal(signal);
+  const identity=await db.rpc('fn_resolve_progress_athlete',{p_identifier:alunoId || null}).abortSignal(signal);
   if(identity.error) throw identity.error;
   if(!identity.data) return {sucesso:false,motivo:'aluno_nao_encontrado'};
   const args={p_aluno_id:identity.data,p_data:day};

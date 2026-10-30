@@ -23,7 +23,7 @@ function pdiFatigueFromParams(p: {
   recovery_rate?: string | null;
   stress_sensitivity?: number | null;
 }): "baixa" | "moderada" | "alta" {
-  const slowRecovery = p.recovery_rate === "lenta";
+  const slowRecovery = ["lenta","slow"].includes(p.recovery_rate || "");
   const highStress = (p.stress_sensitivity ?? 0) >= 7;
   if (slowRecovery && highStress) return "alta";
   if (slowRecovery || highStress) return "moderada";
@@ -38,43 +38,29 @@ export function useRonSignals(athleteId: string | null | undefined) {
     loading: true,
   });
 
-  useEffect(() => {
-    if (!athleteId) return;
-    let cancelled = false;
-
-    (async () => {
-      const [syncRes, pdiRes, cycleRes] = await Promise.all([
-        (supabase as any).from("athletes").select("sync_score, sync_score_updated_at").eq("id", athleteId).maybeSingle(),
-        (supabase as any).from("user_parameters").select("recovery_rate, stress_sensitivity, volume_tolerance").eq("user_id", athleteId).maybeSingle(),
-        (supabase as any).from("vw_periodizacao_ativa_aluno").select("semana_atual, fase_atual, tem_periodizacao").eq("aluno_id", athleteId).maybeSingle(),
-      ]);
-      if (cancelled) return;
-
-      const sync = syncRes.data?.sync_score != null
-        ? { ready: true as const, score: syncRes.data.sync_score, updatedAt: syncRes.data.sync_score_updated_at }
-        : { ready: false as const };
-
-      const pdi = pdiRes.data
-        ? {
-            ready: true as const,
-            fatigueLevel: pdiFatigueFromParams(pdiRes.data),
-            volumeTolerance: pdiRes.data.volume_tolerance ?? 0,
-          }
-        : { ready: false as const };
-
-      const cycle = cycleRes.data?.tem_periodizacao && cycleRes.data?.semana_atual
-        ? {
-            ready: true as const,
-            weekLabel: `Semana ${cycleRes.data.semana_atual}`,
-            phase: cycleRes.data.fase_atual ?? null,
-          }
-        : { ready: false as const };
-
-      setSignals({ sync, pdi, cycle, loading: false });
-    })();
-
-    return () => { cancelled = true; };
-  }, [athleteId]);
-
+  const [revision,setRevision]=useState(0);
+  useEffect(()=>{
+    const refresh=()=>setRevision(n=>n+1);
+    const timer=setInterval(()=>{if(!document.hidden)refresh();},60000);
+    window.addEventListener('focus',refresh);window.addEventListener('9fit:sync_updated',refresh);window.addEventListener('9fit:workout-updated',refresh);
+    return()=>{clearInterval(timer);window.removeEventListener('focus',refresh);window.removeEventListener('9fit:sync_updated',refresh);window.removeEventListener('9fit:workout-updated',refresh);};
+  },[]);
+  useEffect(()=>{
+    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),15000);let active=true;
+    setSignals({sync:{ready:false},pdi:{ready:false},cycle:{ready:false},loading:!!athleteId});
+    if(athleteId){
+      (async()=>{
+        try{
+          const {data,error}=await (supabase as any).rpc('fn_smart_training_signals',{p_athlete_id:athleteId}).abortSignal(controller.signal);
+          if(error)throw error;
+          if(!active)return;
+          const p=data.pdi;
+          setSignals({sync:data.sync,cycle:data.cycle,pdi:p.ready&&p.recovery_rate!=null&&p.stress_sensitivity!=null&&p.volume_tolerance!=null?{ready:true,fatigueLevel:pdiFatigueFromParams(p),volumeTolerance:p.volume_tolerance}:{ready:false},loading:false});
+        }catch{if(active)setSignals({sync:{ready:false},pdi:{ready:false},cycle:{ready:false},loading:false});}
+        finally{clearTimeout(timer);}
+      })();
+    }else clearTimeout(timer);
+    return()=>{active=false;clearTimeout(timer);controller.abort();};
+  },[athleteId,revision]);
   return signals;
 }
