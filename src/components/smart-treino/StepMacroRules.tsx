@@ -6,7 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { SmartTreinoMacroRules, SmartTreinoProtocol, PILLARS, PROTOCOLS_META, getProtocols } from "@/services/smartTreinoService";
-import { Layers, Info, Zap } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Layers, Info, Zap, Lightbulb } from "lucide-react";
 
 interface Props {
   rules: Partial<SmartTreinoMacroRules>;
@@ -15,16 +17,39 @@ interface Props {
 
 const frequencyOptions = [2, 3, 4, 5, 6];
 
+interface ProtocolSuggestion {
+  has_suggestion: boolean;
+  protocol_id?: string;
+  protocol_name?: string;
+  pillar?: string;
+  variation_name?: string;
+  rpe_range?: string;
+}
+
 export default function StepMacroRules({ rules, onChange }: Props) {
   const [protocols, setProtocols] = useState<SmartTreinoProtocol[]>([]);
   const [selectedPillar, setSelectedPillar] = useState(rules.pillar || "");
   const [selectedProtocolId, setSelectedProtocolId] = useState<number | null>(null);
   const [selectedVariationId, setSelectedVariationId] = useState<number | null>(null);
   const [selectedModelId, setSelectedModelId] = useState<number | null>(null);
+  const [suggestion, setSuggestion] = useState<ProtocolSuggestion | null>(null);
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false);
 
   useEffect(() => {
     getProtocols().then(setProtocols).catch(console.error);
   }, []);
+
+  // Automatic protocol suggestion based on athlete profile (silent on error)
+  useEffect(() => {
+    if (!rules.aluno_id) return;
+    supabase
+      .rpc("fn_sugerir_protocolo_por_perfil", { p_athlete_id: rules.aluno_id })
+      .then(({ data, error }) => {
+        if (error || !data) return;
+        const s = data as unknown as ProtocolSuggestion;
+        if (s.has_suggestion) setSuggestion(s);
+      });
+  }, [rules.aluno_id]);
 
   // Initialize from existing rules
   useEffect(() => {
@@ -127,10 +152,49 @@ export default function StepMacroRules({ rules, onChange }: Props) {
     }
   };
 
+  const applySuggestion = () => {
+    if (!suggestion?.protocol_id) return;
+    const proto = protocols.find(p => p.id === suggestion.protocol_id);
+    if (!proto) return;
+    setSelectedPillar(proto.pillar);
+    setSelectedProtocolId(proto.protocol_id);
+    setSelectedVariationId(proto.variation_id);
+    setSelectedModelId(proto.model_id);
+    const b9 = proto.block_9_template || {};
+    onChange({
+      ...rules,
+      pillar: proto.pillar,
+      protocol_code: proto.id,
+      protocol_name: proto.protocol_name,
+      variation_name: proto.variation_name,
+      model_name: proto.model_description,
+      macro_objetivo: `${proto.protocol_name} — ${proto.variation_name}: ${proto.model_description}`,
+      rpe_target: parseFloat(proto.rpe_range.split("-")[0]) || rules.rpe_target,
+      reps_range: isStrengthDose(parseProtocolDose(proto.model_description, proto.protocol_id, b9.reps)) ? b9.reps || rules.reps_range : undefined,
+    });
+    setSuggestionDismissed(true);
+  };
+
+  const showSuggestion = !!suggestion && !suggestionDismissed && !selectedPillar && !rules.protocol_code;
+
   const strengthCompatible = !selectedProtocol || isStrengthDose(parseProtocolDose(selectedProtocol.model_description, selectedProtocol.protocol_id, selectedProtocol.block_9_template?.reps));
   return (
     <div className="space-y-6">
       {!strengthCompatible && <p role="alert" className="rounded-lg border border-orange-500 p-3 text-sm">Este protocolo usa distância, duração ou uma estrutura específica. A geração de séries e repetições de musculação não pode aplicá-lo. Selecione um protocolo compatível para esse gerador.</p>}
+      {/* Automatic protocol suggestion */}
+      {showSuggestion && (
+        <Card className="border-orange-500/40">
+          <CardContent className="flex items-center gap-3 py-4">
+            <Lightbulb className="h-5 w-5 text-orange-500 shrink-0" />
+            <p className="text-sm flex-1">
+              <strong>Sugestão automática:</strong> {suggestion!.protocol_name} — {suggestion!.pillar}
+            </p>
+            <Button size="sm" onClick={applySuggestion}>Usar sugestão</Button>
+            <Button size="sm" variant="ghost" onClick={() => setSuggestionDismissed(true)}>Escolher manualmente</Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Protocol Selector (9x9x9) */}
       <Card>
         <CardHeader>
