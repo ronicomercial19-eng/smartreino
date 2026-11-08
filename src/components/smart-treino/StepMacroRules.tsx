@@ -6,7 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { SmartTreinoMacroRules, SmartTreinoProtocol, PILLARS, PROTOCOLS_META, getProtocols } from "@/services/smartTreinoService";
-import { Layers, Info, Zap } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Layers, Info, Zap, Lightbulb } from "lucide-react";
 
 interface Props {
   rules: Partial<SmartTreinoMacroRules>;
@@ -14,6 +16,15 @@ interface Props {
 }
 
 const frequencyOptions = [2, 3, 4, 5, 6];
+
+interface ProtocolSuggestion {
+  has_suggestion: boolean;
+  protocol_id?: string;
+  protocol_name?: string;
+  pillar?: string;
+  variation_name?: string;
+  rpe_range?: string;
+}
 
 export default function StepMacroRules({ rules, onChange }: Props) {
   const [protocols, setProtocols] = useState<SmartTreinoProtocol[]>([]);
