@@ -46,10 +46,9 @@ export default function StepMacroRules({ rules, onChange }: Props) {
       .rpc("fn_sugerir_protocolo_por_perfil", { p_athlete_id: rules.aluno_id })
       .then(({ data, error }) => {
         if (error || !data) return;
-        const s = data as ProtocolSuggestion;
+        const s = data as unknown as ProtocolSuggestion;
         if (s.has_suggestion) setSuggestion(s);
-      })
-      .catch(() => {});
+      });
   }, [rules.aluno_id]);
 
   // Initialize from existing rules
