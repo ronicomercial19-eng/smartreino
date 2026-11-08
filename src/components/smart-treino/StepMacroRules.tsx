@@ -153,10 +153,49 @@ export default function StepMacroRules({ rules, onChange }: Props) {
     }
   };
 
+  const applySuggestion = () => {
+    if (!suggestion?.protocol_id) return;
+    const proto = protocols.find(p => p.id === suggestion.protocol_id);
+    if (!proto) return;
+    setSelectedPillar(proto.pillar);
+    setSelectedProtocolId(proto.protocol_id);
+    setSelectedVariationId(proto.variation_id);
+    setSelectedModelId(proto.model_id);
+    const b9 = proto.block_9_template || {};
+    onChange({
+      ...rules,
+      pillar: proto.pillar,
+      protocol_code: proto.id,
+      protocol_name: proto.protocol_name,
+      variation_name: proto.variation_name,
+      model_name: proto.model_description,
+      macro_objetivo: `${proto.protocol_name} — ${proto.variation_name}: ${proto.model_description}`,
+      rpe_target: parseFloat(proto.rpe_range.split("-")[0]) || rules.rpe_target,
+      reps_range: isStrengthDose(parseProtocolDose(proto.model_description, proto.protocol_id, b9.reps)) ? b9.reps || rules.reps_range : undefined,
+    });
+    setSuggestionDismissed(true);
+  };
+
+  const showSuggestion = !!suggestion && !suggestionDismissed && !selectedPillar && !rules.protocol_code;
+
   const strengthCompatible = !selectedProtocol || isStrengthDose(parseProtocolDose(selectedProtocol.model_description, selectedProtocol.protocol_id, selectedProtocol.block_9_template?.reps));
   return (
     <div className="space-y-6">
       {!strengthCompatible && <p role="alert" className="rounded-lg border border-orange-500 p-3 text-sm">Este protocolo usa distância, duração ou uma estrutura específica. A geração de séries e repetições de musculação não pode aplicá-lo. Selecione um protocolo compatível para esse gerador.</p>}
+      {/* Automatic protocol suggestion */}
+      {showSuggestion && (
+        <Card className="border-orange-500/40">
+          <CardContent className="flex items-center gap-3 py-4">
+            <Lightbulb className="h-5 w-5 text-orange-500 shrink-0" />
+            <p className="text-sm flex-1">
+              <strong>Sugestão automática:</strong> {suggestion!.protocol_name} — {suggestion!.pillar}
+            </p>
+            <Button size="sm" onClick={applySuggestion}>Usar sugestão</Button>
+            <Button size="sm" variant="ghost" onClick={() => setSuggestionDismissed(true)}>Escolher manualmente</Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Protocol Selector (9x9x9) */}
       <Card>
         <CardHeader>
