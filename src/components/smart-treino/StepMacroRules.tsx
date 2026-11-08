@@ -32,10 +32,25 @@ export default function StepMacroRules({ rules, onChange }: Props) {
   const [selectedProtocolId, setSelectedProtocolId] = useState<number | null>(null);
   const [selectedVariationId, setSelectedVariationId] = useState<number | null>(null);
   const [selectedModelId, setSelectedModelId] = useState<number | null>(null);
+  const [suggestion, setSuggestion] = useState<ProtocolSuggestion | null>(null);
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false);
 
   useEffect(() => {
     getProtocols().then(setProtocols).catch(console.error);
   }, []);
+
+  // Automatic protocol suggestion based on athlete profile (silent on error)
+  useEffect(() => {
+    if (!rules.aluno_id) return;
+    supabase
+      .rpc("fn_sugerir_protocolo_por_perfil", { p_athlete_id: rules.aluno_id })
+      .then(({ data, error }) => {
+        if (error || !data) return;
+        const s = data as ProtocolSuggestion;
+        if (s.has_suggestion) setSuggestion(s);
+      })
+      .catch(() => {});
+  }, [rules.aluno_id]);
 
   // Initialize from existing rules
   useEffect(() => {
