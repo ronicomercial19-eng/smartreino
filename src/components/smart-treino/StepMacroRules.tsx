@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { SmartTreinoMacroRules, SmartTreinoProtocol, PILLARS, PROTOCOLS_META, getProtocols } from "@/services/smartTreinoService";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import DensificacaoSelector from "./DensificacaoSelector";
 import { Layers, Info, Zap, Lightbulb } from "lucide-react";
 
 interface Props {
@@ -360,6 +361,8 @@ export default function StepMacroRules({ rules, onChange }: Props) {
           )}
         </CardContent>
       </Card>
+
+      <DensificacaoSelector athleteId={rules.aluno_id} />
     </div>
   );
 }
