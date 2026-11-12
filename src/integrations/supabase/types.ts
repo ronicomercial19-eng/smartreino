@@ -29197,6 +29197,10 @@ export type Database = {
             }
             Returns: Json
           }
+      fn_periodizacao_prescricao_atual: {
+        Args: { p_aluno_id: string }
+        Returns: Json
+      }
       fn_prepare_infinitepay_order: {
         Args: { p_period: string; p_request_id: string; p_user_id: string }
         Returns: Json
