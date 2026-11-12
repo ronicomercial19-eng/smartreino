@@ -3,12 +3,14 @@
  * Colunas: ID, Objetivo, Nível, Status
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MoreVertical, Trash2, Send, Eye } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -27,6 +29,32 @@ export function TabelaAlunos({ alunos, onExcluir }: TabelaAlunosProps) {
   const navigate = useNavigate();
   const [alunoExcluindo, setAlunoExcluindo] = useState<string | null>(null);
   const [alunoEnviandoTreino, setAlunoEnviandoTreino] = useState<Aluno | null>(null);
+  const [semPeriodizacao, setSemPeriodizacao] = useState<Set<string>>(new Set());
+
+  // Verifica quais alunos NÃO têm periodização ativa (in_progress/active)
+  useEffect(() => {
+    const athleteIds = alunos.map((a) => a.athlete_id).filter((id): id is string => !!id);
+    if (athleteIds.length === 0) {
+      setSemPeriodizacao(new Set());
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('athlete_periodizations')
+          .select('athlete_id')
+          .in('athlete_id', athleteIds)
+          .in('status', ['in_progress', 'active']);
+        if (cancelled || error) return;
+        const comPeriodizacao = new Set((data ?? []).map((r: { athlete_id: string }) => r.athlete_id));
+        setSemPeriodizacao(new Set(athleteIds.filter((id) => !comPeriodizacao.has(id))));
+      } catch {
+        // falha silenciosa: indicador simplesmente não aparece
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [alunos]);
 
   const handleExcluir = () => {
     if (alunoExcluindo) {
@@ -74,9 +102,30 @@ export function TabelaAlunos({ alunos, onExcluir }: TabelaAlunosProps) {
                   <Badge variant="outline">{aluno.nivel_experiencia || 'N/A'}</Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={aluno.status === 'ativo' ? 'default' : 'secondary'}>
-                    {aluno.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={aluno.status === 'ativo' ? 'default' : 'secondary'}>
+                      {aluno.status}
+                    </Badge>
+                    {aluno.athlete_id && semPeriodizacao.has(aluno.athlete_id) && (
+                      <TooltipProvider delayDuration={200}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/periodization-upload?aluno=${aluno.athlete_id}`)}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-destructive/40 px-2 py-0.5 text-[11px] text-destructive/90 transition-colors hover:bg-destructive/10"
+                            >
+                              <span className="h-1.5 w-1.5 rounded-full bg-destructive/70" />
+                              Sem periodização
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Atribua uma periodização para continuar o fluxo
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
