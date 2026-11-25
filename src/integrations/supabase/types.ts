@@ -11558,6 +11558,200 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_review_alerts: {
+        Row: {
+          athlete_id: string
+          created_at: string
+          current_pain: boolean
+          id: string
+          raw_text: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string
+          status: string
+        }
+        Insert: {
+          athlete_id: string
+          created_at?: string
+          current_pain?: boolean
+          id?: string
+          raw_text: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string
+          status?: string
+        }
+        Update: {
+          athlete_id?: string
+          created_at?: string
+          current_pain?: boolean
+          id?: string
+          raw_text?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_students_overview"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_canonical"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "v_unified_users"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_athlete_full_profile"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_athlete_legacy_map"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_athlete_status"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_current_athlete"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_current_relationships"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fitpro_athlete_canonical"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fitpro_coach_student_performance"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fitpro_consistency_audit"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fitpro_diet_context"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fitpro_healthflix_assignments"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fitpro_performance_overview"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fitpro_safety_context"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fitpro_share_catalog"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_hub_status"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_leaderboard_semanal"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_performance_athlete"
+            referencedColumns: ["athlete_id"]
+          },
+          {
+            foreignKeyName: "onboarding_review_alerts_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "vw_radar_5d"
+            referencedColumns: ["athlete_id"]
+          },
+        ]
+      }
       pain_reports: {
         Row: {
           action_taken: string | null
@@ -21433,6 +21627,36 @@ export type Database = {
           },
         ]
       }
+      training_generation_failures: {
+        Row: {
+          athlete_id: string
+          created_at: string
+          detail: string | null
+          id: string
+          origin: string
+          sqlstate_code: string | null
+          workout_date: string | null
+        }
+        Insert: {
+          athlete_id: string
+          created_at?: string
+          detail?: string | null
+          id?: string
+          origin: string
+          sqlstate_code?: string | null
+          workout_date?: string | null
+        }
+        Update: {
+          athlete_id?: string
+          created_at?: string
+          detail?: string | null
+          id?: string
+          origin?: string
+          sqlstate_code?: string | null
+          workout_date?: string | null
+        }
+        Relationships: []
+      }
       training_html_deliveries: {
         Row: {
           athlete_id: string
@@ -28668,6 +28892,10 @@ export type Database = {
         Args: { p_athlete_id: string }
         Returns: Json
       }
+      fn_ativar_periodizacao_basica: {
+        Args: { p_athlete_id: string }
+        Returns: string
+      }
       fn_attach_infinitepay_link: {
         Args: { p_order_id: string; p_url: string }
         Returns: Json
@@ -28706,6 +28934,7 @@ export type Database = {
           new_total_xp: number
         }[]
       }
+      fn_billing_subscription_list: { Args: never; Returns: Json }
       fn_calcular_score_avaliacao: {
         Args: { p_avaliacao_id: string }
         Returns: {
@@ -28758,6 +28987,15 @@ export type Database = {
         Args: { p_athlete_id?: string; p_month: string }
         Returns: Json
       }
+      fn_coach_block_athlete: {
+        Args: {
+          p_athlete_id: string
+          p_payment_url?: string
+          p_reason_code: string
+          p_reason_text?: string
+        }
+        Returns: Json
+      }
       fn_coach_grant_access: {
         Args: {
           p_days: number
@@ -28777,6 +29015,10 @@ export type Database = {
       }
       fn_coach_readiness_alerts: {
         Args: { p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
+      fn_coach_release_athlete: {
+        Args: { p_athlete_id: string }
         Returns: Json
       }
       fn_coach_student_context: {
@@ -28931,6 +29173,25 @@ export type Database = {
       fn_ensure_progress_athlete: {
         Args: { p_student_id: string }
         Returns: string
+      }
+      fn_extrair_rpe_cap: { Args: { p_rpe: string }; Returns: number }
+      fn_falhas_geracao_treino: {
+        Args: { p_athlete_id: string; p_limit?: number }
+        Returns: {
+          athlete_id: string
+          created_at: string
+          detail: string | null
+          id: string
+          origin: string
+          sqlstate_code: string | null
+          workout_date: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "training_generation_failures"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       fn_fitpro_access_status: { Args: never; Returns: Json }
       fn_fitpro_apply_payment_check: {
@@ -29147,6 +29408,18 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_listar_alertas_onboarding: {
+        Args: { p_status?: string }
+        Returns: {
+          athlete_id: string
+          athlete_name: string
+          created_at: string
+          current_pain: boolean
+          id: string
+          raw_text: string
+          status: string
+        }[]
+      }
       fn_loop_emit: {
         Args: {
           p_athlete_id: string
@@ -29189,6 +29462,7 @@ export type Database = {
               p_cadence: string
               p_descricao: string
               p_grupos_musculares: string[]
+              p_modality?: string
               p_qtd_alvo: number
               p_reps: string
               p_rest: string
@@ -29197,6 +29471,16 @@ export type Database = {
             }
             Returns: Json
           }
+      fn_montar_sessao_cardio: {
+        Args: {
+          p_block_9_template: Json
+          p_protocol_axis: string
+          p_seed: string
+          p_variation_focus: string
+        }
+        Returns: Json
+      }
+      fn_my_onboardings: { Args: never; Returns: Json }
       fn_periodizacao_prescricao_atual: {
         Args: { p_aluno_id: string }
         Returns: Json
@@ -29234,6 +29518,15 @@ export type Database = {
           p_request_id: string
           p_schedule: Json
           p_template_id: string
+        }
+        Returns: Json
+      }
+      fn_professor_block_access: {
+        Args: {
+          p_payment_url?: string
+          p_reason_code: string
+          p_reason_text?: string
+          p_user_id: string
         }
         Returns: Json
       }
@@ -29298,6 +29591,10 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_professor_release_access: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       fn_professor_review_adjustment: {
         Args: { p_action: string; p_recommendation_id: string }
         Returns: Json
@@ -29355,6 +29652,16 @@ export type Database = {
         Args: { p_athlete_id?: string }
         Returns: Json
       }
+      fn_registrar_falha_geracao: {
+        Args: {
+          p_athlete_id: string
+          p_date: string
+          p_detail: string
+          p_origin: string
+          p_sqlstate: string
+        }
+        Returns: undefined
+      }
       fn_registrar_peso_avulso: {
         Args: {
           p_athlete_id: string
@@ -29390,6 +29697,10 @@ export type Database = {
         Args: { p_identifier?: string }
         Returns: string
       }
+      fn_resolver_macro_ausente: {
+        Args: { p_athlete_id: string }
+        Returns: string
+      }
       fn_revert_readiness_workout: {
         Args: { p_daily_workout_id: string }
         Returns: Json
@@ -29397,6 +29708,10 @@ export type Database = {
       fn_review_ninefit_template: {
         Args: { p_status: string; p_template_id: string }
         Returns: boolean
+      }
+      fn_revisar_alerta_onboarding: {
+        Args: { p_alert_id: string; p_note?: string; p_status: string }
+        Returns: undefined
       }
       fn_reward_share: {
         Args: {
@@ -29532,6 +29847,7 @@ export type Database = {
         Args: { p_confirm_pdi?: boolean; p_enabled: boolean }
         Returns: Json
       }
+      fn_sincronizar_alertas_onboarding: { Args: never; Returns: number }
       fn_skip_daily_workout_execution: {
         Args: { p_daily_workout_id: string }
         Returns: Json
@@ -29548,6 +29864,9 @@ export type Database = {
         Args: { p_assignment_id: string }
         Returns: string
       }
+      fn_student_access_state: { Args: { p_athlete_id: string }; Returns: Json }
+      fn_student_curriculum: { Args: { p_athlete_id: string }; Returns: Json }
+      fn_student_onboardings: { Args: { p_athlete_id: string }; Returns: Json }
       fn_student_professional: { Args: never; Returns: Json }
       fn_submit_workout_feedback: {
         Args: {
