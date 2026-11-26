@@ -13,9 +13,18 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   ClipboardCheck, Clock, Activity, MessageSquare, 
-  Calendar, Info, CheckCircle2, TrendingUp 
+  Calendar, Info, CheckCircle2, TrendingUp, AlertTriangle 
 } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -54,11 +63,39 @@ const PSE_LABELS: Record<number, { label: string; color: string }> = {
   10: { label: 'Exaustão total', color: 'text-red-600' },
 };
 
+const BODY_REGIONS = [
+  'Ombro',
+  'Cotovelo',
+  'Punho/Mão',
+  'Lombar',
+  'Quadril',
+  'Joelho',
+  'Tornozelo/Pé',
+  'Pescoço',
+  'Peito',
+  'Outra região',
+];
+
+const RED_FLAGS: { label: string; value: string }[] = [
+  { label: 'Dor súbita e intensa', value: 'dor_subita_intensa' },
+  { label: 'Perda de força', value: 'perda_de_forca' },
+  { label: 'Dor após trauma/pancada', value: 'dor_pos_trauma' },
+  { label: 'Febre junto com a dor', value: 'febre_associada' },
+  { label: 'Dor no peito', value: 'dor_toracica' },
+  { label: 'Dor na coluna que irradia', value: 'dor_axial_coluna' },
+  { label: 'Tensão muscular extrema', value: 'tensao_muscular_extrema' },
+  { label: 'Formigamento ou dormência', value: 'formigamento_dormencia' },
+  { label: 'Inchaço súbito', value: 'inchaco_subito' },
+];
+
 export function StudentTrainingLog({ alunoId, planoId, historico, loading, onLogSaved }: StudentTrainingLogProps) {
   const [pse, setPse] = useState(5);
   const [duracao, setDuracao] = useState('');
   const [notas, setNotas] = useState('');
   const [volumeTotal, setVolumeTotal] = useState('');
+  const [temDor, setTemDor] = useState(false);
+  const [regiaoDor, setRegiaoDor] = useState('');
+  const [sintomasAlerta, setSintomasAlerta] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const { toast } = useToast();
@@ -71,6 +108,28 @@ export function StudentTrainingLog({ alunoId, planoId, historico, loading, onLog
 
     try {
       setSaving(true);
+
+      // Reporte de dor/desconforto (independente do registro do treino)
+      let dorAction: string | null = null;
+      let dorMessage: string | null = null;
+      if (temDor && regiaoDor) {
+        try {
+          const { data: dorData, error: dorError } = await supabase.rpc('fn_reportar_dor', {
+            p_athlete_id: alunoId,
+            p_exercise_id: null,
+            p_body_region: regiaoDor,
+            p_red_flags: sintomasAlerta,
+            p_workout_date: new Date().toISOString().split('T')[0],
+          });
+          if (dorError) throw dorError;
+          const dorRes = dorData as { action?: string; message?: string } | null;
+          dorAction = dorRes?.action ?? null;
+          dorMessage = dorRes?.message ?? null;
+        } catch (dorError) {
+          console.error('Erro ao reportar dor:', dorError);
+        }
+      }
+
       const { error } = await supabase
         .from('historico_treinos_realizados')
         .insert({
@@ -86,11 +145,27 @@ export function StudentTrainingLog({ alunoId, planoId, historico, loading, onLog
 
       if (error) throw error;
 
-      toast({ title: "Treino registrado! 💪", description: "Seu treino foi salvo com sucesso." });
+      if (dorAction === 'blocked_full_workout') {
+        toast({
+          title: "Treino bloqueado por segurança",
+          description: dorMessage || "Procure atendimento médico antes de continuar.",
+          variant: "destructive",
+        });
+      } else if (dorAction === 'redirected_session') {
+        toast({
+          title: "Treino ajustado",
+          description: dorMessage || "Seu treino de hoje foi ajustado para evitar a região afetada.",
+        });
+      } else {
+        toast({ title: "Treino registrado! 💪", description: "Seu treino foi salvo com sucesso." });
+      }
       setPse(5);
       setDuracao('');
       setNotas('');
       setVolumeTotal('');
+      setTemDor(false);
+      setRegiaoDor('');
+      setSintomasAlerta([]);
       setShowForm(false);
       onLogSaved();
     } catch (error) {
@@ -159,6 +234,66 @@ export function StudentTrainingLog({ alunoId, planoId, historico, loading, onLog
               </div>
             </div>
 
+            {/* Dor / desconforto */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="senti-dor" className="flex items-center gap-2 font-medium">
+                  <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                  Senti dor ou desconforto durante o treino
+                </Label>
+                <Switch
+                  id="senti-dor"
+                  checked={temDor}
+                  onCheckedChange={(v) => setTemDor(Boolean(v))}
+                />
+              </div>
+
+              {temDor && (
+                <div className="space-y-4 rounded-lg border border-border/60 bg-muted/20 p-4 animate-fade-in">
+                  <div className="space-y-2">
+                    <Label>Região do corpo</Label>
+                    <Select value={regiaoDor} onValueChange={setRegiaoDor}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione a região" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BODY_REGIONS.map((regiao) => (
+                          <SelectItem key={regiao} value={regiao}>{regiao}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="font-medium">Sintomas de alerta</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {RED_FLAGS.map((flag) => (
+                        <label
+                          key={flag.value}
+                          className="flex items-start gap-2 text-sm cursor-pointer"
+                        >
+                          <Checkbox
+                            checked={sintomasAlerta.includes(flag.value)}
+                            onCheckedChange={(v) =>
+                              setSintomasAlerta((prev) =>
+                                v === true
+                                  ? [...prev, flag.value]
+                                  : prev.filter((item) => item !== flag.value)
+                              )
+                            }
+                          />
+                          <span className="text-muted-foreground leading-tight">{flag.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Marque apenas se aplicável. Isso ajuda a ajustar seu treino com segurança.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Duração e Volume */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -203,7 +338,15 @@ export function StudentTrainingLog({ alunoId, planoId, historico, loading, onLog
               <Button onClick={handleSave} disabled={saving} className="flex-1">
                 {saving ? 'Salvando...' : 'Salvar Registro'}
               </Button>
-              <Button variant="outline" onClick={() => setShowForm(false)}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowForm(false);
+                  setTemDor(false);
+                  setRegiaoDor('');
+                  setSintomasAlerta([]);
+                }}
+              >
                 Cancelar
               </Button>
             </div>
