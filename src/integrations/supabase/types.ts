@@ -29685,6 +29685,16 @@ export type Database = {
         Args: { p_athlete_id: string; p_reported: boolean }
         Returns: Json
       }
+      fn_reportar_dor: {
+        Args: {
+          p_athlete_id: string
+          p_body_region: string
+          p_exercise_id: string
+          p_red_flags?: string[]
+          p_workout_date?: string
+        }
+        Returns: Json
+      }
       fn_reschedule_appointment: {
         Args: { p_id: string; p_new_at: string; p_reason?: string }
         Returns: Json
